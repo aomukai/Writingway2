@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,7 +8,7 @@
     <!-- Note: This file should be named main.html and opened via start.bat -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dexie@3.2.4/dist/dexie.min.js"></script>
-    
+
     <style>
         * {
             margin: 0;
@@ -112,14 +113,124 @@
         }
 
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
         }
 
         .scene-list {
             flex: 1;
             overflow-y: auto;
             padding: 10px;
+        }
+
+        .chapter-item {
+            margin-bottom: 8px;
+        }
+
+        .chapter-header {
+            padding: 10px 12px;
+            background: transparent;
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            font-weight: 700;
+        }
+
+        /* Action icons (move/delete) are hidden until the user hovers the item */
+        .item-actions {
+            opacity: 0;
+            transition: opacity 0.15s ease-in-out;
+            display: flex;
+            gap: 6px;
+            position: relative;
+            /* ensure absolute popup is positioned relative to this container */
+        }
+
+        .chapter-header:hover .item-actions,
+        .scene-item:hover .item-actions {
+            opacity: 1;
+        }
+
+        .move-select {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            padding: 6px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            min-width: 110px;
+        }
+
+        /* Compact menu button and menu popup */
+        .menu-button {
+            background: transparent;
+            color: var(--text-primary);
+            border: 1px solid transparent;
+            padding: 6px;
+            border-radius: 6px;
+            font-size: 14px;
+            line-height: 1;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+        }
+
+        .menu-button:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .action-menu {
+            position: absolute;
+            right: 0;
+            top: calc(100% + 6px);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            padding: 8px;
+            border-radius: 6px;
+            min-width: 160px;
+            z-index: 4000;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+        }
+
+        .action-menu button {
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: 8px 10px;
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .action-menu button:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .action-menu .menu-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .chapter-scenes {
+            padding-left: 8px;
+            margin-top: 6px;
+            display: block;
         }
 
         .scene-item {
@@ -452,8 +563,10 @@
         }
     </style>
 </head>
+
 <body>
     <div x-data="app" x-init="init()">
+        <!-- debug banner removed -->
         <!-- Main App -->
         <template x-if="currentProject && !showModelLoading">
             <div class="app-container">
@@ -472,32 +585,140 @@
                         </div>
                     </div>
 
-                    <div class="project-info">
-                        <h2 x-text="currentProject.name"></h2>
-                        <div class="word-count" x-text="`${totalWords} words`"></div>
+                    <div class="project-info" x-data="{ openMenu:false }" style="position:relative;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                            <h2 x-text="currentProject.name" style="margin:0;padding-right:8px;"></h2>
+
+                            <div style="display:flex;align-items:center;gap:6px;">
+                                <button class="menu-button" @click.stop="openMenu = !openMenu"
+                                    title="Project menu">⋯</button>
+                                <div x-show="openMenu" x-cloak @click.away="openMenu = false" x-transition
+                                    class="action-menu">
+                                    <button
+                                        @click.stop="showRenameProjectModal = true; renameProjectName = currentProject.name; openMenu=false">Rename</button>
+                                    <div style="border-top:1px solid var(--border);margin:6px 0"></div>
+                                    <div style="max-height:200px;overflow:auto;margin-bottom:6px;">
+                                        <strong
+                                            style="display:block;padding:6px 10px;color:var(--text-secondary);font-size:12px;">Switch
+                                            project</strong>
+                                        <template x-for="p in projects" :key="p.id">
+                                            <button @click.stop="selectProject(p.id); openMenu=false"
+                                                style="padding-left:10px;">
+                                                <span x-text="p.name"></span>
+                                            </button>
+                                        </template>
+                                    </div>
+                                    <div style="border-top:1px solid var(--border);margin:6px 0"></div>
+                                    <button @click.stop="showNewProjectModal = true; openMenu=false">New
+                                        project</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="word-count" x-text="`${totalWords} words`" style="margin-top:6px;"></div>
                     </div>
 
                     <div class="scene-list">
-                        <template x-for="scene in scenes" :key="scene.id">
-                            <div 
-                                class="scene-item" 
-                                :class="{ 'active': currentScene && currentScene.id === scene.id }"
-                                @click="loadScene(scene.id)">
-                                <div class="scene-title" x-text="scene.title"></div>
-                                <div class="scene-meta" x-text="`${scene.wordCount || 0} words`"></div>
+                        <template x-for="chapter in chapters" :key="chapter.id">
+                            <div class="chapter-item">
+                                <div class="chapter-header" style="align-items:center;gap:8px;"
+                                    x-data="{ openMenu:false }">
+                                    <div
+                                        style="flex:1;display:flex;justify-content:space-between;align-items:center;position:relative;">
+                                        <div @click="chapter.expanded = !chapter.expanded; currentChapter = chapter"
+                                            style="flex:1;cursor:pointer;">
+                                            <div x-text="chapter.title"></div>
+                                        </div>
+                                        <div style="font-size:12px;color:var(--text-secondary);margin-left:8px;">
+                                            <span x-text="`${chapter.scenes ? chapter.scenes.length : 0}`"></span>
+                                            <span> ▾</span>
+                                        </div>
+
+                                        <div class="item-actions" style="margin-left:8px;">
+                                            <button class="menu-button" @click.stop="openMenu = !openMenu" title="More">
+                                                ⋯
+                                            </button>
+
+                                            <div x-show="openMenu" x-cloak @click.away="openMenu = false" x-transition
+                                                class="action-menu">
+                                                <button @click.stop="moveChapterUp(chapter.id); openMenu=false">Move
+                                                    chapter up</button>
+                                                <button @click.stop="moveChapterDown(chapter.id); openMenu=false">Move
+                                                    chapter down</button>
+                                                <button @click.stop="deleteChapter(chapter.id); openMenu=false">Delete
+                                                    chapter</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="chapter-scenes" x-show="chapter.expanded">
+                                    <template x-for="scene in chapter.scenes" :key="scene.id">
+                                        <div class="scene-item"
+                                            :class="{ 'active': currentScene && currentScene.id === scene.id }"
+                                            @click="loadScene(scene.id)"
+                                            style="display:flex;justify-content:space-between;align-items:center;">
+                                            <div>
+                                                <div class="scene-title" x-text="scene.title"></div>
+                                                <div class="scene-meta" x-text="`${scene.wordCount || 0} words`"></div>
+                                            </div>
+                                            <div class="item-actions" style="margin-left:12px;"
+                                                x-data="{ openMenu:false }">
+                                                <button class="menu-button" @click.stop="openMenu = !openMenu"
+                                                    title="More">
+                                                    ⋯
+                                                </button>
+
+                                                <div x-show="openMenu" x-cloak @click.away="openMenu = false"
+                                                    x-transition class="action-menu">
+                                                    <div class="menu-row">
+                                                        <label
+                                                            style="font-size:12px;color:var(--text-secondary);flex:1;">Move
+                                                            to
+                                                            <select class="move-select"
+                                                                @change.stop="moveSceneToChapter(scene.id, $event.target.value); openMenu=false;">
+                                                                <option value="" disabled selected>Choose chapter
+                                                                </option>
+                                                                <template x-for="ch in chapters" :key="ch.id">
+                                                                    <option :value="ch.id"
+                                                                        :selected="ch.id === scene.chapterId"
+                                                                        x-text="ch.title"></option>
+                                                                </template>
+                                                            </select>
+                                                        </label>
+                                                    </div>
+
+                                                    <button @click.stop="moveSceneUp(scene.id); openMenu=false">Move
+                                                        up</button>
+                                                    <button @click.stop="moveSceneDown(scene.id); openMenu=false">Move
+                                                        down</button>
+                                                    <button @click.stop="deleteScene(scene.id); openMenu=false">Delete
+                                                        scene</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
                             </div>
                         </template>
                     </div>
 
-                    <button class="add-scene-btn" @click="showNewSceneModal = true">
-                        + New Scene
-                    </button>
+                    <div style="display:flex;flex-direction:column;padding:10px;gap:8px;">
+                        <button class="add-scene-btn" @click="openNewSceneModal()">
+                            + New Scene
+                        </button>
+
+                        <button class="add-scene-btn" @click="openNewChapterModal()">
+                            + New Chapter
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Editor -->
                 <div class="editor-container">
                     <div class="editor-header">
-                        <div class="editor-title" x-text="currentScene ? currentScene.title : 'No scene selected'"></div>
+                        <div class="editor-title" x-text="currentScene ? currentScene.title : 'No scene selected'">
+                        </div>
                         <div class="editor-stats">
                             <span x-text="`${currentSceneWords} words`"></span>
                             <span class="save-indicator" :class="{ 'saving': isSaving }" x-text="saveStatus"></span>
@@ -506,12 +727,8 @@
 
                     <div class="editor-main">
                         <template x-if="currentScene">
-                            <textarea 
-                                class="editor-textarea"
-                                x-model="currentScene.content"
-                                @input="onEditorChange"
-                                placeholder="Start writing your scene here..."
-                            ></textarea>
+                            <textarea class="editor-textarea" x-model="currentScene.content" @input="onEditorChange"
+                                placeholder="Start writing your scene here..."></textarea>
                         </template>
 
                         <template x-if="!currentScene">
@@ -528,23 +745,58 @@
                     <div class="beat-panel">
                         <h3>Generate from Beat</h3>
                         <div class="beat-input-group">
-                            <textarea 
-                                class="beat-input" 
-                                x-model="beatInput"
+                            <textarea class="beat-input" x-model="beatInput"
                                 placeholder="Describe what happens next (e.g., 'She grabs her bag and leaves the apartment. She senses tension in the corridor.')"
-                                rows="2"
-                            ></textarea>
-                            <button 
-                                class="generate-btn" 
-                                @click="generateFromBeat"
-                                :disabled="!beatInput || isGenerating || aiStatus !== 'ready'">
-                                <span x-text="isGenerating ? 'Generating...' : 'Generate'"></span>
-                            </button>
+                                rows="2"></textarea>
+
+                            <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-start;">
+                                <div style="display:flex;gap:8px;align-items:center;">
+                                    <button class="generate-btn" @click="generateFromBeat"
+                                        :disabled="!beatInput || isGenerating || aiStatus !== 'ready'">
+                                        <span x-text="isGenerating ? 'Generating...' : 'Generate'"></span>
+                                    </button>
+
+                                    <button class="btn btn-secondary" @click="showSceneOptions = !showSceneOptions"
+                                        title="Scene options">
+                                        ⚙️
+                                    </button>
+                                </div>
+
+                                <div class="scene-options" x-show="showSceneOptions"
+                                    style="background:var(--bg-tertiary);padding:10px;border-radius:6px;border:1px solid var(--border);width:320px;">
+                                    <div style="display:flex;flex-direction:column;gap:8px;">
+                                        <label style="font-size:12px;color:var(--text-secondary);">POV CHARACTER
+                                            <input type="text" x-model="povCharacter" placeholder="e.g., Alice"
+                                                style="width:100%;margin-top:6px;padding:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
+                                        </label>
+
+                                        <label style="font-size:12px;color:var(--text-secondary);">POV
+                                            <select x-model="pov"
+                                                style="width:100%;margin-top:6px;padding:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
+                                                <option>3rd person limited</option>
+                                                <option>1st person</option>
+                                                <option>omniscient</option>
+                                            </select>
+                                        </label>
+
+                                        <label style="font-size:12px;color:var(--text-secondary);">TENSE
+                                            <select x-model="tense"
+                                                style="width:100%;margin-top:6px;padding:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
+                                                <option value="past">past tense</option>
+                                                <option value="present">present tense</option>
+                                            </select>
+                                        </label>
+
+                                        <!-- Removed move-to-chapter from generation panel; use sidebar menu instead -->
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div class="context-info">
                             <span x-show="aiStatus === 'ready'">✓ AI ready • Will use current scene as context</span>
                             <span x-show="aiStatus === 'loading'">⏳ Loading model...</span>
-                            <span x-show="aiStatus === 'error'">⚠️ Model not loaded (using placeholder text for now)</span>
+                            <span x-show="aiStatus === 'error'">⚠️ Model not loaded (using placeholder text for
+                                now)</span>
                         </div>
                     </div>
                 </div>
@@ -573,12 +825,14 @@
             <div class="welcome-screen">
                 <div class="welcome-content">
                     <h2>Welcome to Writingway 2.0</h2>
-                    <p>A free, open-source creative writing tool with AI assistance. Everything runs locally on your computer.</p>
+                    <p>A free, open-source creative writing tool with AI assistance. Everything runs locally on your
+                        computer.</p>
                     <button class="btn btn-primary" @click="showNewProjectModal = true">
                         Create Your First Project
                     </button>
                     <div class="note">
-                        <strong>Note:</strong> AI integration is currently being set up. The app will work without AI, and generation features will use placeholder text until the local model is fully configured.
+                        <strong>Note:</strong> AI integration is currently being set up. The app will work without AI,
+                        and generation features will use placeholder text until the local model is fully configured.
                     </div>
                 </div>
             </div>
@@ -589,14 +843,26 @@
             <div class="modal-overlay" @click.self="showNewProjectModal = false">
                 <div class="modal">
                     <h3>New Project</h3>
-                    <input 
-                        type="text" 
-                        x-model="newProjectName"
-                        placeholder="Project name (e.g., 'My Novel')"
+                    <input type="text" x-model="newProjectName" placeholder="Project name (e.g., 'My Novel')"
                         @keydown.enter="createProject">
                     <div class="modal-buttons">
                         <button class="btn btn-secondary" @click="showNewProjectModal = false">Cancel</button>
                         <button class="btn btn-primary" @click="createProject">Create</button>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <!-- Rename Project Modal -->
+        <template x-if="showRenameProjectModal">
+            <div class="modal-overlay" @click.self="showRenameProjectModal = false">
+                <div class="modal">
+                    <h3>Rename Project</h3>
+                    <input type="text" x-model="renameProjectName" placeholder="Project name"
+                        @keydown.enter="renameCurrentProject">
+                    <div class="modal-buttons">
+                        <button class="btn btn-secondary" @click="showRenameProjectModal = false">Cancel</button>
+                        <button class="btn btn-primary" @click="renameCurrentProject">Rename</button>
                     </div>
                 </div>
             </div>
@@ -607,10 +873,7 @@
             <div class="modal-overlay" @click.self="showNewSceneModal = false">
                 <div class="modal">
                     <h3>New Scene</h3>
-                    <input 
-                        type="text" 
-                        x-model="newSceneName"
-                        placeholder="Scene name (e.g., 'Opening')"
+                    <input type="text" x-model="newSceneName" placeholder="Scene name (e.g., 'Opening')"
                         @keydown.enter="createScene">
                     <div class="modal-buttons">
                         <button class="btn btn-secondary" @click="showNewSceneModal = false">Cancel</button>
@@ -619,15 +882,62 @@
                 </div>
             </div>
         </template>
+        <!-- New Chapter Modal (x-show) -->
+        <div x-show="showNewChapterModal" @click.self="showNewChapterModal = false"
+            style="display:flex;align-items:center;justify-content:center;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:3000;">
+            <div class="modal" style="z-index:3001;">
+                <h3>New Chapter</h3>
+                <input type="text" x-model="newChapterName" placeholder="Chapter name (e.g., 'Chapter 1')"
+                    @keydown.enter="createChapter">
+                <div class="modal-buttons">
+                    <button class="btn btn-secondary" @click="showNewChapterModal = false">Cancel</button>
+                    <button class="btn btn-primary" @click="createChapter">Create</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
-        // Initialize Dexie Database
+        // Initialize Dexie Database with a migration path
         const db = new Dexie('WritingwayDB');
+        // Original schema (version 1) - ensures compatibility with existing installs
         db.version(1).stores({
             projects: 'id, name, created, modified',
             scenes: 'id, projectId, title, order, created, modified',
             content: 'sceneId, text, wordCount'
+        });
+
+        // New schema (version 2) adds chapters and scene.chapterId. Use upgrade() to migrate orphan scenes.
+        db.version(2).stores({
+            projects: 'id, name, created, modified',
+            chapters: 'id, projectId, title, order, created, modified',
+            scenes: 'id, projectId, chapterId, title, order, created, modified',
+            content: 'sceneId, text, wordCount'
+        }).upgrade(async tx => {
+            try {
+                const projects = await tx.table('projects').toArray();
+                for (const p of projects) {
+                    // Create a default chapter for the project
+                    const chapId = Date.now().toString() + '-m-' + Math.random().toString(36).slice(2, 7);
+                    await tx.table('chapters').add({
+                        id: chapId,
+                        projectId: p.id,
+                        title: 'Chapter 1',
+                        order: 0,
+                        created: new Date(),
+                        modified: new Date()
+                    });
+
+                    // Move orphan scenes (no chapterId) into the new default chapter
+                    const orphanScenes = await tx.table('scenes').where('projectId').equals(p.id).filter(s => !s.chapterId).toArray();
+                    for (const s of orphanScenes) {
+                        await tx.table('scenes').update(s.id, { chapterId: chapId });
+                    }
+                }
+            } catch (e) {
+                // If migration fails for any reason, log but don't block opening the DB
+                console.error('Dexie upgrade migration failed:', e);
+            }
         });
 
         // Alpine.js App
@@ -635,8 +945,14 @@
             Alpine.data('app', () => ({
                 // State
                 currentProject: null,
+                projects: [],
+                selectedProjectId: null,
+                showRenameProjectModal: false,
+                renameProjectName: '',
                 currentScene: null,
-                scenes: [],
+                chapters: [],
+                scenes: [], // flattened scenes list for quick access
+                currentChapter: null,
                 beatInput: '',
                 isGenerating: false,
                 isSaving: false,
@@ -644,9 +960,17 @@
                 saveTimeout: null,
                 showNewProjectModal: false,
                 showNewSceneModal: false,
+                showNewChapterModal: false,
+                newChapterName: '',
                 newProjectName: '',
                 newSceneName: '',
-                
+
+                // Scene generation options
+                showSceneOptions: false,
+                povCharacter: '',
+                pov: '3rd person limited',
+                tense: 'past',
+
                 // AI State
                 aiWorker: null,
                 aiStatus: 'loading', // loading, ready, error
@@ -667,7 +991,20 @@
 
                 // Initialize
                 async init() {
-                    await this.loadLastProject();
+                    // Load projects and last project selection, but don't let DB failures block AI initialization
+                    try {
+                        await this.loadProjects();
+                        // restore last selected project from localStorage if present
+                        const last = localStorage.getItem('writingway:lastProject');
+                        if (last && this.projects.find(p => p.id === last)) {
+                            await this.selectProject(last);
+                        } else {
+                            await this.loadLastProject();
+                        }
+                    } catch (e) {
+                        console.error('Failed to load projects/last project:', e);
+                    }
+
                     await this.initializeAI();
                 },
 
@@ -679,17 +1016,17 @@
 
                         // Check if llama-server is running
                         const response = await fetch('http://localhost:8080/health');
-                        
+
                         if (response.ok) {
                             this.loadingProgress = 100;
                             this.loadingMessage = 'Connected to AI!';
-                            
+
                             await new Promise(resolve => setTimeout(resolve, 500));
-                            
+
                             this.aiStatus = 'ready';
                             this.aiStatusText = 'AI Ready (Local Server)';
                             this.showModelLoading = false;
-                            
+
                             console.log('✓ Connected to llama-server successfully');
                         } else {
                             throw new Error('Server not responding');
@@ -699,16 +1036,18 @@
                         this.aiStatus = 'error';
                         this.aiStatusText = 'AI server not running';
                         this.showModelLoading = false;
-                        
+
                         console.log('Make sure start.bat launched llama-server successfully');
                     }
                 },
 
                 async loadLastProject() {
+                    // fallback: pick first project if available
                     const projects = await db.projects.toArray();
                     if (projects.length > 0) {
                         this.currentProject = projects[0];
-                        await this.loadScenes();
+                        this.selectedProjectId = this.currentProject.id;
+                        await this.loadChapters();
                         if (this.scenes.length > 0) {
                             await this.loadScene(this.scenes[0].id);
                         }
@@ -731,15 +1070,45 @@
                     this.showNewProjectModal = false;
                     this.newProjectName = '';
 
+                    // refresh projects list and select the new project
+                    await this.loadProjects();
+                    await this.selectProject(project.id);
                     await this.createDefaultScene();
                 },
 
                 async createDefaultScene() {
+                    // Ensure there's at least one chapter; reuse existing if present to avoid duplicates
+                    let chapter = (await db.chapters.where('projectId').equals(this.currentProject.id).sortBy('order'))[0];
+                    if (!chapter) {
+                        chapter = {
+                            id: Date.now().toString() + '-c',
+                            projectId: this.currentProject.id,
+                            title: 'Chapter 1',
+                            order: 0,
+                            created: new Date(),
+                            modified: new Date()
+                        };
+                        await db.chapters.add(chapter);
+                    }
+
+                    // determine next scene order within chapter
+                    let nextOrder = 0;
+                    try {
+                        nextOrder = await db.scenes.where('projectId').equals(this.currentProject.id).and(s => s.chapterId === chapter.id).count();
+                    } catch (e) {
+                        nextOrder = 0;
+                    }
+
                     const scene = {
                         id: Date.now().toString(),
                         projectId: this.currentProject.id,
+                        chapterId: chapter.id,
                         title: 'Scene 1',
-                        order: 0,
+                        order: nextOrder,
+                        // initialize with current POV options
+                        povCharacter: this.povCharacter || '',
+                        pov: this.pov || '3rd person limited',
+                        tense: this.tense || 'past',
                         created: new Date(),
                         modified: new Date()
                     };
@@ -751,31 +1120,137 @@
                         wordCount: 0
                     });
 
-                    await this.loadScenes();
+                    // Normalize orders and reload structured data
+                    await this.normalizeAllOrders();
                     await this.loadScene(scene.id);
                 },
 
-                // Scene Management
-                async loadScenes() {
-                    this.scenes = await db.scenes
+                async loadProjects() {
+                    this.projects = await db.projects.orderBy('created').reverse().toArray();
+                },
+
+                async selectProject(projectId) {
+                    const proj = await db.projects.get(projectId);
+                    if (!proj) return;
+                    this.currentProject = proj;
+                    this.selectedProjectId = proj.id;
+                    // persist last opened project
+                    try { localStorage.setItem('writingway:lastProject', proj.id); } catch (e) { }
+                    await this.loadChapters();
+                    if (this.scenes.length > 0) {
+                        await this.loadScene(this.scenes[0].id);
+                    } else {
+                        this.currentScene = null;
+                    }
+                },
+
+                async renameCurrentProject() {
+                    if (!this.currentProject || !this.renameProjectName) return;
+                    try {
+                        await db.projects.update(this.currentProject.id, { name: this.renameProjectName, modified: new Date() });
+                        await this.loadProjects();
+                        // refresh currentProject reference
+                        this.currentProject = await db.projects.get(this.currentProject.id);
+                        this.showRenameProjectModal = false;
+                    } catch (e) {
+                        console.error('Failed to rename project:', e);
+                    }
+                },
+
+                // Scene & Chapter Management
+                async loadChapters() {
+                    // Load chapters for the current project
+                    this.chapters = await db.chapters
                         .where('projectId')
                         .equals(this.currentProject.id)
                         .sortBy('order');
 
-                    for (let scene of this.scenes) {
-                        const content = await db.content.get(scene.id);
-                        scene.wordCount = content ? content.wordCount : 0;
+                    // For each chapter, load its scenes
+                    this.scenes = [];
+                    for (let ch of this.chapters) {
+                        // Load scenes for this chapter by filtering projectId and chapterId
+                        let scenesForChapter = await db.scenes
+                            .where('projectId')
+                            .equals(this.currentProject.id)
+                            .and(s => s.chapterId === ch.id)
+                            .sortBy('order');
+
+                        for (let s of scenesForChapter) {
+                            const content = await db.content.get(s.id);
+                            s.wordCount = content ? content.wordCount : 0;
+                            // load persisted generation options into scene if present
+                            s.povCharacter = s.povCharacter || s.povCharacter === '' ? s.povCharacter : '';
+                            s.pov = s.pov || s.pov === '' ? s.pov : '3rd person limited';
+                            s.tense = s.tense || s.tense === '' ? s.tense : 'past';
+                        }
+
+                        // attach scenes array to chapter for UI
+                        ch.scenes = scenesForChapter;
+                        ch.expanded = ch.expanded ?? true;
+
+                        // add to flattened scenes list
+                        this.scenes.push(...scenesForChapter);
                     }
+
+                    // If there are no chapters, create a default one and migrate orphan scenes
+                    if (this.chapters.length === 0) {
+                        const chapter = {
+                            id: Date.now().toString() + '-c',
+                            projectId: this.currentProject.id,
+                            title: 'Chapter 1',
+                            order: 0,
+                            created: new Date(),
+                            modified: new Date()
+                        };
+                        await db.chapters.add(chapter);
+
+                        // Move any existing scenes (which lack chapterId) into this chapter
+                        try {
+                            const orphanScenes = await db.scenes.where('projectId').equals(this.currentProject.id).filter(s => !s.chapterId).toArray();
+                            for (const s of orphanScenes) {
+                                await db.scenes.update(s.id, { chapterId: chapter.id });
+                            }
+                        } catch (e) {
+                            console.warn('Failed to migrate orphan scenes into default chapter:', e);
+                        }
+
+                        await this.loadChapters();
+                        return;
+                    }
+
+                    // Set currentChapter to first if none
+                    if (!this.currentChapter) this.currentChapter = this.chapters[0];
                 },
 
                 async createScene() {
                     if (!this.newSceneName) return;
 
+                    // Ensure we have a chapter to attach to
+                    if (!this.chapters || this.chapters.length === 0) {
+                        const chap = {
+                            id: Date.now().toString() + '-c',
+                            projectId: this.currentProject.id,
+                            title: 'Chapter 1',
+                            order: 0,
+                            created: new Date(),
+                            modified: new Date()
+                        };
+                        await db.chapters.add(chap);
+                        await this.loadChapters();
+                    }
+
+                    const targetChapter = this.currentChapter || this.chapters[0];
+
                     const scene = {
                         id: Date.now().toString(),
                         projectId: this.currentProject.id,
+                        chapterId: targetChapter.id,
                         title: this.newSceneName,
-                        order: this.scenes.length,
+                        order: (targetChapter.scenes || []).length,
+                        // initialize with current POV options
+                        povCharacter: this.povCharacter || '',
+                        pov: this.pov || '3rd person limited',
+                        tense: this.tense || 'past',
                         created: new Date(),
                         modified: new Date()
                     };
@@ -789,8 +1264,42 @@
 
                     this.showNewSceneModal = false;
                     this.newSceneName = '';
-                    await this.loadScenes();
+
+                    // Normalize orders and reload
+                    await this.normalizeAllOrders();
                     await this.loadScene(scene.id);
+                },
+
+                openNewSceneModal() {
+                    // small helper so clicks are routed through a method (easier to debug)
+                    this.showNewSceneModal = true;
+                },
+
+                openNewChapterModal() {
+                    // set on next tick to avoid any click-propagation immediately closing the modal
+                    setTimeout(() => {
+                        this.showNewChapterModal = true;
+                    }, 0);
+                },
+
+                async createChapter() {
+                    if (!this.newChapterName) return;
+
+                    const chapter = {
+                        id: Date.now().toString(),
+                        projectId: this.currentProject.id,
+                        title: this.newChapterName,
+                        order: this.chapters.length,
+                        created: new Date(),
+                        modified: new Date()
+                    };
+
+                    await db.chapters.add(chapter);
+                    this.showNewChapterModal = false;
+                    this.newChapterName = '';
+
+                    // Normalize orders and reload chapters
+                    await this.normalizeAllOrders();
                 },
 
                 async loadScene(sceneId) {
@@ -801,6 +1310,132 @@
                         ...scene,
                         content: content ? content.text : ''
                     };
+
+                    // Load scene-specific generation options into UI state
+                    this.povCharacter = scene.povCharacter || '';
+                    this.pov = scene.pov || '3rd person limited';
+                    this.tense = scene.tense || 'past';
+
+                    // Set currentChapter to the scene's chapter
+                    if (scene && scene.chapterId) {
+                        const ch = this.chapters.find(c => c.id === scene.chapterId);
+                        if (ch) this.currentChapter = ch;
+                    }
+                },
+
+                async moveSceneToChapter(sceneId, targetChapterId) {
+                    if (!sceneId || !targetChapterId) return;
+
+
+                    // Put the scene at the end of the target chapter
+                    const targetChapter = this.chapters.find(c => c.id === targetChapterId);
+                    const newOrder = (targetChapter && targetChapter.scenes) ? targetChapter.scenes.length : 0;
+                    // targetChapter lookup and newOrder determined here
+
+                    try {
+                        const res = await db.scenes.update(sceneId, { chapterId: targetChapterId, order: newOrder, modified: new Date() });
+                    } catch (e) {
+                        console.error('moveSceneToChapter update failed:', e);
+                    }
+
+                    // Normalize orders across chapters/scenes and reload
+                    await this.normalizeAllOrders();
+                    await this.loadScene(sceneId);
+                },
+
+                async moveSceneUp(sceneId) {
+                    // find scene and its chapter
+                    const scene = await db.scenes.get(sceneId);
+                    if (!scene) return;
+                    const ch = this.chapters.find(c => c.id === scene.chapterId);
+                    if (!ch || !ch.scenes) return;
+                    const idx = ch.scenes.findIndex(s => s.id === sceneId);
+                    if (idx <= 0) return; // already first
+
+                    const prev = ch.scenes[idx - 1];
+                    // swap orders
+                    await db.scenes.update(sceneId, { order: prev.order });
+                    await db.scenes.update(prev.id, { order: scene.order });
+                    await this.normalizeAllOrders();
+                },
+
+                async moveSceneDown(sceneId) {
+                    const scene = await db.scenes.get(sceneId);
+                    if (!scene) return;
+                    const ch = this.chapters.find(c => c.id === scene.chapterId);
+                    if (!ch || !ch.scenes) return;
+                    const idx = ch.scenes.findIndex(s => s.id === sceneId);
+                    if (idx === -1 || idx >= ch.scenes.length - 1) return; // already last
+
+                    const next = ch.scenes[idx + 1];
+                    await db.scenes.update(sceneId, { order: next.order });
+                    await db.scenes.update(next.id, { order: scene.order });
+                    await this.normalizeAllOrders();
+                },
+
+                async deleteScene(sceneId) {
+                    if (!confirm('Delete this scene? This cannot be undone.')) return;
+                    try {
+                        await db.scenes.delete(sceneId);
+                        await db.content.delete(sceneId);
+                        if (this.currentScene && this.currentScene.id === sceneId) this.currentScene = null;
+                        await this.normalizeAllOrders();
+                    } catch (e) {
+                        console.error('Failed to delete scene:', e);
+                    }
+                },
+
+                async moveChapterUp(chapterId) {
+                    const idx = this.chapters.findIndex(c => c.id === chapterId);
+                    if (idx <= 0) return;
+                    const cur = this.chapters[idx];
+                    const prev = this.chapters[idx - 1];
+                    await db.chapters.update(cur.id, { order: prev.order });
+                    await db.chapters.update(prev.id, { order: cur.order });
+                    await this.normalizeAllOrders();
+                },
+
+                async moveChapterDown(chapterId) {
+                    const idx = this.chapters.findIndex(c => c.id === chapterId);
+                    if (idx === -1 || idx >= this.chapters.length - 1) return;
+                    const cur = this.chapters[idx];
+                    const next = this.chapters[idx + 1];
+                    await db.chapters.update(cur.id, { order: next.order });
+                    await db.chapters.update(next.id, { order: cur.order });
+                    await this.normalizeAllOrders();
+                },
+
+                async deleteChapter(chapterId) {
+                    if (!confirm('Delete this chapter? Scenes inside will be moved to another chapter or deleted. Continue?')) return;
+                    const idx = this.chapters.findIndex(c => c.id === chapterId);
+                    if (idx === -1) return;
+
+                    // determine move target chapter (previous or next)
+                    let target = this.chapters[idx - 1] || this.chapters[idx + 1] || null;
+
+                    try {
+                        const scenesToHandle = (await db.scenes.where('projectId').equals(this.currentProject.id).filter(s => s.chapterId === chapterId).toArray()) || [];
+                        if (target) {
+                            // move scenes to target, append at end
+                            const startOrder = (target.scenes || []).length;
+                            for (let i = 0; i < scenesToHandle.length; i++) {
+                                const s = scenesToHandle[i];
+                                await db.scenes.update(s.id, { chapterId: target.id, order: startOrder + i });
+                            }
+                        } else {
+                            // no target - delete scenes
+                            for (const s of scenesToHandle) {
+                                await db.scenes.delete(s.id);
+                                await db.content.delete(s.id);
+                            }
+                        }
+
+                        await db.chapters.delete(chapterId);
+                        if (this.currentChapter && this.currentChapter.id === chapterId) this.currentChapter = target || null;
+                        await this.normalizeAllOrders();
+                    } catch (e) {
+                        console.error('Failed to delete chapter:', e);
+                    }
                 },
 
                 // Editor
@@ -830,9 +1465,28 @@
                         modified: new Date()
                     });
 
+                    // persist generation options per-scene
+                    try {
+                        await db.scenes.update(this.currentScene.id, {
+                            povCharacter: this.povCharacter || '',
+                            pov: this.pov || '3rd person limited',
+                            tense: this.tense || 'past'
+                        });
+                    } catch (e) {
+                        console.warn('Failed to persist scene generation options:', e);
+                    }
+
                     const sceneIndex = this.scenes.findIndex(s => s.id === this.currentScene.id);
                     if (sceneIndex !== -1) {
                         this.scenes[sceneIndex].wordCount = wordCount;
+                    }
+
+                    // Also update in chapter lists
+                    for (let ch of this.chapters) {
+                        if (ch.scenes) {
+                            const idx = ch.scenes.findIndex(s => s.id === this.currentScene.id);
+                            if (idx !== -1) ch.scenes[idx].wordCount = wordCount;
+                        }
                     }
 
                     this.isSaving = false;
@@ -886,7 +1540,7 @@
                             if (done) break;
 
                             buffer += decoder.decode(value, { stream: true });
-                            
+
                             // Parse SSE format (Server-Sent Events)
                             const lines = buffer.split('\n');
                             buffer = lines.pop(); // Keep incomplete line in buffer
@@ -927,7 +1581,13 @@
 
                 buildPrompt(beat, sceneContext) {
                     // Qwen3 uses ChatML format
-                    const systemPrompt = `You are a creative writing assistant. The author provides a BEAT (what happens next) and you expand it into vivid, engaging prose. Write 2-3 paragraphs that bring the beat to life. Match the author's tone and style. Use sensory details. Show, don't tell.`;
+                    // Build POV sentence from scene options
+                    const povName = (this.povCharacter && this.povCharacter.trim()) ? this.povCharacter.trim() : 'the protagonist';
+                    const tenseText = this.tense === 'present' ? 'present tense' : 'past tense';
+                    const povText = this.pov || '3rd person limited';
+                    const povSentence = `You are a co-author tasked with assisting your partner. You are writing a story from the point of view of ${povName} in ${tenseText}, in ${povText}.`;
+
+                    const systemPrompt = `${povSentence} You are a creative writing assistant. The author provides a BEAT (what happens next) and you expand it into vivid, engaging prose. Write 2-3 paragraphs that bring the beat to life. Match the author's tone and style. Use sensory details. Show, don't tell.`;
 
                     let contextText = '';
                     if (sceneContext && sceneContext.length > 0) {
@@ -951,8 +1611,36 @@ Write the next 2-3 paragraphs:<|im_end|>
 
                     return prompt;
                 }
+                ,
+
+                // Normalize chapter and scene order fields to be consecutive integers.
+                async normalizeAllOrders() {
+                    if (!this.currentProject) return;
+
+                    // Normalize chapters
+                    const chs = await db.chapters.where('projectId').equals(this.currentProject.id).sortBy('order');
+                    for (let i = 0; i < chs.length; i++) {
+                        if (chs[i].order !== i) {
+                            try { await db.chapters.update(chs[i].id, { order: i }); } catch (e) { }
+                        }
+                    }
+
+                    // Normalize scenes within each chapter
+                    for (let ch of chs) {
+                        const scenes = await db.scenes.where('projectId').equals(this.currentProject.id).and(s => s.chapterId === ch.id).sortBy('order');
+                        for (let j = 0; j < scenes.length; j++) {
+                            if (scenes[j].order !== j) {
+                                try { await db.scenes.update(scenes[j].id, { order: j }); } catch (e) { }
+                            }
+                        }
+                    }
+
+                    // Reload chapters/scenes so UI reflects normalized ordering
+                    await this.loadChapters();
+                }
             }));
         });
     </script>
 </body>
+
 </html>
