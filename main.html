@@ -10,8 +10,10 @@
     <script defer src="src/prompts.js"></script>
     <script defer src="src/generation.js"></script>
     <script defer src="src/ai.js"></script>
+    <script defer src="src/save-utils.js"></script>
     <script defer src="src/app.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <!-- Local vendor Alpine (use a real alpine.min.js here for offline runs) -->
+    <script defer src="src/vendor/alpine.min.js"></script>
 
     <link rel="stylesheet" href="src/styles.css">
 </head>
@@ -80,12 +82,13 @@
                                     <div
                                         style="flex:1;display:flex;justify-content:space-between;align-items:center;position:relative;">
                                         <div @click="chapter.expanded = !chapter.expanded; currentChapter = chapter"
-                                            style="flex:1;cursor:pointer;">
-                                            <div x-text="chapter.title"></div>
-                                        </div>
-                                        <div style="font-size:12px;color:var(--text-secondary);margin-left:8px;">
-                                            <span x-text="`${chapter.scenes ? chapter.scenes.length : 0}`"></span>
-                                            <span> ▾</span>
+                                            style="flex:1;cursor:pointer;display:flex;align-items:center;gap:8px;">
+                                            <div style="flex:1;" x-text="chapter.title"></div>
+                                            <div
+                                                style="font-size:12px;color:var(--text-secondary);display:flex;align-items:center;gap:6px;">
+                                                <span x-text="`${chapter.scenes ? chapter.scenes.length : 0}`"></span>
+                                                <span class="caret" :class="{ 'rotated': chapter.expanded }">▾</span>
+                                            </div>
                                         </div>
 
                                         <div class="item-actions" style="margin-left:8px;">

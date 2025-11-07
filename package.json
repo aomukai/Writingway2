@@ -8,6 +8,8 @@
     },
     "scripts": {
         "smoke": "node tests/smoke.js",
-        "unit": "node tests/gen-buildPrompt.js"
+        "unit": "node tests/gen-buildPrompt.js",
+        "ui": "node tests/ui-generation.js && node tests/ui-generation-retry.js && node tests/ui-move-scene.js && node tests/ui-sidebar.js",
+        "test": "npm run smoke && npm run unit && npm run ui"
     }
 }

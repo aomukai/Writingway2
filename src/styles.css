@@ -133,6 +133,22 @@ body {
     font-weight: 700;
 }
 
+/* Caret for expand/collapse with smooth rotation */
+.caret {
+    display: inline-block;
+    transform: rotate(-90deg);
+    /* collapsed -> point right */
+    transition: transform 0.18s ease;
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1;
+}
+
+.caret.rotated {
+    transform: rotate(0deg);
+    /* expanded -> point down */
+}
+
 /* Action icons (move/delete) are hidden until the user hovers the item */
 .item-actions {
     opacity: 0;
