@@ -1168,8 +1168,18 @@
                     await this.initializeAI();
 
                     // Global Escape key handler to close slide panels / settings
+                    // BUT ignore when focus is inside an input/textarea or contenteditable element
                     document.addEventListener('keydown', (e) => {
                         if (e.key === 'Escape' || e.key === 'Esc') {
+                            try {
+                                const ae = document.activeElement;
+                                const tag = ae && ae.tagName ? ae.tagName.toUpperCase() : null;
+                                const isEditable = ae && (ae.isContentEditable || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT');
+                                if (isEditable) return; // don't close panels while typing
+                            } catch (err) {
+                                // ignore errors and continue
+                            }
+
                             // Close the panels if they're open
                             if (this.showAISettings || this.showPromptsPanel || this.showCodexPanel) {
                                 this.showAISettings = false;
