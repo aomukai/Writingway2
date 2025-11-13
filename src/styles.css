@@ -242,10 +242,214 @@ body {
     opacity: 1;
 }
 
+/* show item actions for compendium entries on hover like scenes */
+.comp-entry:hover .item-actions {
+    opacity: 1;
+}
+
 .chapter-header:hover {
     background: var(--bg-tertiary);
     color: var(--text-primary);
     border-left-color: var(--accent);
+}
+
+/* Compendium category items (left column of compendium panel) */
+.comp-category {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: background 0.15s ease, color 0.15s ease, border-left-color 0.15s ease, transform 0.12s ease;
+    border-left: 4px solid transparent;
+}
+
+.comp-category:hover,
+.comp-category:focus {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-left-color: var(--accent);
+    transform: translateY(-1px);
+    outline: none;
+}
+
+.comp-category.active {
+    background: linear-gradient(90deg, rgba(74, 158, 255, 0.04), transparent);
+    color: var(--text-primary);
+    border-left-color: var(--accent);
+}
+
+.comp-category .comp-category-label {
+    font-weight: 700;
+    text-transform: capitalize;
+}
+
+.comp-category .comp-category-count {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+/* Compendium entry items (individual entries in a category) */
+.comp-entry {
+    padding: 8px;
+    border-radius: 6px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    background: transparent;
+    color: var(--text-secondary);
+    transition: background 0.12s ease, color 0.12s ease, transform 0.12s ease, border-left-color 0.12s ease;
+    border-left: 4px solid transparent;
+}
+
+.comp-entry:hover,
+.comp-entry:focus {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-left-color: var(--accent);
+    transform: translateY(-1px);
+    outline: none;
+}
+
+.comp-entry.active {
+    background: linear-gradient(90deg, rgba(74, 158, 255, 0.04), transparent);
+    color: var(--text-primary);
+    border-left-color: var(--accent);
+}
+
+.comp-entry-title {
+    font-weight: 600;
+    color: inherit;
+}
+
+.comp-entry-meta {
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+/* Compendium editor layout */
+
+.comp-editor-vertical {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.comp-editor-meta {
+    display: block;
+}
+
+.comp-editor-side {
+    display: block;
+}
+
+.comp-editor-body {
+    width: 100%;
+    min-height: 240px;
+    padding: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border-radius: 6px;
+    resize: vertical;
+}
+
+.comp-image-preview {
+    width: 100%;
+    height: 240px;
+    background: var(--bg-primary);
+    /* match panel body background */
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.comp-image-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.comp-image-preview {
+    cursor: pointer;
+    position: relative;
+}
+
+.comp-image-preview:hover {
+    border-color: var(--accent);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+}
+
+.comp-image-placeholder {
+    color: var(--text-secondary);
+    font-size: 13px;
+    text-align: center;
+    padding: 10px;
+}
+
+/* Block variant for stacked layout */
+.comp-image-block {
+    /* ensure the stacked block variant is a true square and overrides the default preview sizing */
+    width: 240px;
+    height: 240px;
+    max-width: 100%;
+    display: block;
+    margin: 0 auto;
+}
+
+/* stronger selector to ensure block variant forces square sizing */
+.comp-image-preview.comp-image-block {
+    width: 240px !important;
+    height: 240px !important;
+}
+
+.comp-editor-body {
+    min-height: 260px;
+}
+
+.comp-tags {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.tag-list {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.tag-chip {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    padding: 6px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.tag-input {
+    padding: 8px 10px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    border-radius: 6px;
+    min-width: 160px;
+}
+
+@media (max-width: 900px) {
+    .comp-editor-header {
+        flex-direction: column;
+    }
+
+    .comp-editor-side {
+        width: 100%;
+    }
 }
 
 .move-select {
@@ -334,6 +538,42 @@ body {
     transform: translateX(0);
 }
 
+/* Make the Compendium slide visually pop: subtle accent border, header accent, and shadow */
+.slide-panel-right.compendium-panel {
+    border-left: 1px solid rgba(74, 158, 255, 0.08);
+    box-shadow: -18px 0 40px rgba(0, 0, 0, 0.55);
+    background: linear-gradient(180deg, var(--bg-secondary), rgba(74, 158, 255, 0.02));
+    /* make compendium wider to accommodate longer names and richer content */
+    width: 560px;
+}
+
+.slide-panel-right.compendium-panel .slide-panel-header {
+    border-bottom: 1px solid rgba(74, 158, 255, 0.06);
+    background: linear-gradient(90deg, rgba(74, 158, 255, 0.02), transparent);
+}
+
+.slide-panel-right.compendium-panel .slide-panel-body {
+    background: linear-gradient(180deg, var(--bg-primary), rgba(74, 158, 255, 0.01));
+}
+
+/* Slight left accent for the compendium to improve discoverability */
+.slide-panel-right.compendium-panel::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(to bottom, var(--accent), rgba(74, 158, 255, 0.06));
+}
+
+/* Responsive: reduce compendium width on narrower viewports */
+@media (max-width: 900px) {
+    .slide-panel-right.compendium-panel {
+        width: 90vw;
+    }
+}
+
 .slide-panel-header {
     padding: 12px 16px;
     border-bottom: 1px solid var(--border);
@@ -398,7 +638,7 @@ body {
     width: 56px;
     height: 56px;
     background: transparent;
-    color: var(--accent);
+    color: var(--text-secondary);
     border: none;
     border-radius: 10px;
     cursor: pointer;
@@ -407,11 +647,33 @@ body {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    position: relative;
 }
 
 .add-scene-btn:hover {
-    background: rgba(58, 127, 217, 0.10);
-    transform: translateY(-2px);
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    transform: translateY(-1px);
+}
+
+/* left accent stripe using pseudo-element so layout doesn't shift */
+.add-scene-btn::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 6px;
+    bottom: 6px;
+    width: 6px;
+    border-radius: 6px 0 0 6px;
+    background: transparent;
+    transition: background 0.12s ease, opacity 0.12s ease;
+    pointer-events: none;
+}
+
+.add-scene-btn:hover::before,
+.add-scene-btn:focus::before {
+    background: var(--accent);
+    opacity: 1;
 }
 
 .add-scene-btn:active {
@@ -523,7 +785,9 @@ body {
 .beat-panel {
     background: var(--bg-secondary);
     border-top: 1px solid var(--border);
-    padding: 20px 30px;
+    padding: 12px 30px 12px 30px;
+    display: flex;
+    flex-direction: column;
 }
 
 .beat-panel h3 {
@@ -540,6 +804,16 @@ body {
     margin-bottom: 10px;
 }
 
+/* Push beat controls to the bottom of the beat panel without extra spacing */
+.beat-controls {
+    width: 100%;
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+}
+
 .beat-input {
     flex: 1;
     padding: 12px;
@@ -549,12 +823,36 @@ body {
     color: var(--text-primary);
     font-size: 14px;
     font-family: inherit;
-    resize: none;
+    /* allow vertical resizing so users can make the beat field taller */
+    resize: vertical;
+    min-height: 56px;
+    max-height: 480px;
 }
 
 .beat-input:focus {
     outline: none;
     border-color: var(--accent);
+}
+
+/* thin visual separator between editor and beat panel */
+.beat-separator {
+    height: 10px;
+    background: transparent;
+    margin: 8px 30px;
+    cursor: row-resize;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.beat-separator::before {
+    content: '';
+    width: 100%;
+    max-width: 640px;
+    height: 2px;
+    background: var(--border);
+    border-radius: 2px;
+    opacity: 0.9;
 }
 
 /* (kept original .context-info below) */
@@ -602,11 +900,13 @@ body {
 
 .welcome-content h2 {
     font-size: 32px;
-    margin-bottom: 20px;
-    color: var(--accent);
-}
-
-.welcome-content p {
+    width: 140px;
+    /* fixed square size */
+    height: 140px;
+    max-width: 100%;
+    display: block;
+    margin: 0 auto;
+    /* center under the title */
     font-size: 16px;
     line-height: 1.6;
     color: var(--text-secondary);

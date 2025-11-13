@@ -33,9 +33,11 @@
                 title: scene.title || '',
                 order: typeof scene.order === 'number' ? scene.order : 0,
                 chapterId: scene.chapterId || null,
-                povCharacter: scene.povCharacter || '',
-                pov: scene.pov || '',
-                tense: scene.tense || '',
+                // prefer app-level UI values if present (the POV inputs are bound to app props),
+                // fallback to currentScene fields when available
+                povCharacter: (app.povCharacter !== undefined ? app.povCharacter : (scene.povCharacter || '')),
+                pov: (app.pov !== undefined ? app.pov : (scene.pov || '')),
+                tense: (app.tense !== undefined ? app.tense : (scene.tense || '')),
                 modified: new Date(),
                 wordCount
             };

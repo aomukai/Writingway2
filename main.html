@@ -46,7 +46,8 @@
                         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
                             <h2 style="margin:0;padding-right:8px;">
                                 <button class="project-name-button" @click.stop="openCompendium()"
-                                    title="Open Compendium"
+                                    title="Open Compendium" aria-controls="compendium-panel"
+                                    :aria-expanded="showCodexPanel ? 'true' : 'false'"
                                     style="background:none;border:none;padding:0;font-size:1.1em;color:inherit;cursor:pointer;">
                                     <span x-text="currentProject.name"></span>
                                 </button>
@@ -219,56 +220,59 @@
                     </div>
 
                     <!-- Beat Panel -->
+                    <div class="beat-separator" aria-hidden="true"></div>
                     <div class="beat-panel">
                         <h3>Generate from Beat</h3>
                         <div class="beat-input-group">
                             <textarea class="beat-input" x-model="beatInput"
                                 placeholder="Describe what happens next (e.g., 'She grabs her bag and leaves the apartment. She senses tension in the corridor.')"
                                 rows="2"></textarea>
+                        </div>
 
-                            <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-start;">
-                                <div style="display:flex;gap:8px;align-items:center;">
-                                    <button class="generate-btn" @click="generateFromBeat"
-                                        :disabled="!beatInput || isGenerating || aiStatus !== 'ready'">
-                                        <span x-text="isGenerating ? 'Generating...' : 'Generate'"></span>
-                                    </button>
+                        <div class="beat-controls"
+                            style="display:flex;flex-direction:column;gap:8px;align-items:flex-start;margin-bottom:0;">
+                            <div class="beat-actions" style="display:flex;gap:8px;align-items:center;">
+                                <button class="generate-btn" @click="generateFromBeat"
+                                    :disabled="!beatInput || isGenerating || aiStatus !== 'ready'">
+                                    <span x-text="isGenerating ? 'Generating...' : 'Generate'"></span>
+                                </button>
 
-                                    <button class="btn btn-secondary" @click="showSceneOptions = !showSceneOptions"
-                                        title="Scene options">
-                                        ⚙️
-                                    </button>
-                                </div>
+                                <button class="generate-btn" @click="showPromptsPanel = true" title="Prompts"
+                                    aria-label="Open prompts">
+                                    Prompts
+                                </button>
 
-                                <div class="scene-options" x-show="showSceneOptions"
-                                    style="background:var(--bg-tertiary);padding:10px;border-radius:6px;border:1px solid var(--border);width:320px;">
-                                    <div style="display:flex;flex-direction:column;gap:8px;">
-                                        <label style="font-size:12px;color:var(--text-secondary);">POV CHARACTER
-                                            <input type="text" x-model="povCharacter" placeholder="e.g., Alice"
-                                                style="width:100%;margin-top:6px;padding:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
-                                        </label>
+                                <button class="btn btn-secondary" @click="showSceneOptions = !showSceneOptions"
+                                    title="Scene options">
+                                    ⚙️
+                                </button>
+                            </div>
 
-                                        <label style="font-size:12px;color:var(--text-secondary);">POV
-                                            <select x-model="pov"
-                                                style="width:100%;margin-top:6px;padding:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
-                                                <option>3rd person limited</option>
-                                                <option>1st person</option>
-                                                <option>omniscient</option>
-                                            </select>
-                                        </label>
+                            <div class="scene-options" x-show="showSceneOptions"
+                                style="background:var(--bg-tertiary);padding:10px;border-radius:6px;border:1px solid var(--border);width:320px;">
+                                <div style="display:flex;flex-direction:column;gap:8px;">
+                                    <label style="font-size:12px;color:var(--text-secondary);">POV CHARACTER
+                                        <input type="text" x-model="povCharacter" placeholder="e.g., Alice"
+                                            @blur="saveScene()" @keydown.enter.prevent="saveScene()"
+                                            style="width:100%;margin-top:6px;padding:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
+                                    </label>
 
-                                        <label style="font-size:12px;color:var(--text-secondary);">TENSE
-                                            <select x-model="tense"
-                                                style="width:100%;margin-top:6px;padding:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
-                                                <option value="past">past tense</option>
-                                                <option value="present">present tense</option>
-                                            </select>
-                                        </label>
+                                    <label style="font-size:12px;color:var(--text-secondary);">POV
+                                        <select x-model="pov" @change="saveScene()"
+                                            style="width:100%;margin-top:6px;padding:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
+                                            <option>3rd person limited</option>
+                                            <option>1st person</option>
+                                            <option>omniscient</option>
+                                        </select>
+                                    </label>
 
-                                        <div style="display:flex;gap:8px;margin-top:6px;">
-                                            <button class="btn btn-secondary"
-                                                @click="showPromptsPanel = true">Prompts</button>
-                                        </div>
-                                    </div>
+                                    <label style="font-size:12px;color:var(--text-secondary);">TENSE
+                                        <select x-model="tense" @change="saveScene()"
+                                            style="width:100%;margin-top:6px;padding:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
+                                            <option value="past">past tense</option>
+                                            <option value="present">present tense</option>
+                                        </select>
+                                    </label>
                                 </div>
                             </div>
                         </div>
@@ -280,7 +284,7 @@
                         </div>
 
                         <!-- Generation actions (accept/retry/discard) -->
-                        <div style="position:relative;padding:12px 30px 20px;">
+                        <div style="position:relative;padding:12px 30px 6px;">
                             <div x-show="showGenActions" x-cloak
                                 style="position:absolute;right:30px;top:-12px;display:flex;gap:8px;">
                                 <button class="btn btn-primary" @click="acceptGeneration">Accept</button>
@@ -443,16 +447,14 @@
         </div>
 
         <!-- Compendium Slide Panel -->
-        <div class="slide-panel-right" :class="{ 'open': showCodexPanel }" x-cloak aria-hidden="true">
+        <div id="compendium-panel" class="slide-panel-right compendium-panel" :class="{ 'open': showCodexPanel }"
+            x-cloak :aria-hidden="!showCodexPanel">
             <div class="slide-panel-header">
                 <h3 style="margin:0;">Compendium</h3>
-                <div>
-                    <button class="btn btn-secondary" @click="showCodexPanel = false">Close</button>
-                </div>
             </div>
             <div class="slide-panel-body">
                 <div style="display:flex;gap:12px;height:100%;">
-                    <div style="width:35%;overflow:auto;">
+                    <div style="width:40%;overflow:auto;">
                         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
                             <strong style="color:var(--text-primary);">Categories</strong>
                             <button class="btn btn-secondary" @click="createCompendiumEntry(currentCompCategory)"
@@ -461,22 +463,63 @@
 
                         <template x-for="cat in compendiumCategories" :key="cat">
                             <div style="margin-bottom:12px;">
-                                <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;"
-                                    @click="loadCompendiumCategory(cat)">
-                                    <div style="text-transform:capitalize;font-weight:700;color:var(--text-primary);"
+                                <div class="comp-category" :class="{ 'active': currentCompCategory === cat }"
+                                    tabindex="0" role="button" @click="loadCompendiumCategory(cat)"
+                                    @keydown.enter="loadCompendiumCategory(cat)">
+                                    <div class="comp-category-label"
+                                        style="text-transform:capitalize;font-weight:700;color:var(--text-primary);"
                                         x-text="cat"></div>
-                                    <div style="font-size:12px;color:var(--text-secondary);"
+                                    <div class="comp-category-count" style="font-size:12px;color:var(--text-secondary);"
                                         x-text="(compendiumCounts[cat] || 0)"></div>
                                 </div>
                                 <div x-show="currentCompCategory === cat" x-cloak style="margin-top:6px;">
                                     <template x-for="e in compendiumList" :key="e.id">
-                                        <div @click="selectCompendiumEntry(e.id)"
+                                        <div class="comp-entry"
                                             :class="{ 'active': currentCompEntry && currentCompEntry.id === e.id }"
-                                            style="padding:8px;border-radius:6px;background:var(--bg-tertiary);margin-bottom:6px;cursor:pointer;">
-                                            <div style="font-weight:600;color:var(--text-primary);" x-text="e.title">
+                                            tabindex="0">
+                                            <div style="display:flex;justify-content:space-between;align-items:center;">
+                                                <div style="flex:1;cursor:pointer;" @click="selectCompendiumEntry(e.id)"
+                                                    @keydown.enter="selectCompendiumEntry(e.id)">
+                                                    <div class="comp-entry-title" x-text="e.title"></div>
+                                                    <div class="comp-entry-meta"
+                                                        x-text="new Date(e.modified).toLocaleString()"></div>
+                                                </div>
+
+                                                <div class="item-actions" style="margin-left:8px;"
+                                                    x-data="{ openMenu:false }">
+                                                    <button class="menu-button" @click.stop="openMenu = !openMenu"
+                                                        title="More">⋯</button>
+                                                    <div x-show="openMenu" x-cloak @click.away="openMenu = false"
+                                                        x-transition class="action-menu">
+                                                        <div class="menu-row">
+                                                            <label
+                                                                style="font-size:12px;color:var(--text-secondary);flex:1;display:flex;gap:6px;align-items:center;">
+                                                                Move to
+                                                                <select class="move-select"
+                                                                    @change.stop="moveCompendiumEntryToCategory(e.id, $event.target.value); openMenu=false;">
+                                                                    <option value="" disabled selected>Choose category
+                                                                    </option>
+                                                                    <template x-for="cat in compendiumCategories"
+                                                                        :key="cat">
+                                                                        <option :value="cat"
+                                                                            :selected="cat === e.category" x-text="cat">
+                                                                        </option>
+                                                                    </template>
+                                                                </select>
+                                                            </label>
+                                                        </div>
+                                                        <button
+                                                            @click.stop="moveCompendiumEntryUp(e.id); openMenu=false">Move
+                                                            up</button>
+                                                        <button
+                                                            @click.stop="moveCompendiumEntryDown(e.id); openMenu=false">Move
+                                                            down</button>
+                                                        <button
+                                                            @click.stop="deleteCompendiumEntry(e.id); openMenu=false">Delete
+                                                            entry</button>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div style="font-size:11px;color:var(--text-secondary);"
-                                                x-text="new Date(e.modified).toLocaleString()"></div>
                                         </div>
                                     </template>
                                 </div>
@@ -498,15 +541,52 @@
                         </div>
                         <div style="flex:1;overflow:auto;">
                             <template x-if="currentCompEntry">
-                                <textarea x-model="currentCompEntry.body" placeholder="Write compendium entry body here"
-                                    style="width:100%;height:100%;padding:8px;border:1px solid var(--border);background:var(--bg-primary);color:var(--text-primary);border-radius:6px;"></textarea>
+                                <div class="comp-editor-vertical">
+                                    <!-- Image under the title -->
+                                    <label class="comp-image-preview comp-image-block" tabindex="0"
+                                        @click.prevent="$refs.compImageInput.click()" @dragover.prevent
+                                        @drop.prevent="setCompImageFromFile($event)">
+                                        <template x-if="currentCompEntry.imageUrl">
+                                            <img :src="currentCompEntry.imageUrl" alt="Entry image preview"
+                                                @click.stop="confirmRemoveCompImage()">
+                                        </template>
+                                        <template x-if="!currentCompEntry.imageUrl">
+                                            <div class="comp-image-placeholder">Drop an image here</div>
+                                        </template>
+                                        <input x-ref="compImageInput" type="file" accept="image/*"
+                                            @change="setCompImageFromFile($event)" style="display:none">
+                                    </label>
+
+                                    <!-- Body below the image -->
+                                    <textarea x-model="currentCompEntry.body"
+                                        placeholder="Write compendium entry body here" class="comp-editor-body"
+                                        style="margin-top:12px;"></textarea>
+
+                                    <!-- Tags and image remove button -->
+                                    <div
+                                        style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:12px;">
+                                        <div class="comp-tags">
+                                            <div class="tag-list">
+                                                <template x-for="(t,ti) in (currentCompEntry.tags || [])" :key="ti">
+                                                    <span class="tag-chip" @click.stop="removeCompTag(ti)"
+                                                        title="Remove tag" x-text="t"></span>
+                                                </template>
+                                            </div>
+                                            <input class="tag-input" x-model="newCompTag"
+                                                placeholder="Add tag and press Enter"
+                                                @keydown.enter.prevent="addCompTag()">
+                                        </div>
+
+                                        <div style="display:flex;gap:8px;align-items:center;">
+                                            <!-- Image removal handled by clicking the image itself -->
+                                        </div>
+                                    </div>
+                                </div>
                             </template>
                         </div>
                         <div style="flex:0 0 auto;display:flex;gap:8px;margin-top:8px;align-items:center;">
                             <button class="btn btn-primary" @click="saveCompendiumEntry"
                                 :disabled="!currentCompEntry">Save</button>
-                            <button class="btn btn-secondary" @click="deleteCompendiumEntry(currentCompEntry.id)"
-                                x-show="currentCompEntry">Delete</button>
                             <span style="margin-left:8px;font-size:13px;color:var(--text-secondary);"
                                 class="compendium-save-status"
                                 :class="{ 'saving': compendiumSaveStatus === 'Saving...' }"
@@ -551,3 +631,74 @@
 </body>
 
 </html>
+
+<script>
+    // Draggable splitter to resize the beat textarea. Uses mouse and touch events.
+    // Wait for DOMContentLoaded and retry wiring if elements are rendered later by Alpine.
+    (function () {
+        function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+
+        function wireSplitter() {
+            const separator = document.querySelector('.beat-separator');
+            const beat = document.querySelector('.beat-input');
+            if (!separator || !beat) return false;
+
+            let dragging = false;
+            let startY = 0;
+            let startHeight = 0;
+
+            const mouseMove = (e) => {
+                if (!dragging) return;
+                const clientY = (e.touches && e.touches[0]) ? e.touches[0].clientY : e.clientY;
+                const delta = startY - clientY; // positive when dragging up
+                let newH = startHeight + delta;
+                const style = window.getComputedStyle(beat);
+                const minH = parseInt(style.minHeight) || 40;
+                const maxH = parseInt(style.maxHeight) || 1000;
+                newH = clamp(newH, minH, maxH);
+                beat.style.height = newH + 'px';
+                e.preventDefault();
+            };
+
+            const stop = () => {
+                if (!dragging) return;
+                dragging = false;
+                document.removeEventListener('mousemove', mouseMove);
+                document.removeEventListener('touchmove', mouseMove);
+                document.removeEventListener('mouseup', stop);
+                document.removeEventListener('touchend', stop);
+                document.body.style.userSelect = '';
+            };
+
+            const start = (e) => {
+                dragging = true;
+                startY = (e.touches && e.touches[0]) ? e.touches[0].clientY : e.clientY;
+                startHeight = beat.clientHeight;
+                document.addEventListener('mousemove', mouseMove, { passive: false });
+                document.addEventListener('touchmove', mouseMove, { passive: false });
+                document.addEventListener('mouseup', stop);
+                document.addEventListener('touchend', stop);
+                document.body.style.userSelect = 'none';
+                e.preventDefault();
+            };
+
+            separator.addEventListener('mousedown', start);
+            separator.addEventListener('touchstart', start, { passive: false });
+            return true;
+        }
+
+        const tryWire = () => {
+            if (wireSplitter()) return;
+            // If wiring failed (elements not present yet), retry shortly (handles Alpine render timing)
+            const t = setInterval(() => {
+                if (wireSplitter()) clearInterval(t);
+            }, 150);
+        };
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', tryWire);
+        } else {
+            tryWire();
+        }
+    })();
+</script>

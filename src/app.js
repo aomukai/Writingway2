@@ -243,7 +243,8 @@ document.addEventListener('alpine:init', () => {
         newPromptTitle: '',
 
         // Compendium state
-        compendiumCategories: ['lore', 'characters', 'places', 'items', 'notes'],
+        // Reordered for priority: characters, places, items, lore, notes
+        compendiumCategories: ['characters', 'places', 'items', 'lore', 'notes'],
         compendiumCounts: {},
         currentCompCategory: 'lore',
         compendiumList: [],
@@ -251,6 +252,7 @@ document.addEventListener('alpine:init', () => {
 
         // AI State
         compendiumSaveStatus: '',
+        newCompTag: '',
         aiWorker: null,
         aiStatus: 'loading', // loading, ready, error
         aiStatusText: 'Initializing...',
@@ -265,7 +267,16 @@ document.addEventListener('alpine:init', () => {
         },
 
         get totalWords() {
-            return this.scenes.reduce((total, scene) => total + (scene.wordCount || 0), 0);
+            // Sum word counts by unique scene id to avoid double-counting duplicates
+            const seen = new Set();
+            let total = 0;
+            for (const s of (this.scenes || [])) {
+                if (!s || !s.id) continue;
+                if (seen.has(s.id)) continue;
+                seen.add(s.id);
+                total += (s.wordCount || 0);
+            }
+            return total;
         },
 
         // Initialize
@@ -548,6 +559,11 @@ document.addEventListener('alpine:init', () => {
 
         // Compendium methods
         async openCompendium() {
+            // Toggle behavior: close if already open, otherwise open and load data
+            if (this.showCodexPanel) {
+                this.showCodexPanel = false;
+                return;
+            }
             this.showCodexPanel = true;
             // load counts and default category
             await this.loadCompendiumCounts();
@@ -570,6 +586,17 @@ document.addEventListener('alpine:init', () => {
 
         async loadCompendiumCategory(category) {
             if (!this.currentProject) return;
+
+            // Toggle behavior: if the same category is clicked again, close it
+            if (this.currentCompCategory === category) {
+                this.currentCompCategory = null;
+                this.compendiumList = [];
+                this.currentCompEntry = null;
+                // refresh counts for UI consistency
+                try { await this.loadCompendiumCounts(); } catch (e) { /* ignore */ }
+                return;
+            }
+
             this.currentCompCategory = category;
             try {
                 if (window.Compendium && typeof window.Compendium.listByCategory === 'function') {
@@ -613,7 +640,8 @@ document.addEventListener('alpine:init', () => {
                 const updates = {
                     title: this.currentCompEntry.title || '',
                     body: this.currentCompEntry.body || '',
-                    tags: JSON.parse(JSON.stringify(this.currentCompEntry.tags || []))
+                    tags: JSON.parse(JSON.stringify(this.currentCompEntry.tags || [])),
+                    imageUrl: this.currentCompEntry.imageUrl || null
                 };
                 await window.Compendium.updateEntry(this.currentCompEntry.id, updates);
                 await this.loadCompendiumCategory(this.currentCompCategory);
@@ -627,6 +655,52 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
+        addCompTag() {
+            if (!this.currentCompEntry) return;
+            const tag = (this.newCompTag || '').trim();
+            if (!tag) return;
+            this.currentCompEntry.tags = this.currentCompEntry.tags || [];
+            if (!this.currentCompEntry.tags.includes(tag)) this.currentCompEntry.tags.push(tag);
+            this.newCompTag = '';
+        },
+
+        removeCompTag(index) {
+            if (!this.currentCompEntry || !this.currentCompEntry.tags) return;
+            this.currentCompEntry.tags.splice(index, 1);
+        },
+
+        setCompImageFromFile(e) {
+            // Accept events from input change or drop events. Also accept a direct File.
+            let file = null;
+            try {
+                if (e && e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
+                    file = e.dataTransfer.files[0];
+                } else if (e && e.target && e.target.files && e.target.files[0]) {
+                    file = e.target.files[0];
+                } else if (e instanceof File) {
+                    file = e;
+                }
+            } catch (err) { file = null; }
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    this.currentCompEntry.imageUrl = ev.target.result;
+                } catch (err) { }
+            };
+            reader.readAsDataURL(file);
+            // clear input if present
+            try { if (e && e.target) e.target.value = null; } catch (err) { }
+        },
+
+        confirmRemoveCompImage() {
+            if (!this.currentCompEntry || !this.currentCompEntry.imageUrl) return;
+            if (confirm('Remove this image from the entry?')) {
+                this.currentCompEntry.imageUrl = null;
+            }
+        },
+
         async deleteCompendiumEntry(id) {
             if (!id) return;
             if (!confirm('Delete this compendium entry?')) return;
@@ -637,6 +711,59 @@ document.addEventListener('alpine:init', () => {
                 await this.loadCompendiumCounts();
             } catch (e) {
                 console.error('Failed to delete compendium entry:', e);
+            }
+        },
+
+        async moveCompendiumEntryUp(id) {
+            if (!this.currentCompCategory || !id) return;
+            try {
+                const list = await window.Compendium.listByCategory(this.currentProject.id, this.currentCompCategory) || [];
+                const idx = list.findIndex(x => x.id === id);
+                if (idx <= 0) return; // already at top
+                const above = list[idx - 1];
+                const item = list[idx];
+                const aOrder = (above.order || 0);
+                const iOrder = (item.order || 0);
+                await window.Compendium.updateEntry(above.id, { order: iOrder });
+                await window.Compendium.updateEntry(item.id, { order: aOrder });
+                await this.loadCompendiumCategory(this.currentCompCategory);
+            } catch (e) {
+                console.error('Failed to move compendium entry up:', e);
+            }
+        },
+
+        async moveCompendiumEntryDown(id) {
+            if (!this.currentCompCategory || !id) return;
+            try {
+                const list = await window.Compendium.listByCategory(this.currentProject.id, this.currentCompCategory) || [];
+                const idx = list.findIndex(x => x.id === id);
+                if (idx === -1 || idx >= list.length - 1) return; // already at bottom
+                const below = list[idx + 1];
+                const item = list[idx];
+                const bOrder = (below.order || 0);
+                const iOrder = (item.order || 0);
+                await window.Compendium.updateEntry(below.id, { order: iOrder });
+                await window.Compendium.updateEntry(item.id, { order: bOrder });
+                await this.loadCompendiumCategory(this.currentCompCategory);
+            } catch (e) {
+                console.error('Failed to move compendium entry down:', e);
+            }
+        },
+
+        async moveCompendiumEntryToCategory(id, newCategory) {
+            if (!id || !newCategory) return;
+            try {
+                // find current max order in target category and append
+                const items = await window.Compendium.listByCategory(this.currentProject.id, newCategory) || [];
+                const maxOrder = items.length ? Math.max(...items.map(it => (it.order || 0))) : -1;
+                await window.Compendium.updateEntry(id, { category: newCategory, order: maxOrder + 1 });
+                // if moved out of the currently-viewed category, refresh that list; else reload same category
+                await this.loadCompendiumCategory(this.currentCompCategory);
+                await this.loadCompendiumCounts();
+                // clear selection if we moved the selected entry away
+                if (this.currentCompEntry && this.currentCompEntry.id === id) this.currentCompEntry = null;
+            } catch (e) {
+                console.error('Failed to move compendium entry to category:', e);
             }
         },
 
