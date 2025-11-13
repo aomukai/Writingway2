@@ -24,5 +24,3 @@ Notes
 - The repository vendors Alpine locally at `src/vendor/alpine.min.js` so tests can run offline.
 - UI tests run headless and are written to prefer calling the app's handlers and to fall back to Dexie DB operations and stubbed generation when the AI server is not available.
 - Do not remove the model download instructions above — the model binary is large and must be downloaded separately.
-
-If you want me to wire up a small test-only API on the app (`window.__test`) to make tests even more deterministic, tell me and I will add it and update tests to use it.
