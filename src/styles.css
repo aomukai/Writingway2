@@ -748,8 +748,13 @@ body {
     background: var(--bg-secondary);
     border-bottom: 1px solid var(--border);
     display: flex;
-    justify-content: space-between;
     align-items: center;
+}
+
+.editor-textarea[contenteditable]:empty:before {
+    content: attr(data-placeholder);
+    color: var(--text-tertiary);
+    opacity: 0.6;
 }
 
 .editor-title {

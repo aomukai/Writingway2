@@ -295,6 +295,154 @@
                 console.error('Export failed:', e);
                 alert('Export failed: ' + (e && e.message ? e.message : e));
             }
+        },
+
+        /**
+         * Import a project from a ZIP file
+         * @param {Object} app - Alpine app instance
+         * @param {Event|File} e - File input event or File object
+         */
+        async importProject(app, e) {
+            try {
+                if (typeof JSZip === 'undefined') {
+                    alert('ZIP import library is not loaded.');
+                    return;
+                }
+
+                // Get the file from the event or direct File object
+                let file = null;
+                if (e && e.target && e.target.files && e.target.files[0]) {
+                    file = e.target.files[0];
+                } else if (e instanceof File) {
+                    file = e;
+                }
+
+                if (!file) {
+                    alert('No file selected.');
+                    return;
+                }
+
+                if (!file.name.endsWith('.zip')) {
+                    alert('Please select a .zip file exported from Writingway.');
+                    return;
+                }
+
+                // Read the ZIP file
+                const arrayBuffer = await file.arrayBuffer();
+                const zip = await JSZip.loadAsync(arrayBuffer);
+
+                // Read metadata
+                const metadataFile = zip.file('metadata.json');
+                if (!metadataFile) {
+                    alert('Invalid export file: missing metadata.json');
+                    return;
+                }
+
+                const metadataText = await metadataFile.async('text');
+                const metadata = JSON.parse(metadataText);
+
+                if (!metadata.project) {
+                    alert('Invalid export file: missing project data');
+                    return;
+                }
+
+                // Generate new IDs for the imported project to avoid conflicts
+                const oldProjectId = metadata.project.id;
+                const newProjectId = Date.now().toString() + '-imp-' + Math.random().toString(36).slice(2, 7);
+                const idMap = { chapters: {}, scenes: {} }; // old ID -> new ID mapping
+
+                // Create the project
+                const newProject = {
+                    id: newProjectId,
+                    name: metadata.project.name + ' (imported)',
+                    created: new Date(),
+                    modified: new Date()
+                };
+                await db.projects.add(newProject);
+
+                // Import chapters and scenes
+                for (const chapterData of (metadata.chapters || [])) {
+                    const oldChapterId = chapterData.id;
+                    const newChapterId = Date.now().toString() + '-c-' + Math.random().toString(36).slice(2, 7);
+                    idMap.chapters[oldChapterId] = newChapterId;
+
+                    const newChapter = {
+                        id: newChapterId,
+                        projectId: newProjectId,
+                        title: chapterData.title || 'Chapter',
+                        order: chapterData.order || 0,
+                        created: new Date(),
+                        modified: new Date()
+                    };
+                    await db.chapters.add(newChapter);
+
+                    // Import scenes for this chapter
+                    for (const sceneData of (chapterData.scenes || [])) {
+                        const oldSceneId = sceneData.id;
+                        const newSceneId = Date.now().toString() + '-s-' + Math.random().toString(36).slice(2, 7);
+                        idMap.scenes[oldSceneId] = newSceneId;
+
+                        // Read scene content from the ZIP
+                        const sceneFile = zip.file(sceneData.filename);
+                        let text = '';
+                        if (sceneFile) {
+                            text = await sceneFile.async('text');
+                        }
+
+                        const newScene = {
+                            id: newSceneId,
+                            projectId: newProjectId,
+                            chapterId: newChapterId,
+                            title: sceneData.title || 'Scene',
+                            order: sceneData.order || 0,
+                            created: new Date(),
+                            modified: new Date()
+                        };
+                        await db.scenes.add(newScene);
+
+                        // Add scene content
+                        const wordCount = text ? text.trim().split(/\s+/).filter(w => w.length > 0).length : 0;
+                        await db.content.add({
+                            sceneId: newSceneId,
+                            text: text || '',
+                            wordCount: wordCount
+                        });
+                    }
+                }
+
+                // Import compendium if present
+                try {
+                    const compendiumFile = zip.file('compendium.json');
+                    if (compendiumFile) {
+                        const compendiumText = await compendiumFile.async('text');
+                        const compendiumEntries = JSON.parse(compendiumText);
+
+                        for (const entry of compendiumEntries) {
+                            const newEntryId = Date.now().toString() + '-comp-' + Math.random().toString(36).slice(2, 7);
+                            await db.compendium.add({
+                                ...entry,
+                                id: newEntryId,
+                                projectId: newProjectId,
+                                created: new Date(),
+                                modified: new Date()
+                            });
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Failed to import compendium:', e);
+                    // Continue anyway - compendium is optional
+                }
+
+                // Reload projects and select the new one
+                await this.loadProjects(app);
+                await this.selectProject(app, newProjectId);
+
+                alert(`✓ Project imported successfully!\n\n"${newProject.name}"\n\nChapters: ${metadata.chapters.length}\nScenes: ${metadata.chapters.reduce((sum, ch) => sum + ch.scenes.length, 0)}`);
+
+            } catch (e) {
+                console.error('Import failed:', e);
+                alert('Import failed: ' + (e && e.message ? e.message : e));
+            }
         }
     };
 

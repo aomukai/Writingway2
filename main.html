@@ -34,17 +34,48 @@
             <div class="app-container">
                 <!-- Sidebar -->
                 <div class="sidebar">
-                    <div class="sidebar-header">
+                    <div class="sidebar-header" style="position:relative;">
                         <h1>Writingway</h1>
                         <p>AI-Powered Creative Writing</p>
+
+                        <!-- Main Menu Button -->
+                        <div x-data="{ mainMenuOpen: false }" style="position:absolute;top:12px;right:12px;">
+                            <button class="btn btn-secondary" @click.stop="mainMenuOpen = !mainMenuOpen"
+                                style="padding:6px 12px;font-size:18px;" title="Main Menu">☰</button>
+                            <div x-show="mainMenuOpen" x-cloak @click.away="mainMenuOpen = false" x-transition
+                                class="action-menu" style="right:0;left:auto;min-width:200px;">
+                                <button @click.stop="showNewProjectModal = true; mainMenuOpen=false">➕ New
+                                    Project</button>
+                                <button
+                                    @click.stop="document.getElementById('importProjectInput').click(); mainMenuOpen=false">📥
+                                    Import Project</button>
+                                <div style="border-top:1px solid var(--border);margin:6px 0"></div>
+                                <button @click.stop="exportProject(); mainMenuOpen=false" :disabled="!currentProject">📦
+                                    Export Current Project</button>
+                                <div style="border-top:1px solid var(--border);margin:6px 0"></div>
+                                <button @click.stop="openCompendium(); mainMenuOpen=false">📚 Compendium</button>
+                                <button @click.stop="showAISettings = true; mainMenuOpen=false">⚙️ AI Settings</button>
+                                <button @click.stop="showPromptsPanel = true; mainMenuOpen=false">📝 Manage
+                                    Prompts</button>
+                            </div>
+                        </div>
                     </div>
+
+                    <!-- Hidden file input for import (global scope) -->
+                    <input type="file" id="importProjectInput" accept=".zip"
+                        @change="importProject($event); $event.target.value = null" style="display:none;">
 
                     <!-- AI Status -->
                     <div class="ai-status">
-                        <div class="ai-status-item" style="cursor:pointer;" @click="showAISettings = true"
-                            title="Open AI settings" aria-label="Open AI settings" role="button">
+                        <div class="ai-status-item"
+                            style="cursor:pointer;padding:10px 16px;border-radius:8px;transition:background 0.2s;"
+                            @click="showAISettings = !showAISettings"
+                            @mouseenter="$el.style.background='rgba(74,158,255,0.1)'"
+                            @mouseleave="$el.style.background='transparent'" title="Click to toggle AI settings"
+                            aria-label="Toggle AI settings" role="button">
                             <div class="status-dot" :class="aiStatus"></div>
                             <span x-text="aiStatusText"></span>
+                            <span style="margin-left:8px;opacity:0.5;font-size:12px;">▼</span>
                         </div>
                     </div>
 
@@ -52,10 +83,13 @@
                         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
                             <h2 style="margin:0;padding-right:8px;">
                                 <button class="project-name-button" @click.stop="openCompendium()"
-                                    title="Open Compendium" aria-controls="compendium-panel"
+                                    title="Click to toggle Compendium" aria-controls="compendium-panel"
                                     :aria-expanded="showCodexPanel ? 'true' : 'false'"
-                                    style="background:none;border:none;padding:0;font-size:1.1em;color:inherit;cursor:pointer;">
+                                    style="background:none;border:none;padding:8px 12px 8px 0;font-size:1.1em;color:inherit;cursor:pointer;border-radius:6px;transition:background 0.2s;"
+                                    @mouseenter="$el.style.background='rgba(74,158,255,0.1)'"
+                                    @mouseleave="$el.style.background='transparent'">
                                     <span x-text="currentProject.name"></span>
+                                    <span style="margin-left:8px;opacity:0.5;font-size:12px;">📚</span>
                                 </button>
                             </h2>
 
@@ -79,10 +113,10 @@
                                         </template>
                                     </div>
                                     <div style="border-top:1px solid var(--border);margin:6px 0"></div>
-                                    <button @click.stop="exportProject(); openMenu=false">Export project (ZIP)</button>
+                                    <button @click.stop="exportProject(); openMenu=false">📦 Export Project</button>
                                     <div style="margin-top:6px"></div>
-                                    <button @click.stop="showNewProjectModal = true; openMenu=false">New
-                                        project</button>
+                                    <button @click.stop="showNewProjectModal = true; openMenu=false">➕ New
+                                        Project</button>
                                 </div>
                             </div>
                         </div>
@@ -212,18 +246,80 @@
                 <!-- Editor -->
                 <div class="editor-container">
                     <div class="editor-header">
-                        <div class="editor-title" x-text="currentScene ? currentScene.title : 'No scene selected'">
+                        <div style="display:flex;justify-content:space-between;align-items:center;width:100%;">
+                            <div class="editor-title" x-text="currentScene ? currentScene.title : 'No scene selected'">
+                            </div>
+                            <div class="editor-stats" style="white-space:nowrap;">
+                                <span x-text="`${currentSceneWords} words`"></span>
+                                <span class="save-indicator" :class="{ 'saving': isSaving }" x-text="saveStatus"></span>
+                            </div>
                         </div>
-                        <div class="editor-stats">
-                            <span x-text="`${currentSceneWords} words`"></span>
-                            <span class="save-indicator" :class="{ 'saving': isSaving }" x-text="saveStatus"></span>
+                    </div>
+
+                    <!-- Formatting Toolbar (compact dropdown) -->
+                    <div x-show="currentScene" x-cloak x-data="{ formatMenuOpen: false }"
+                        style="padding:8px 30px;background:var(--bg-secondary);border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center;">
+                        <span style="font-size:12px;color:var(--text-secondary);">Format:</span>
+                        <button @click="formatMenuOpen = !formatMenuOpen" class="btn btn-secondary"
+                            style="position:relative;">
+                            ✎ Text Formatting
+                        </button>
+                        <div x-show="formatMenuOpen" @click.away="formatMenuOpen = false" x-cloak
+                            style="position:absolute;top:45px;left:80px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:8px;box-shadow:0 4px 12px rgba(0,0,0,0.3);z-index:1000;display:grid;grid-template-columns:1fr 1fr;gap:4px;min-width:280px;">
+                            <button @click="applyFormatting('bold'); formatMenuOpen=false" class="btn btn-secondary"
+                                style="justify-content:flex-start;font-weight:bold;">
+                                <span style="width:20px;display:inline-block;">B</span> Bold
+                            </button>
+                            <button @click="applyFormatting('italic'); formatMenuOpen=false" class="btn btn-secondary"
+                                style="justify-content:flex-start;font-style:italic;">
+                                <span style="width:20px;display:inline-block;">I</span> Italic
+                            </button>
+                            <button @click="applyFormatting('underline'); formatMenuOpen=false"
+                                class="btn btn-secondary" style="justify-content:flex-start;text-decoration:underline;">
+                                <span style="width:20px;display:inline-block;">U</span> Underline
+                            </button>
+                            <button @click="applyFormatting('strikethrough'); formatMenuOpen=false"
+                                class="btn btn-secondary"
+                                style="justify-content:flex-start;text-decoration:line-through;">
+                                <span style="width:20px;display:inline-block;">S</span> Strike
+                            </button>
+                            <button @click="applyFormatting('alignLeft'); formatMenuOpen=false"
+                                class="btn btn-secondary" style="justify-content:flex-start;">
+                                <span style="width:20px;display:inline-block;">≡</span> Align Left
+                            </button>
+                            <button @click="applyFormatting('alignCenter'); formatMenuOpen=false"
+                                class="btn btn-secondary" style="justify-content:flex-start;">
+                                <span style="width:20px;display:inline-block;">≣</span> Align Center
+                            </button>
+                            <button @click="applyFormatting('alignRight'); formatMenuOpen=false"
+                                class="btn btn-secondary" style="justify-content:flex-start;">
+                                <span style="width:20px;display:inline-block;">≡</span> Align Right
+                            </button>
+                            <button @click="applyFormatting('heading'); formatMenuOpen=false" class="btn btn-secondary"
+                                style="justify-content:flex-start;">
+                                <span style="width:20px;display:inline-block;">H</span> Heading
+                            </button>
+                            <button @click="applyFormatting('quote'); formatMenuOpen=false" class="btn btn-secondary"
+                                style="justify-content:flex-start;">
+                                <span style="width:20px;display:inline-block;">"</span> Quote
+                            </button>
+                            <button @click="applyFormatting('bulletList'); formatMenuOpen=false"
+                                class="btn btn-secondary" style="justify-content:flex-start;">
+                                <span style="width:20px;display:inline-block;">•</span> Bullet List
+                            </button>
+                            <button @click="applyFormatting('numberedList'); formatMenuOpen=false"
+                                class="btn btn-secondary" style="justify-content:flex-start;">
+                                <span style="width:20px;display:inline-block;">#</span> Numbered List
+                            </button>
                         </div>
                     </div>
 
                     <div class="editor-main">
                         <template x-if="currentScene">
-                            <textarea class="editor-textarea" x-model="currentScene.content" @input="onEditorChange"
-                                placeholder="Start writing your scene here..."></textarea>
+                            <div class="editor-textarea" contenteditable="true" @input="onEditorChange"
+                                @paste="handlePaste" x-html="currentScene.content" style="outline:none;"
+                                data-placeholder="Start writing your scene here...">
+                            </div>
                         </template>
 
                         <template x-if="!currentScene">
@@ -299,8 +395,8 @@
                                     <span x-text="isGenerating ? 'Generating...' : 'Generate'"></span>
                                 </button>
 
-                                <button class="generate-btn" @click="showPromptsPanel = true" title="Prompts"
-                                    aria-label="Open prompts">
+                                <button class="generate-btn" @click="showPromptsPanel = !showPromptsPanel"
+                                    title="Toggle Prompts Panel" aria-label="Toggle prompts panel">
                                     Prompts
                                 </button>
 

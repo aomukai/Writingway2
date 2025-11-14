@@ -956,6 +956,11 @@ document.addEventListener('alpine:init', () => {
             await window.ProjectManager.exportProject(this);
         },
 
+        // Import a project from a ZIP file
+        async importProject(e) {
+            await window.ProjectManager.importProject(this, e);
+        },
+
         // Prompts management
         async loadPrompts() {
             // Delegate to prompts module
@@ -1204,12 +1209,72 @@ document.addEventListener('alpine:init', () => {
         },
 
         // Editor
-        onEditorChange() {
+        onEditorChange(e) {
+            // For contenteditable, get the HTML content
+            if (this.currentScene && e && e.target) {
+                this.currentScene.content = e.target.innerHTML;
+            }
             this.saveStatus = 'Unsaved';
             clearTimeout(this.saveTimeout);
             this.saveTimeout = setTimeout(() => {
                 this.saveScene({ autosave: true });
             }, 2000);
+        },
+
+        // Handle paste events to clean up formatting
+        handlePaste(e) {
+            e.preventDefault();
+            const text = e.clipboardData.getData('text/plain');
+            document.execCommand('insertText', false, text);
+        },
+
+        // Apply formatting to selected text in the rich text editor
+        applyFormatting(format) {
+            const editor = document.querySelector('.editor-textarea[contenteditable="true"]');
+            if (!editor || !this.currentScene) return;
+
+            editor.focus();
+
+            switch (format) {
+                case 'bold':
+                    document.execCommand('bold', false, null);
+                    break;
+                case 'italic':
+                    document.execCommand('italic', false, null);
+                    break;
+                case 'underline':
+                    document.execCommand('underline', false, null);
+                    break;
+                case 'strikethrough':
+                    document.execCommand('strikeThrough', false, null);
+                    break;
+                case 'alignLeft':
+                    document.execCommand('justifyLeft', false, null);
+                    break;
+                case 'alignCenter':
+                    document.execCommand('justifyCenter', false, null);
+                    break;
+                case 'alignRight':
+                    document.execCommand('justifyRight', false, null);
+                    break;
+                case 'heading':
+                    document.execCommand('formatBlock', false, 'h2');
+                    break;
+                case 'quote':
+                    document.execCommand('formatBlock', false, 'blockquote');
+                    break;
+                case 'bulletList':
+                    document.execCommand('insertUnorderedList', false, null);
+                    break;
+                case 'numberedList':
+                    document.execCommand('insertOrderedList', false, null);
+                    break;
+                default:
+                    return;
+            }
+
+            // Trigger save after formatting
+            this.onEditorChange({ target: editor });
         },
 
         // Beat quick-search handlers: detect @tokens (compendium) and #tokens (scenes)
@@ -1539,7 +1604,9 @@ document.addEventListener('alpine:init', () => {
 
         countWords(text) {
             if (!text) return 0;
-            return text.trim().split(/\s+/).filter(word => word.length > 0).length;
+            // Strip HTML tags for word counting
+            const plainText = text.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ');
+            return plainText.trim().split(/\s+/).filter(word => word.length > 0).length;
         },
 
         // AI Generation (delegates to src/generation.js)
