@@ -212,6 +212,11 @@ document.addEventListener('alpine:init', () => {
         scenes: [], // flattened scenes list for quick access
         currentChapter: null,
         beatInput: '',
+        // Quick-search state for compendium entries inside the beat field
+        showQuickSearch: false,
+        quickSearchMatches: [],
+        quickSearchSelectedIndex: 0,
+        quickInsertedCompendium: [],
         isGenerating: false,
         isSaving: false,
         saveStatus: 'Saved',
@@ -246,6 +251,8 @@ document.addEventListener('alpine:init', () => {
         currentPrompt: {},
         promptEditorContent: '',
         newPromptTitle: '',
+        // Selected prose prompt id for generation defaults (persisted per-project in localStorage)
+        selectedProsePromptId: null,
 
         // Compendium state
         // Reordered for priority: characters, places, items, lore, notes
@@ -265,11 +272,21 @@ document.addEventListener('alpine:init', () => {
         loadingMessage: 'Setting up AI...',
         loadingProgress: 0,
 
-        // Rewrite selection UI
+        // Rewrite selection UI with modal
         showRewriteBtn: false,
         rewriteBtnX: 0,
         rewriteBtnY: 0,
         selectedTextForRewrite: '',
+        rewriteSelectionStart: null,
+        rewriteSelectionEnd: null,
+        showRewriteModal: false,
+        rewriteOriginalText: '',
+        rewriteOutput: '',
+        rewriteInProgress: false,
+        rewritePromptPreview: '',
+        // track last mouseup info to avoid treating selection mouseup as an explicit click
+        _lastMouseUpTargetTag: null,
+        _lastMouseUpTime: 0,
 
         // Computed
         get currentSceneWords() {
@@ -333,7 +350,15 @@ document.addEventListener('alpine:init', () => {
                         const ae = document.activeElement;
                         const tag = ae && ae.tagName ? ae.tagName.toUpperCase() : null;
                         const isEditable = ae && (ae.isContentEditable || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT');
-                        if (isEditable) return; // don't close panels while typing
+                        // Allow ESC to close the Summary panel even when its textarea is focused.
+                        if (isEditable && this.showSummaryPanel) {
+                            this.showSummaryPanel = false;
+                            e.preventDefault();
+                            e.stopPropagation();
+                            return;
+                        }
+                        // Otherwise, don't close panels while typing in inputs/textareas
+                        if (isEditable) return;
                     } catch (err) {
                         // ignore errors and continue
                     }
@@ -346,11 +371,20 @@ document.addEventListener('alpine:init', () => {
                     this.showRenameProjectModal = false;
                     this.showNewSceneModal = false;
                     this.showNewChapterModal = false;
+                    this.showSummaryPanel = false;
                     // stop propagation so nested handlers don't re-open
                     e.preventDefault();
                     e.stopPropagation();
                 }
             });
+
+            // Track last mouseup target so we can ignore accidental clicks caused by selection mouseup
+            document.addEventListener('mouseup', (ev) => {
+                try {
+                    this._lastMouseUpTargetTag = ev && ev.target && ev.target.tagName ? ev.target.tagName.toUpperCase() : null;
+                    this._lastMouseUpTime = Date.now();
+                } catch (e) { /* ignore */ }
+            }, true);
 
             // Selection change handler: show a floating "Rewrite" button when text is selected
             document.addEventListener('selectionchange', () => {
@@ -382,12 +416,15 @@ document.addEventListener('alpine:init', () => {
                     this.rewriteBtnX = Math.min(window.innerWidth - 140, Math.max(8, btnLeft));
                     this.rewriteBtnY = Math.max(8, coords.top + coords.height + 6);
                     this.selectedTextForRewrite = ta.value.substring(start, end);
+                    // Show only the floating button; modal behavior removed
                     this.showRewriteBtn = true;
                 } catch (e) {
                     // don't let selection code break the app
                     this.showRewriteBtn = false;
                 }
             });
+            // Mount the beat splitter which allows resizing the beat textarea
+            try { this.mountBeatSplitter(); } catch (err) { /* ignore */ }
         },
 
         // Compute selection coordinates inside a textarea by mirroring styles into a hidden div.
@@ -436,21 +473,179 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
-        // Placeholder: invoked when user clicks the Rewrite button. We'll wire actual prompt/generation later.
-        rewriteSelection() {
+        // Handle clicks on the floating Rewrite button: open modal with selected text
+        handleRewriteButtonClick() {
             try {
-                // For now, store selected text into lastGenText and open prompts panel as a stub
-                this.lastGenText = this.selectedTextForRewrite || '';
-                console.log('Rewrite requested for:', this.lastGenText);
-                // Provide a small visual cue
-                this.saveStatus = 'Rewrite requested';
-                setTimeout(() => { this.saveStatus = 'Saved'; }, 1500);
-                // Hide button after triggering
+                const ta = document.querySelector('.editor-textarea');
+                if (ta) {
+                    this.rewriteSelectionStart = ta.selectionStart;
+                    this.rewriteSelectionEnd = ta.selectionEnd;
+                    this.rewriteOriginalText = ta.value.substring(this.rewriteSelectionStart, this.rewriteSelectionEnd);
+                } else {
+                    this.rewriteOriginalText = this.selectedTextForRewrite || '';
+                }
+                this.rewriteOutput = '';
+                this.rewritePromptPreview = '';
+                this.rewriteInProgress = false;
+                this.showRewriteModal = true;
                 this.showRewriteBtn = false;
-                // Future: open a rewrite editor / populate prompt
+            } catch (e) { console.error('handleRewriteButtonClick error', e); }
+        },
+
+        buildRewritePrompt() {
+            try {
+                // Get the current prose prompt if available
+                let prosePrompt = '';
+                if (this.currentPrompt && this.currentPrompt.content) {
+                    prosePrompt = this.currentPrompt.content;
+                }
+                // Build rewrite prompt
+                let prompt = 'Rewrite the following passage to be more vivid and polished while preserving its meaning and details. Keep roughly the same length.\n\n';
+                if (prosePrompt) {
+                    prompt = prosePrompt + '\n\n' + prompt;
+                }
+                prompt += 'ORIGINAL TEXT:\n' + this.rewriteOriginalText + '\n\nREWRITTEN TEXT:';
+                this.rewritePromptPreview = prompt;
+                return prompt;
             } catch (e) {
-                console.error('rewriteSelection error', e);
+                console.error('buildRewritePrompt error', e);
+                return 'Rewrite the following text:\n\n' + this.rewriteOriginalText;
             }
+        },
+
+        async performRewrite() {
+            try {
+                if (!this.rewriteOriginalText) return;
+                if (!window.Generation || typeof window.Generation.streamGeneration !== 'function') {
+                    throw new Error('Generation not available');
+                }
+                this.rewriteOutput = '';
+                this.rewriteInProgress = true;
+                const prompt = this.buildRewritePrompt();
+                await window.Generation.streamGeneration(prompt, (token) => {
+                    this.rewriteOutput += token;
+                });
+                this.rewriteInProgress = false;
+            } catch (e) {
+                console.error('performRewrite error', e);
+                this.rewriteInProgress = false;
+                alert('Rewrite failed: ' + (e && e.message ? e.message : e));
+            }
+        },
+
+        async acceptRewrite() {
+            try {
+                if (!this.currentScene || !this.rewriteOutput) return;
+                const start = this.rewriteSelectionStart;
+                const end = this.rewriteSelectionEnd;
+                if (typeof start !== 'number' || typeof end !== 'number') return;
+                const before = this.currentScene.content.substring(0, start);
+                const after = this.currentScene.content.substring(end);
+                this.currentScene.content = before + this.rewriteOutput + after;
+                this.showRewriteModal = false;
+                this.rewriteOriginalText = '';
+                this.rewriteOutput = '';
+                await this.saveScene();
+            } catch (e) {
+                console.error('acceptRewrite error', e);
+            }
+        },
+
+        retryRewrite() {
+            this.rewriteOutput = '';
+            this.performRewrite();
+        },
+
+        discardRewrite() {
+            this.showRewriteModal = false;
+            this.rewriteOriginalText = '';
+            this.rewriteOutput = '';
+            this.rewritePromptPreview = '';
+        },
+
+        // Wire up the draggable beat splitter. Runs after Alpine has mounted.
+        mountBeatSplitter() {
+            const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+            const wireSplitter = () => {
+                const separator = document.querySelector('.beat-separator');
+                const beat = document.querySelector('.beat-input');
+                if (!separator || !beat) return false;
+
+                // Try restore saved height
+                try {
+                    const raw = localStorage.getItem('ww2_beatHeight');
+                    if (raw) {
+                        const parsed = parseInt(raw, 10);
+                        if (!isNaN(parsed)) {
+                            const style = window.getComputedStyle(beat);
+                            const minH = parseInt(style.minHeight) || 40;
+                            const maxH = parseInt(style.maxHeight) || 1000;
+                            const restored = clamp(parsed, minH, maxH);
+                            beat.style.height = restored + 'px';
+                        }
+                    }
+                } catch (err) { /* ignore storage errors */ }
+
+                let dragging = false;
+                let startY = 0;
+                let startHeight = 0;
+
+                const mouseMove = (e) => {
+                    if (!dragging) return;
+                    const clientY = (e.touches && e.touches[0]) ? e.touches[0].clientY : e.clientY;
+                    const delta = startY - clientY;
+                    let newH = startHeight + delta;
+                    const style = window.getComputedStyle(beat);
+                    const minH = parseInt(style.minHeight) || 40;
+                    const maxH = parseInt(style.maxHeight) || 1000;
+                    newH = clamp(newH, minH, maxH);
+                    beat.style.height = newH + 'px';
+                    beat.dataset._lastHeight = String(newH);
+                    e.preventDefault();
+                };
+
+                const stop = () => {
+                    if (!dragging) return;
+                    dragging = false;
+                    document.removeEventListener('mousemove', mouseMove);
+                    document.removeEventListener('touchmove', mouseMove);
+                    document.removeEventListener('mouseup', stop);
+                    document.removeEventListener('touchend', stop);
+                    document.body.style.userSelect = '';
+                    try {
+                        const finalH = parseInt(beat.dataset._lastHeight || beat.clientHeight || 0, 10);
+                        if (!isNaN(finalH) && finalH > 0) {
+                            localStorage.setItem('ww2_beatHeight', String(finalH));
+                        }
+                    } catch (err) { /* ignore storage errors */ }
+                };
+
+                const start = (e) => {
+                    dragging = true;
+                    startY = (e.touches && e.touches[0]) ? e.touches[0].clientY : e.clientY;
+                    startHeight = beat.clientHeight;
+                    document.addEventListener('mousemove', mouseMove, { passive: false });
+                    document.addEventListener('touchmove', mouseMove, { passive: false });
+                    document.addEventListener('mouseup', stop);
+                    document.addEventListener('touchend', stop);
+                    document.body.style.userSelect = 'none';
+                    e.preventDefault();
+                };
+
+                separator.addEventListener('mousedown', start);
+                separator.addEventListener('touchstart', start, { passive: false });
+                return true;
+            };
+
+            const tryWire = () => {
+                if (wireSplitter()) return;
+                const t = setInterval(() => {
+                    if (wireSplitter()) clearInterval(t);
+                }, 150);
+            };
+
+            tryWire();
         },
 
 
@@ -677,11 +872,67 @@ document.addEventListener('alpine:init', () => {
             try { localStorage.setItem('writingway:lastProject', proj.id); } catch (e) { }
             await this.loadChapters();
             await this.loadPrompts();
+            // restore prose prompt selection for this project
+            try { await this.loadSelectedProsePrompt(); } catch (e) { /* ignore */ }
             if (this.scenes.length > 0) {
                 await this.loadScene(this.scenes[0].id);
             } else {
                 this.currentScene = null;
             }
+        },
+
+        // Load persisted prose prompt selection for the current project (localStorage key per project)
+        async loadSelectedProsePrompt() {
+            try {
+                if (!this.currentProject || !this.currentProject.id) {
+                    this.selectedProsePromptId = null;
+                    return;
+                }
+                const key = `writingway:proj:${this.currentProject.id}:prosePrompt`;
+                const raw = localStorage.getItem(key);
+                if (!raw) {
+                    this.selectedProsePromptId = null;
+                    return;
+                }
+                // Ensure the stored id actually exists in the DB. Prefer a direct DB check
+                // so the persisted selection survives across reloads even if in-memory
+                // `this.prompts` hasn't been populated yet.
+                try {
+                    const dbRow = await db.prompts.get(raw);
+                    if (dbRow && dbRow.category === 'prose') {
+                        this.selectedProsePromptId = raw;
+                        // Also prime the in-memory currentPrompt so the UI reflects the selection
+                        try {
+                            this.currentPrompt = Object.assign({}, dbRow);
+                            this.promptEditorContent = dbRow.content || '';
+                        } catch (e) { /* ignore */ }
+                        return;
+                    }
+                } catch (e) {
+                    // ignore DB errors and fallthrough to clearing
+                }
+
+                // Fallback: check in-memory prompts list
+                const exists = (this.prompts || []).some(p => p.id === raw && p.category === 'prose');
+                this.selectedProsePromptId = exists ? raw : null;
+            } catch (e) {
+                this.selectedProsePromptId = null;
+            }
+        },
+
+        // Persist selected prose prompt id per project
+        saveSelectedProsePrompt(id) {
+            try {
+                if (!this.currentProject || !this.currentProject.id) return;
+                const key = `writingway:proj:${this.currentProject.id}:prosePrompt`;
+                if (!id) {
+                    localStorage.removeItem(key);
+                    this.selectedProsePromptId = null;
+                } else {
+                    localStorage.setItem(key, id);
+                    this.selectedProsePromptId = id;
+                }
+            } catch (e) { /* ignore */ }
         },
 
         async renameCurrentProject() {
@@ -760,7 +1011,9 @@ document.addEventListener('alpine:init', () => {
         async loadPrompts() {
             // Delegate to prompts module
             if (window.Prompts && typeof window.Prompts.loadPrompts === 'function') {
-                return window.Prompts.loadPrompts(this);
+                await window.Prompts.loadPrompts(this);
+                try { await this.loadSelectedProsePrompt(); } catch (e) { /* ignore */ }
+                return;
             }
             // Fallback: no-op
             this.prompts = [];
@@ -997,6 +1250,39 @@ document.addEventListener('alpine:init', () => {
         async deletePrompt(id) {
             if (window.Prompts && typeof window.Prompts.deletePrompt === 'function') {
                 return window.Prompts.deletePrompt(this, id);
+            }
+        },
+
+        async movePromptUp(id) {
+            if (!id || !this.currentProject) return;
+            try {
+                if (window.Prompts && typeof window.Prompts.movePromptUp === 'function') {
+                    await window.Prompts.movePromptUp(this, id);
+                }
+            } catch (e) {
+                console.error('Failed to move prompt up:', e);
+            }
+        },
+
+        async movePromptDown(id) {
+            if (!id || !this.currentProject) return;
+            try {
+                if (window.Prompts && typeof window.Prompts.movePromptDown === 'function') {
+                    await window.Prompts.movePromptDown(this, id);
+                }
+            } catch (e) {
+                console.error('Failed to move prompt down:', e);
+            }
+        },
+
+        async renamePrompt(id) {
+            if (!id) return;
+            try {
+                if (window.Prompts && typeof window.Prompts.renamePrompt === 'function') {
+                    await window.Prompts.renamePrompt(this, id);
+                }
+            } catch (e) {
+                console.error('Failed to rename prompt:', e);
             }
         },
 
@@ -1319,6 +1605,295 @@ document.addEventListener('alpine:init', () => {
             }, 2000);
         },
 
+        // Beat quick-search handlers: detect @tokens, query compendium, and allow selecting entries
+        async onBeatInput(e) {
+            try {
+                const ta = e.target;
+                const pos = ta.selectionStart;
+                const text = this.beatInput || '';
+
+                // Find last '@' before cursor which is word-start (or after space)
+                const lastAt = text.lastIndexOf('@', pos - 1);
+                try { console.debug('[onBeatInput] caret=', pos, 'textSlice=', text.substring(Math.max(0, pos - 20), pos + 5).replace(/\n/g, '\\n')); } catch (e) { }
+                if (lastAt === -1) {
+                    this.showQuickSearch = false;
+                    this.quickSearchMatches = [];
+                    return;
+                }
+
+                // Ensure '@' is start of token (start of string or preceded by whitespace)
+                if (lastAt > 0 && !/\s/.test(text.charAt(lastAt - 1))) {
+                    this.showQuickSearch = false;
+                    this.quickSearchMatches = [];
+                    return;
+                }
+
+                const q = text.substring(lastAt + 1, pos).trim();
+                try { console.debug('[onBeatInput] lastAt=', lastAt, 'query=', q); } catch (e) { }
+                if (!q || q.length < 1) {
+                    this.showQuickSearch = false;
+                    this.quickSearchMatches = [];
+                    return;
+                }
+
+                // Query compendium titles that match query (case-insensitive contains)
+                const pid = this.currentProject ? this.currentProject.id : null;
+                try { console.debug('[onBeatInput] projectId=', pid); } catch (e) { }
+                if (!pid) return;
+                const all = await db.compendium.where('projectId').equals(pid).toArray();
+                const lower = q.toLowerCase();
+                const matches = (all || []).filter(it => (it.title || '').toLowerCase().includes(lower));
+                try { console.debug('[onBeatInput] matchesCount=', matches.length); } catch (e) { }
+                this.quickSearchMatches = matches.slice(0, 20);
+                this.quickSearchSelectedIndex = 0;
+                this.showQuickSearch = this.quickSearchMatches.length > 0;
+            } catch (err) {
+                this.showQuickSearch = false;
+                this.quickSearchMatches = [];
+            }
+        },
+
+        onBeatKey(e) {
+            try {
+                if (!this.showQuickSearch) return;
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    this.quickSearchSelectedIndex = Math.min(this.quickSearchSelectedIndex + 1, (this.quickSearchMatches.length - 1));
+                    return;
+                }
+                if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    this.quickSearchSelectedIndex = Math.max(0, this.quickSearchSelectedIndex - 1);
+                    return;
+                }
+                if (e.key === 'Escape') {
+                    this.showQuickSearch = false;
+                    return;
+                }
+                if (e.key === 'Enter') {
+                    if (this.showQuickSearch && this.quickSearchMatches && this.quickSearchMatches.length > 0) {
+                        e.preventDefault();
+                        const sel = this.quickSearchMatches[this.quickSearchSelectedIndex];
+                        this.selectQuickMatch(sel);
+                    }
+                }
+            } catch (err) { /* ignore */ }
+        },
+
+        selectQuickMatch(item) {
+            try {
+                if (!item || !item.id) return;
+                // Replace the last @token before caret with the item's title plus marker
+                const ta = document.querySelector('.beat-input');
+                if (!ta) return;
+                const pos = ta.selectionStart;
+                const text = this.beatInput || '';
+                const lastAt = text.lastIndexOf('@', pos - 1);
+                if (lastAt === -1) return;
+                const before = text.substring(0, lastAt);
+                const after = text.substring(pos);
+                // Insert the visible legacy marker form so users can see references inline
+                const insert = `${item.title} [[comp:${item.id}]]`;
+                this.beatInput = before + insert + after;
+                // remember inserted compendium id for this scene (avoid duplicates)
+                if (!this.quickInsertedCompendium.includes(item.id)) this.quickInsertedCompendium.push(item.id);
+                // (no mirror mapping needed)
+                // hide suggestions
+                this.showQuickSearch = false;
+                this.quickSearchMatches = [];
+                this.$nextTick(() => {
+                    try { ta.focus(); ta.selectionStart = ta.selectionEnd = (before + insert).length; } catch (e) { }
+                });
+            } catch (e) { console.error('selectQuickMatch error', e); }
+        },
+
+        // Parse beatInput for [[comp:<id>]] markers and return resolved compendium rows
+        async resolveCompendiumEntriesFromBeat(beatText) {
+            try {
+                if (!beatText) return [];
+                const ids = [];
+                // Support both visible [[comp:id]] markers (legacy) and invisible unit-separator markers \u001Fcomp:id\u001F
+                const reLegacy = /\[\[comp:([^\]]+)\]\]/g;
+                let m;
+                while ((m = reLegacy.exec(beatText)) !== null) {
+                    if (m[1]) ids.push(m[1]);
+                }
+                const reHidden = /\u001Fcomp:([^\u001F]+)\u001F/g;
+                while ((m = reHidden.exec(beatText)) !== null) {
+                    if (m[1]) ids.push(m[1]);
+                }
+                const out = [];
+                for (const id of ids) {
+                    try {
+                        const row = await db.compendium.get(id);
+                        if (row) out.push(row);
+                    } catch (e) { /* ignore */ }
+                }
+                return out;
+            } catch (e) { return []; }
+        },
+
+        // Render beatInput into HTML for the mirror overlay, coloring titles before markers
+        renderedBeat() {
+            try {
+                const esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                let out = esc(this.beatInput || '');
+                // Replace patterns like "Title [[comp:id]]" with a colored title and the visible marker
+                out = out.replace(/(.+?)\s*\[\[comp:([^\]]+)\]\]/g, (m, title, id) => {
+                    return `<span class="comp-chip">${esc(title)}</span> [[comp:${esc(id)}]]`;
+                });
+                return out;
+            } catch (e) { return esc(this.beatInput || ''); }
+        },
+
+        // Temporary: build and show the exact prompt that will be sent to the LLM.
+        // This honors POV, tense, selected prose prompt, and includes scene context.
+        async previewPrompt() {
+            if (!this.beatInput) {
+                alert('No beat provided to preview.');
+                return;
+            }
+
+            try {
+                // Resolve prose prompt text (in-memory first, then DB fallback)
+                const proseInfo = await this.resolveProsePromptInfo();
+                const prosePromptText = proseInfo && proseInfo.text ? proseInfo.text : null;
+                // Resolve compendium entries referenced in beat and include them in options
+                let compEntries = [];
+                try { compEntries = await this.resolveCompendiumEntriesFromBeat(this.beatInput || ''); } catch (e) { compEntries = []; }
+
+                let prompt;
+                if (window.Generation && typeof window.Generation.buildPrompt === 'function') {
+                    // DEBUG: log resolved prose info and options
+                    try { console.debug('[preview] proseInfo=', proseInfo); } catch (e) { }
+                    const optsPreview = { povCharacter: this.povCharacter, pov: this.pov, tense: this.tense, prosePrompt: prosePromptText, compendiumEntries: compEntries, preview: true };
+                    try { console.debug('[preview] buildPrompt opts:', { proseType: typeof optsPreview.prosePrompt, len: optsPreview.prosePrompt ? optsPreview.prosePrompt.length : 0 }); } catch (e) { }
+                    try { console.debug('[preview] prosePrompt raw:', JSON.stringify(optsPreview.prosePrompt)); } catch (e) { }
+                    prompt = window.Generation.buildPrompt(this.beatInput, this.currentScene?.content || '', optsPreview);
+                    try { console.debug('[preview] builtPrompt preview:', String(prompt).slice(0, 600).replace(/\n/g, '\\n')); } catch (e) { }
+                } else {
+                    // Fallback textual representation if generation module isn't loaded
+                    prompt = `=== PREVIEW PROMPT ===\nBEAT:\n${this.beatInput}\n\nPOV CHARACTER: ${this.povCharacter || ''}\nPOV: ${this.pov}\nTENSE: ${this.tense}\n\n---\n(Scene content below)\n${this.currentScene?.content || ''}\n\n---\n(Prose prompt)\n${prosePromptText || '(none)'}\n`;
+                }
+
+                // Create a simple overlay showing the prompt in a read-only textarea so the user can inspect/copy it.
+                const overlay = document.createElement('div');
+                overlay.style.position = 'fixed';
+                overlay.style.left = '0';
+                overlay.style.top = '0';
+                overlay.style.right = '0';
+                overlay.style.bottom = '0';
+                overlay.style.background = 'rgba(0,0,0,0.6)';
+                overlay.style.zIndex = 99999;
+                overlay.style.display = 'flex';
+                overlay.style.alignItems = 'center';
+                overlay.style.justifyContent = 'center';
+
+                const box = document.createElement('div');
+                box.style.width = '80%';
+                box.style.maxWidth = '900px';
+                box.style.maxHeight = '80%';
+                box.style.background = 'var(--bg-primary)';
+                box.style.color = 'var(--text-primary)';
+                box.style.padding = '12px';
+                box.style.borderRadius = '8px';
+                box.style.overflow = 'auto';
+                box.style.boxShadow = '0 8px 24px rgba(0,0,0,0.5)';
+
+                // Header showing which prompt id/source was resolved (helps debug why fallback used)
+                const header = document.createElement('div');
+                header.style.fontSize = '13px';
+                header.style.color = 'var(--text-secondary)';
+                header.style.marginBottom = '8px';
+                const resolvedId = (proseInfo && proseInfo.id) ? proseInfo.id : '(none)';
+                const resolvedSource = (proseInfo && proseInfo.source) ? proseInfo.source : 'none';
+                header.textContent = `Resolved prose prompt: ${resolvedId} (${resolvedSource})`;
+
+                const ta = document.createElement('textarea');
+                ta.readOnly = true;
+                ta.style.width = '100%';
+                ta.style.height = '60vh';
+                ta.style.whiteSpace = 'pre-wrap';
+                ta.style.fontFamily = 'monospace';
+                ta.style.fontSize = '13px';
+                ta.value = typeof prompt === 'string' ? prompt : JSON.stringify(prompt, null, 2);
+
+                const controls = document.createElement('div');
+                controls.style.display = 'flex';
+                controls.style.justifyContent = 'flex-end';
+                controls.style.marginTop = '8px';
+
+                const close = document.createElement('button');
+                close.textContent = 'Close';
+                close.className = 'btn btn-primary';
+                close.onclick = () => { overlay.remove(); };
+
+                const copy = document.createElement('button');
+                copy.textContent = 'Copy';
+                copy.className = 'btn btn-secondary';
+                copy.style.marginRight = '8px';
+                copy.onclick = () => {
+                    try {
+                        ta.select();
+                        document.execCommand('copy');
+                    } catch (e) { /* ignore */ }
+                    copy.textContent = 'Copied';
+                    setTimeout(() => { copy.textContent = 'Copy'; }, 1200);
+                };
+
+                controls.appendChild(copy);
+                controls.appendChild(close);
+
+                box.appendChild(header);
+                box.appendChild(ta);
+                box.appendChild(controls);
+                overlay.appendChild(box);
+                document.body.appendChild(overlay);
+
+            } catch (e) {
+                console.error('previewPrompt error', e);
+                alert('Failed to build preview prompt: ' + (e && e.message ? e.message : e));
+            }
+        },
+
+        // Resolve the prose prompt content by id: check in-memory prompts then fall back to DB read.
+        async resolveProsePromptText() {
+            try {
+                if (this.selectedProsePromptId) {
+                    let p = (this.prompts || []).find(x => x.id === this.selectedProsePromptId && x.category === 'prose');
+                    if (!p) {
+                        try { p = await db.prompts.get(this.selectedProsePromptId); } catch (e) { p = null; }
+                    }
+                    if (p && p.content) return p.content;
+                }
+            } catch (e) {
+                // ignore and fallthrough
+            }
+
+            if (this.currentPrompt && this.currentPrompt.content) return this.currentPrompt.content;
+            return null;
+        },
+
+        // More detailed resolver that returns the prompt text, id and source (memory/db/current/none)
+        async resolveProsePromptInfo() {
+            try {
+                if (this.selectedProsePromptId) {
+                    let p = (this.prompts || []).find(x => x.id === this.selectedProsePromptId && x.category === 'prose');
+                    if (p) return { id: p.id, text: p.content || null, source: 'memory' };
+                    try {
+                        p = await db.prompts.get(this.selectedProsePromptId);
+                    } catch (e) { p = null; }
+                    if (p) return { id: p.id, text: p.content || null, source: 'db' };
+                    return { id: this.selectedProsePromptId, text: null, source: 'missing' };
+                }
+            } catch (e) {
+                // fallthrough
+            }
+
+            if (this.currentPrompt && this.currentPrompt.content) return { id: this.currentPrompt.id || null, text: this.currentPrompt.content, source: 'currentPrompt' };
+            return { id: null, text: null, source: 'none' };
+        },
+
         async saveScene(opts) {
             opts = opts || {};
             // Delegate to extracted save utility when available
@@ -1478,11 +2053,19 @@ document.addEventListener('alpine:init', () => {
                 // Build the prompt using the generation module
                 let prompt;
                 if (window.Generation && typeof window.Generation.buildPrompt === 'function') {
-                    prompt = window.Generation.buildPrompt(this.beatInput, this.currentScene?.content || '', {
-                        povCharacter: this.povCharacter,
-                        pov: this.pov,
-                        tense: this.tense
-                    });
+                    // Resolve prose prompt text (in-memory first, then DB fallback)
+                    const proseInfo = await this.resolveProsePromptInfo();
+                    const prosePromptText = proseInfo && proseInfo.text ? proseInfo.text : null;
+                    // Resolve compendium entries referenced in beat and include them in options
+                    let compEntries = [];
+                    try { compEntries = await this.resolveCompendiumEntriesFromBeat(this.beatInput || ''); } catch (e) { compEntries = []; }
+                    // DEBUG: log resolved prose info for generation
+                    try { console.debug('[generate] proseInfo=', proseInfo); } catch (e) { }
+                    try { console.debug('[generate] prosePrompt raw:', JSON.stringify(prosePromptText)); } catch (e) { }
+                    const genOpts = { povCharacter: this.povCharacter, pov: this.pov, tense: this.tense, prosePrompt: prosePromptText, compendiumEntries: compEntries };
+                    try { console.debug('[generate] buildPrompt opts:', { proseType: typeof genOpts.prosePrompt, len: genOpts.prosePrompt ? genOpts.prosePrompt.length : 0 }); } catch (e) { }
+                    prompt = window.Generation.buildPrompt(this.beatInput, this.currentScene?.content || '', genOpts);
+                    try { console.debug('[generate] builtPrompt preview:', String(prompt).slice(0, 600).replace(/\n/g, '\\n')); } catch (e) { }
                 } else {
                     throw new Error('Generation module not available');
                 }

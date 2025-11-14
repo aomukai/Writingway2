@@ -234,15 +234,41 @@
                     <div class="beat-separator" aria-hidden="true"></div>
                     <div class="beat-panel">
                         <h3>Generate from Beat</h3>
-                        <div class="beat-input-group">
-                            <textarea class="beat-input" x-model="beatInput"
+                        <div class="beat-input-group" style="position:relative;">
+                            <textarea class="beat-input" x-model="beatInput" @input="onBeatInput($event)"
+                                @keydown="onBeatKey($event)"
                                 placeholder="Describe what happens next (e.g., 'She grabs her bag and leaves the apartment. She senses tension in the corridor.')"
-                                rows="2"></textarea>
+                                spellcheck="false" rows="2"></textarea>
+
+                            <!-- Mirror overlay renders colored compendium titles while keeping markers visible -->
+                            <div class="beat-mirror" x-html="renderedBeat()" aria-hidden="true"></div>
+
+                            <div class="quick-search-dropdown" x-show="showQuickSearch" x-cloak
+                                style="position:relative;width:100%;">
+                                <div
+                                    style="position:absolute;bottom:100%;left:0;right:0;z-index:5000;background:var(--bg-primary);border:1px solid var(--accent);border-radius:6px;padding:6px;max-height:240px;overflow:auto;box-shadow:0 8px 24px rgba(0,0,0,0.4);margin-bottom:8px;">
+                                    <template x-for="(m,mi) in quickSearchMatches" :key="m.id">
+                                        <div class="quick-search-item"
+                                            :class="{ 'active': mi === quickSearchSelectedIndex }"
+                                            @click="selectQuickMatch(m)"
+                                            style="padding:6px;border-radius:4px;cursor:pointer;">
+                                            <div style="font-weight:600" x-text="m.title"></div>
+                                            <div style="font-size:12px;color:var(--text-secondary);"
+                                                x-text="(m.category || '')"></div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="beat-controls"
                             style="display:flex;flex-direction:column;gap:8px;align-items:flex-start;margin-bottom:0;">
                             <div class="beat-actions" style="display:flex;gap:8px;align-items:center;">
+                                <button class="generate-btn" @click="previewPrompt"
+                                    :disabled="!beatInput || aiStatus !== 'ready'">
+                                    Preview
+                                </button>
+
                                 <button class="generate-btn" @click="generateFromBeat"
                                     :disabled="!beatInput || isGenerating || aiStatus !== 'ready'">
                                     <span x-text="isGenerating ? 'Generating...' : 'Generate'"></span>
@@ -284,6 +310,18 @@
                                             <option value="present">present tense</option>
                                         </select>
                                     </label>
+
+                                    <label style="font-size:12px;color:var(--text-secondary);">Prose Prompt
+                                        <select x-model="selectedProsePromptId"
+                                            @change="saveSelectedProsePrompt(selectedProsePromptId)"
+                                            style="width:100%;margin-top:6px;padding:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
+                                            <option value="">Use current prompt (fallback)</option>
+                                            <template x-for="pr in prompts.filter(p => p.category === 'prose')"
+                                                :key="pr.id">
+                                                <option :value="pr.id" x-text="pr.title"></option>
+                                            </template>
+                                        </select>
+                                    </label>
                                 </div>
                             </div>
                         </div>
@@ -309,10 +347,64 @@
         </template>
 
         <!-- Floating Rewrite button (appears when text selected in scene textarea) -->
-        <button x-show="showRewriteBtn" x-cloak @click="rewriteSelection"
+        <button x-show="showRewriteBtn" x-cloak @click.prevent="handleRewriteButtonClick()"
             :style="`position:fixed;left:${rewriteBtnX}px;top:${rewriteBtnY}px;z-index:6000;`" class="rewrite-btn">
             Rewrite
         </button>
+
+        <!-- Rewrite Modal -->
+        <div x-show="showRewriteModal" x-cloak class="modal-overlay" @click.self="discardRewrite()">
+            <div class="rewrite-modal" @click.stop>
+                <div class="modal-header">
+                    <h3 style="margin:0;">Rewrite Selection</h3>
+                    <button class="btn btn-secondary" @click="discardRewrite()">Close</button>
+                </div>
+
+                <div class="modal-body">
+                    <div style="margin-bottom:16px;">
+                        <label
+                            style="display:block;margin-bottom:6px;font-size:13px;font-weight:600;color:var(--text-primary);">Original
+                            text</label>
+                        <textarea readonly :value="rewriteOriginalText"
+                            style="width:100%;height:120px;padding:10px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);border-radius:6px;resize:vertical;"></textarea>
+                    </div>
+
+                    <div style="display:flex;gap:8px;margin-bottom:16px;">
+                        <button class="btn btn-secondary" @click="buildRewritePrompt()"
+                            :disabled="rewriteInProgress">Prompt</button>
+                        <button class="btn btn-primary" @click="performRewrite()" :disabled="rewriteInProgress">
+                            <span x-show="!rewriteInProgress">Rewrite</span>
+                            <span x-show="rewriteInProgress">Rewriting...</span>
+                        </button>
+                    </div>
+
+                    <div x-show="rewritePromptPreview" style="margin-bottom:16px;">
+                        <label
+                            style="display:block;margin-bottom:6px;font-size:13px;font-weight:600;color:var(--text-primary);">Prompt
+                            preview</label>
+                        <textarea readonly :value="rewritePromptPreview"
+                            style="width:100%;height:120px;padding:10px;border:1px solid var(--border);background:var(--bg-primary);color:var(--text-secondary);border-radius:6px;resize:vertical;font-size:12px;"></textarea>
+                    </div>
+
+                    <div style="margin-bottom:16px;">
+                        <label
+                            style="display:block;margin-bottom:6px;font-size:13px;font-weight:600;color:var(--text-primary);">Rewritten
+                            text</label>
+                        <textarea readonly :value="rewriteOutput"
+                            style="width:100%;height:180px;padding:10px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);border-radius:6px;resize:vertical;"
+                            placeholder="Rewritten text will appear here..."></textarea>
+                    </div>
+
+                    <div style="display:flex;gap:8px;justify-content:flex-end;">
+                        <button class="btn btn-primary" @click="acceptRewrite()"
+                            x-show="rewriteOutput && !rewriteInProgress">Accept</button>
+                        <button class="btn btn-secondary" @click="retryRewrite()"
+                            x-show="rewriteOutput && !rewriteInProgress">Retry</button>
+                        <button class="btn btn-secondary" @click="discardRewrite()">Discard</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- Model Loading Screen -->
         <template x-if="showModelLoading">
@@ -330,6 +422,8 @@
                 </div>
             </div>
         </template>
+
+        <!-- Rewrite modal removed: selecting text shows only the floating Rewrite button -->
 
         <!-- Welcome Screen (No Project) -->
         <template x-if="!currentProject && !showModelLoading">
@@ -424,7 +518,7 @@
         </template>
 
         <!-- Prompts Slide Panel -->
-        <div class="slide-panel-right" :class="{ 'open': showPromptsPanel }" x-cloak aria-hidden="true">
+        <div class="slide-panel-right prompts-panel" :class="{ 'open': showPromptsPanel }" x-cloak aria-hidden="true">
             <div class="slide-panel-header">
                 <h3 style="margin:0;">Prompts</h3>
                 <div>
@@ -436,27 +530,53 @@
                     <div style="width:40%;overflow:auto;">
                         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
                             <strong style="color:var(--text-primary);">Categories</strong>
-                            <button class="btn btn-secondary" @click="createPrompt('prose')">+ New</button>
                         </div>
 
                         <template x-for="cat in promptCategories" :key="cat">
                             <div style="margin-bottom:12px;">
-                                <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;"
-                                    @click="promptCollapsed[cat] = !promptCollapsed[cat]">
-                                    <div style="text-transform:capitalize;font-weight:700;color:var(--text-primary);"
-                                        x-text="cat"></div>
-                                    <div style="font-size:12px;color:var(--text-secondary);"
-                                        x-text="`${(prompts.filter(p => p.category === cat) || []).length}`"></div>
+                                <div class="comp-category" :class="{ 'active': promptCollapsed[cat] === false }"
+                                    tabindex="0" role="button" @click="promptCollapsed[cat] = !promptCollapsed[cat]">
+                                    <div class="comp-category-label" style="text-transform:capitalize;" x-text="cat">
+                                    </div>
+                                    <div style="display:flex;align-items:center;gap:6px;">
+                                        <div class="comp-category-count"
+                                            style="font-size:12px;color:var(--text-secondary);"
+                                            x-text="(prompts.filter(p => p.category === cat) || []).length"></div>
+                                        <button class="btn btn-secondary" style="padding:2px 8px;font-size:14px;"
+                                            @click.stop="createPrompt(cat)">+</button>
+                                    </div>
                                 </div>
+
                                 <div x-show="!promptCollapsed[cat]" x-cloak style="margin-top:6px;">
                                     <template x-for="pr in prompts.filter(p => p.category === cat)" :key="pr.id">
-                                        <div @click="openPrompt(pr.id)"
+                                        <div class="comp-entry"
                                             :class="{ 'active': currentPrompt && currentPrompt.id === pr.id }"
-                                            style="padding:8px;border-radius:6px;background:var(--bg-tertiary);margin-bottom:6px;cursor:pointer;">
-                                            <div style="font-weight:600;color:var(--text-primary);" x-text="pr.title">
+                                            tabindex="0">
+                                            <div style="display:flex;justify-content:space-between;align-items:center;">
+                                                <div style="flex:1;cursor:pointer;" @click.stop="openPrompt(pr.id)">
+                                                    <div class="comp-entry-title" x-text="pr.title"></div>
+                                                    <div class="comp-entry-meta"
+                                                        style="font-size:11px;color:var(--text-secondary);"
+                                                        x-text="new Date(pr.modified).toLocaleString()"></div>
+                                                </div>
+
+                                                <div class="item-actions" style="margin-left:8px;"
+                                                    x-data="{ openMenu:false }">
+                                                    <button class="menu-button" @click.stop="openMenu = !openMenu"
+                                                        title="More">⋯</button>
+                                                    <div x-show="openMenu" x-cloak @click.away="openMenu = false"
+                                                        x-transition class="action-menu">
+                                                        <button @click.stop="movePromptUp(pr.id); openMenu=false">Move
+                                                            up</button>
+                                                        <button @click.stop="movePromptDown(pr.id); openMenu=false">Move
+                                                            down</button>
+                                                        <button
+                                                            @click.stop="renamePrompt(pr.id); openMenu=false">Rename</button>
+                                                        <button
+                                                            @click.stop="deletePrompt(pr.id); openMenu=false">Delete</button>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div style="font-size:11px;color:var(--text-secondary);"
-                                                x-text="new Date(pr.modified).toLocaleString()"></div>
                                         </div>
                                     </template>
                                 </div>
@@ -471,6 +591,17 @@
                             <div x-show="currentPrompt">
                                 <input type="text" x-model="currentPrompt.title"
                                     style="width:100%;padding:8px;border:1px solid var(--border);background:var(--bg-primary);color:var(--text-primary);border-radius:6px;margin-bottom:6px;">
+                                <div style="margin-bottom:6px;">
+                                    <label
+                                        style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Category</label>
+                                    <select x-model="currentPrompt.category"
+                                        style="width:100%;padding:6px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);border-radius:6px;">
+                                        <template x-for="cat in promptCategories" :key="cat">
+                                            <option :value="cat" x-text="cat" style="text-transform:capitalize;">
+                                            </option>
+                                        </template>
+                                    </select>
+                                </div>
                             </div>
                         </div>
                         <div style="flex:1;overflow:auto;">
@@ -498,8 +629,6 @@
                     <div style="width:40%;overflow:auto;">
                         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
                             <strong style="color:var(--text-primary);">Categories</strong>
-                            <button class="btn btn-secondary" @click="createCompendiumEntry(currentCompCategory)"
-                                title="New entry">+</button>
                         </div>
 
                         <template x-for="cat in compendiumCategories" :key="cat">
@@ -510,8 +639,14 @@
                                     <div class="comp-category-label"
                                         style="text-transform:capitalize;font-weight:700;color:var(--text-primary);"
                                         x-text="cat"></div>
-                                    <div class="comp-category-count" style="font-size:12px;color:var(--text-secondary);"
-                                        x-text="(compendiumCounts[cat] || 0)"></div>
+                                    <div style="display:flex;align-items:center;gap:6px;">
+                                        <div class="comp-category-count"
+                                            style="font-size:12px;color:var(--text-secondary);"
+                                            x-text="(compendiumCounts[cat] || 0)"></div>
+                                        <button class="btn btn-secondary" style="padding:2px 8px;font-size:14px;"
+                                            @click.stop="createCompendiumEntry(cat)"
+                                            :title="`New ${cat} entry`">+</button>
+                                    </div>
                                 </div>
                                 <div x-show="currentCompCategory === cat" x-cloak style="margin-top:6px;">
                                     <template x-for="e in compendiumList" :key="e.id">
@@ -672,101 +807,3 @@
 </body>
 
 </html>
-
-<script>
-    // Draggable splitter to resize the beat textarea. Uses mouse and touch events.
-    // Wait for DOMContentLoaded and retry wiring if elements are rendered later by Alpine.
-    (function () {
-        function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
-
-        function wireSplitter() {
-            const separator = document.querySelector('.beat-separator');
-            const beat = document.querySelector('.beat-input');
-            if (!separator || !beat) return false;
-
-            // Attempt to restore a previously saved beat height (clamped to min/max)
-            try {
-                const raw = localStorage.getItem('ww2_beatHeight');
-                if (raw) {
-                    const parsed = parseInt(raw, 10);
-                    if (!isNaN(parsed)) {
-                        const style = window.getComputedStyle(beat);
-                        const minH = parseInt(style.minHeight) || 40;
-                        const maxH = parseInt(style.maxHeight) || 1000;
-                        const restored = clamp(parsed, minH, maxH);
-                        beat.style.height = restored + 'px';
-                    }
-                }
-            } catch (err) {
-                // ignore storage errors
-            }
-
-            let dragging = false;
-            let startY = 0;
-            let startHeight = 0;
-
-            const mouseMove = (e) => {
-                if (!dragging) return;
-                const clientY = (e.touches && e.touches[0]) ? e.touches[0].clientY : e.clientY;
-                const delta = startY - clientY; // positive when dragging up
-                let newH = startHeight + delta;
-                const style = window.getComputedStyle(beat);
-                const minH = parseInt(style.minHeight) || 40;
-                const maxH = parseInt(style.maxHeight) || 1000;
-                newH = clamp(newH, minH, maxH);
-                beat.style.height = newH + 'px';
-                // remember last applied height so stop() can persist it (avoids race with clientHeight)
-                beat.dataset._lastHeight = String(newH);
-                e.preventDefault();
-            };
-
-            const stop = () => {
-                if (!dragging) return;
-                dragging = false;
-                document.removeEventListener('mousemove', mouseMove);
-                document.removeEventListener('touchmove', mouseMove);
-                document.removeEventListener('mouseup', stop);
-                document.removeEventListener('touchend', stop);
-                document.body.style.userSelect = '';
-                try {
-                    const finalH = parseInt(beat.dataset._lastHeight || beat.clientHeight || 0, 10);
-                    if (!isNaN(finalH) && finalH > 0) {
-                        localStorage.setItem('ww2_beatHeight', String(finalH));
-                    }
-                } catch (err) {
-                    // ignore storage errors
-                }
-            };
-
-            const start = (e) => {
-                dragging = true;
-                startY = (e.touches && e.touches[0]) ? e.touches[0].clientY : e.clientY;
-                startHeight = beat.clientHeight;
-                document.addEventListener('mousemove', mouseMove, { passive: false });
-                document.addEventListener('touchmove', mouseMove, { passive: false });
-                document.addEventListener('mouseup', stop);
-                document.addEventListener('touchend', stop);
-                document.body.style.userSelect = 'none';
-                e.preventDefault();
-            };
-
-            separator.addEventListener('mousedown', start);
-            separator.addEventListener('touchstart', start, { passive: false });
-            return true;
-        }
-
-        const tryWire = () => {
-            if (wireSplitter()) return;
-            // If wiring failed (elements not present yet), retry shortly (handles Alpine render timing)
-            const t = setInterval(() => {
-                if (wireSplitter()) clearInterval(t);
-            }, 150);
-        };
-
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', tryWire);
-        } else {
-            tryWire();
-        }
-    })();
-</script>

@@ -4,6 +4,9 @@
 // - streamGeneration(prompt, onToken(token)) => Promise<void>
 (function () {
     function buildPrompt(beat, sceneContext, options = {}) {
+        try {
+            console.debug('[buildPrompt] received prosePrompt:', JSON.stringify(options.prosePrompt));
+        } catch (e) { /* ignore */ }
         const povName = (options.povCharacter && options.povCharacter.trim()) ? options.povCharacter.trim() : 'the protagonist';
         const tenseText = (options.tense === 'present') ? 'present tense' : 'past tense';
         const povText = options.pov || '3rd person limited';
@@ -18,8 +21,43 @@
             contextText = `\n\nCURRENT SCENE SO FAR:\n${contextWords}`;
         }
 
-        const prompt = `<|im_start|>system\n${systemPrompt}<|im_end|>\n<|im_start|>user\n${contextText}\n\nBEAT TO EXPAND:\n${beat}\n\nWrite the next 2-3 paragraphs:<|im_end|>\n<|im_start|>assistant\n`;
+        // If a prose prompt template is provided, include it before the BEAT so the model can use it.
+        // When `options.preview === true` we avoid adding explicit debug markers so the preview is cleaner.
+        let proseTemplateText = '';
+        if (options.prosePrompt && typeof options.prosePrompt === 'string' && options.prosePrompt.trim()) {
+            if (options.preview) {
+                proseTemplateText = `\n\n${options.prosePrompt.trim()}`;
+            } else {
+                // Add explicit markers to make the template visible during debugging/inspection
+                proseTemplateText = `\n\n--- PROMPT TEMPLATE START ---\n${options.prosePrompt.trim()}\n--- PROMPT TEMPLATE END ---`;
+            }
+        }
 
+        // If compendium entries are provided, include them as references before the BEAT.
+        // For preview mode we omit the full compendium bodies to keep the overlay concise.
+        let compendiumText = '';
+        if (!options.preview && options.compendiumEntries && Array.isArray(options.compendiumEntries) && options.compendiumEntries.length > 0) {
+            compendiumText = '\n\nCOMPENDIUM REFERENCES:\n';
+            for (const ce of options.compendiumEntries) {
+                try {
+                    const title = ce.title || ('entry ' + (ce.id || ''));
+                    const body = (ce.body || ce.body || ce.description || '') || ce.body || '';
+                    compendiumText += `\n-- ${title} --\n${body}\n`;
+                } catch (e) { /* ignore */ }
+            }
+        }
+
+        const prompt = `<|im_start|>system\n${systemPrompt}<|im_end|>\n<|im_start|>user\n${contextText}${proseTemplateText}\n\nBEAT TO EXPAND:\n${beat}\n\nWrite the next 2-3 paragraphs:<|im_end|>\n<|im_start|>assistant\n`;
+
+        // If we have compendiumText, insert it right after the user context and before the BEAT
+        if (compendiumText) {
+            const insertAt = prompt.indexOf('\n\nBEAT TO EXPAND:');
+            if (insertAt !== -1) {
+                const before = prompt.substring(0, insertAt);
+                const after = prompt.substring(insertAt);
+                return before + compendiumText + '\n' + after;
+            }
+        }
         return prompt;
     }
 

@@ -829,6 +829,45 @@ body {
     max-height: 480px;
 }
 
+/* Mirror overlay to render styled tokens above the textarea. The textarea's text is kept transparent so the mirror shows through. */
+.beat-input-group {
+    position: relative;
+}
+
+.beat-input {
+    position: relative;
+    z-index: 1;
+    color: transparent;
+    caret-color: var(--text-primary);
+    line-height: 20px;
+}
+
+.beat-mirror {
+    position: absolute;
+    z-index: 2;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    white-space: pre-wrap;
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--text-primary);
+    padding: 12px;
+    overflow: hidden;
+}
+
+.comp-chip {
+    display: inline-block;
+    color: #7fc9ff;
+    background: rgba(127, 201, 255, 0.08);
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-weight: 600;
+}
+
 .beat-input:focus {
     outline: none;
     border-color: var(--accent);
@@ -854,6 +893,8 @@ body {
     border-radius: 2px;
     opacity: 0.9;
 }
+
+/* Rewrite modal removed */
 
 /* (kept original .context-info below) */
 
@@ -1058,6 +1099,59 @@ body {
     background: var(--accent-hover);
 }
 
+/* Armed / disabled visual states for the floating rewrite button */
+.rewrite-btn.armed {
+    box-shadow: 0 10px 30px rgba(74, 158, 255, 0.25);
+    transform: translateY(-2px);
+}
+
+.rewrite-btn.disabled {
+    opacity: 0.6;
+    pointer-events: auto;
+}
+
+/* Rewrite Modal Styles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    backdrop-filter: blur(4px);
+}
+
+.rewrite-modal {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+    width: 90%;
+    max-width: 700px;
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.rewrite-modal .modal-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(90deg, rgba(74, 158, 255, 0.04), transparent);
+}
+
+.rewrite-modal .modal-body {
+    padding: 20px;
+    overflow-y: auto;
+}
+
 /* Summary status dot shown next to scene titles */
 .summary-dot {
     display: inline-block;
@@ -1081,4 +1175,38 @@ body {
 .summary-dot.none {
     background: #ef4444;
     /* red */
+}
+
+/* Prompts panel with visual accent styling matching compendium */
+.slide-panel-right.prompts-panel {
+    width: 520px;
+    border-left: 1px solid rgba(74, 158, 255, 0.08);
+    box-shadow: -18px 0 40px rgba(0, 0, 0, 0.55);
+    background: linear-gradient(180deg, var(--bg-secondary), rgba(74, 158, 255, 0.02));
+}
+
+.slide-panel-right.prompts-panel .slide-panel-header {
+    border-bottom: 1px solid rgba(74, 158, 255, 0.06);
+    background: linear-gradient(90deg, rgba(74, 158, 255, 0.02), transparent);
+}
+
+.slide-panel-right.prompts-panel .slide-panel-body {
+    background: linear-gradient(180deg, var(--bg-primary), rgba(74, 158, 255, 0.01));
+}
+
+/* Left accent stripe for the prompts panel */
+.slide-panel-right.prompts-panel::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(to bottom, var(--accent), rgba(74, 158, 255, 0.06));
+}
+
+@media (max-width: 900px) {
+    .slide-panel-right.prompts-panel {
+        width: 92vw;
+    }
 }
