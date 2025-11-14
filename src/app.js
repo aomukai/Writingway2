@@ -627,186 +627,21 @@ document.addEventListener('alpine:init', () => {
             this.rewritePromptPreview = '';
         },
 
-        // AI Configuration Functions
+        // AI Configuration Functions - delegated to AISettings
         async fetchProviderModels() {
-            // Fetch available models from the current provider
-            if (this.aiMode !== 'api' || !this.aiApiKey) return;
-            if (this.fetchingModels) return; // Prevent duplicate fetches
-
-            try {
-                this.fetchingModels = true;
-
-                if (this.aiProvider === 'openrouter') {
-                    // OpenRouter has a models API endpoint
-                    const response = await fetch('https://openrouter.ai/api/v1/models', {
-                        headers: {
-                            'Authorization': `Bearer ${this.aiApiKey}`
-                        }
-                    });
-                    if (response.ok) {
-                        const data = await response.json();
-                        // Filter and format models, prioritize free ones
-                        this.providerModels.openrouter = data.data
-                            .filter(m => m.id) // Has valid ID
-                            .sort((a, b) => {
-                                // Free models first
-                                const aFree = a.id.includes(':free');
-                                const bFree = b.id.includes(':free');
-                                if (aFree && !bFree) return -1;
-                                if (!aFree && bFree) return 1;
-                                return 0;
-                            })
-                            .map(m => ({
-                                id: m.id,
-                                name: m.name || m.id,
-                                recommended: m.id.includes(':free') || m.id.includes('gemini-2.0-flash')
-                            }));
-                        this.modelsFetched = true;
-                    }
-                } else if (this.aiProvider === 'openai') {
-                    // OpenAI has a models API
-                    const response = await fetch('https://api.openai.com/v1/models', {
-                        headers: {
-                            'Authorization': `Bearer ${this.aiApiKey}`
-                        }
-                    });
-                    if (response.ok) {
-                        const data = await response.json();
-                        // Filter to chat models only
-                        this.providerModels.openai = data.data
-                            .filter(m => m.id.includes('gpt'))
-                            .map(m => ({
-                                id: m.id,
-                                name: m.id.toUpperCase().replace(/-/g, ' '),
-                                recommended: m.id === 'gpt-4o' || m.id === 'gpt-4o-mini'
-                            }));
-                        this.modelsFetched = true;
-                    }
-                } else if (this.aiProvider === 'anthropic') {
-                    // Anthropic doesn't have a public models API, keep hardcoded list
-                    // (Their models are well-known and don't change often)
-                    this.modelsFetched = true;
-                } else if (this.aiProvider === 'google') {
-                    // Google AI doesn't have a public models list API for free tier
-                    // Keep hardcoded list
-                    this.modelsFetched = true;
-                }
-            } catch (e) {
-                console.error('Failed to fetch models:', e);
-                // Fall back to hardcoded list on error
-            } finally {
-                this.fetchingModels = false;
-            }
+            await window.AISettings.fetchProviderModels(this);
         },
-
         async scanLocalModels() {
-            try {
-                // In a real file system environment, we'd scan the models folder
-                // For now, try to list what we can detect
-                this.availableLocalModels = ['Qwen3-4B-Instruct-2507-IQ4_XS.gguf'];
-                alert('Model scan complete! Found ' + this.availableLocalModels.length + ' model(s).');
-            } catch (e) {
-                console.error('Failed to scan models:', e);
-                alert('Could not scan models folder');
-            }
+            await window.AISettings.scanLocalModels(this);
         },
-
-        // Quick save for generation parameters (no validation/testing)
         saveGenerationParams() {
-            try {
-                const settings = {
-                    mode: this.aiMode,
-                    provider: this.aiProvider,
-                    apiKey: this.aiApiKey,
-                    model: this.aiModel,
-                    endpoint: this.aiEndpoint || (this.aiMode === 'local' ? 'http://localhost:8080' : ''),
-                    temperature: this.temperature,
-                    maxTokens: this.maxTokens
-                };
-                localStorage.setItem('writingway:aiSettings', JSON.stringify(settings));
-            } catch (e) {
-                console.error('Failed to save generation params:', e);
-            }
+            window.AISettings.saveGenerationParams(this);
         },
-
         async saveAISettings() {
-            try {
-                // Save settings to localStorage
-                const settings = {
-                    mode: this.aiMode,
-                    provider: this.aiProvider,
-                    apiKey: this.aiApiKey,
-                    model: this.aiModel,
-                    endpoint: this.aiEndpoint || (this.aiMode === 'local' ? 'http://localhost:8080' : ''),
-                    temperature: this.temperature,
-                    maxTokens: this.maxTokens
-                };
-                localStorage.setItem('writingway:aiSettings', JSON.stringify(settings));
-
-                // Test connection
-                this.showModelLoading = true;
-                this.loadingMessage = 'Testing connection...';
-                this.loadingProgress = 50;
-
-                if (this.aiMode === 'local') {
-                    // Test local server
-                    const endpoint = this.aiEndpoint || 'http://localhost:8080';
-                    const response = await fetch(endpoint + '/health');
-                    if (response.ok) {
-                        this.aiStatus = 'ready';
-                        this.aiStatusText = 'AI Ready (Local)';
-                        this.loadingProgress = 100;
-                        setTimeout(() => { this.showModelLoading = false; }, 500);
-                        alert('✓ Connected to local server successfully!');
-                    } else {
-                        throw new Error('Local server not responding');
-                    }
-                } else {
-                    // Test API connection (basic validation)
-                    if (!this.aiApiKey) {
-                        throw new Error('API key is required');
-                    }
-                    if (!this.aiModel) {
-                        throw new Error('Model name is required');
-                    }
-                    this.aiStatus = 'ready';
-                    this.aiStatusText = `AI Ready (${this.aiProvider})`;
-                    this.loadingProgress = 100;
-                    setTimeout(() => { this.showModelLoading = false; }, 500);
-                    alert('✓ API settings saved! Ready to generate.');
-                }
-
-                this.showAISettings = false;
-            } catch (e) {
-                console.error('AI settings save/test failed:', e);
-                this.aiStatus = 'error';
-                this.aiStatusText = 'Connection failed';
-                this.showModelLoading = false;
-                alert('Connection failed: ' + (e.message || e));
-            }
+            await window.AISettings.saveAISettings(this);
         },
-
         async loadAISettings() {
-            try {
-                const saved = localStorage.getItem('writingway:aiSettings');
-                if (saved) {
-                    const settings = JSON.parse(saved);
-                    this.aiMode = settings.mode || 'local';
-                    this.aiProvider = settings.provider || 'anthropic';
-                    this.aiApiKey = settings.apiKey || '';
-                    this.aiModel = settings.model || '';
-                    this.aiEndpoint = settings.endpoint || '';
-                    this.temperature = settings.temperature || 0.8;
-                    this.maxTokens = settings.maxTokens || 300;
-
-                    // Fetch fresh model list if we have API credentials
-                    if (this.aiMode === 'api' && this.aiApiKey) {
-                        await this.fetchProviderModels();
-                    }
-                }
-            } catch (e) {
-                console.error('Failed to load AI settings:', e);
-            }
+            await window.AISettings.loadAISettings(this);
         },
 
         // Wire up the draggable beat splitter. Runs after Alpine has mounted.
@@ -1091,214 +926,48 @@ document.addEventListener('alpine:init', () => {
             this.prompts = [];
         },
 
-        // Compendium methods
+        // Compendium methods - delegated to CompendiumManager
         async openCompendium() {
-            // Toggle behavior: close if already open, otherwise open and load data
-            if (this.showCodexPanel) {
-                this.showCodexPanel = false;
-                return;
-            }
-            this.showCodexPanel = true;
-            // load counts and default category
-            await this.loadCompendiumCounts();
-            await this.loadCompendiumCategory(this.currentCompCategory);
+            await window.CompendiumManager.openCompendium(this);
         },
-
         async loadCompendiumCounts() {
-            try {
-                const counts = {};
-                for (const c of this.compendiumCategories) {
-                    const list = await (window.Compendium ? window.Compendium.listByCategory(this.currentProject.id, c) : []);
-                    counts[c] = list.length;
-                }
-                this.compendiumCounts = counts;
-            } catch (e) {
-                console.warn('Failed to load compendium counts:', e);
-                this.compendiumCounts = {};
-            }
+            await window.CompendiumManager.loadCompendiumCounts(this);
         },
-
         async loadCompendiumCategory(category) {
-            if (!this.currentProject) return;
-
-            // Toggle behavior: if the same category is clicked again, close it
-            if (this.currentCompCategory === category) {
-                this.currentCompCategory = null;
-                this.compendiumList = [];
-                this.currentCompEntry = null;
-                // refresh counts for UI consistency
-                try { await this.loadCompendiumCounts(); } catch (e) { /* ignore */ }
-                return;
-            }
-
-            this.currentCompCategory = category;
-            try {
-                if (window.Compendium && typeof window.Compendium.listByCategory === 'function') {
-                    this.compendiumList = await window.Compendium.listByCategory(this.currentProject.id, category) || [];
-                } else {
-                    this.compendiumList = [];
-                }
-                // clear current entry selection
-                this.currentCompEntry = null;
-                await this.loadCompendiumCounts();
-            } catch (e) {
-                console.error('Failed to load compendium category:', e);
-            }
+            await window.CompendiumManager.loadCompendiumCategory(this, category);
         },
-
         async createCompendiumEntry(category) {
-            if (!this.currentProject) return;
-            const cat = category || this.currentCompCategory || this.compendiumCategories[0];
-            try {
-                const entry = await window.Compendium.createEntry(this.currentProject.id, { category: cat, title: 'New Entry', body: '' });
-                await this.loadCompendiumCategory(cat);
-                this.selectCompendiumEntry(entry.id);
-            } catch (e) {
-                console.error('Failed to create compendium entry:', e);
-            }
+            await window.CompendiumManager.createCompendiumEntry(this, category);
         },
-
         async selectCompendiumEntry(id) {
-            try {
-                const e = await window.Compendium.getEntry(id);
-                this.currentCompEntry = e || null;
-            } catch (err) {
-                console.error('Failed to load compendium entry:', err);
-            }
+            await window.CompendiumManager.selectCompendiumEntry(this, id);
         },
-
         async saveCompendiumEntry() {
-            if (!this.currentCompEntry || !this.currentCompEntry.id) return;
-            try {
-                this.compendiumSaveStatus = 'Saving...';
-                const updates = {
-                    title: this.currentCompEntry.title || '',
-                    body: this.currentCompEntry.body || '',
-                    tags: JSON.parse(JSON.stringify(this.currentCompEntry.tags || [])),
-                    imageUrl: this.currentCompEntry.imageUrl || null
-                };
-                await window.Compendium.updateEntry(this.currentCompEntry.id, updates);
-                await this.loadCompendiumCategory(this.currentCompCategory);
-                await this.loadCompendiumCounts();
-                this.compendiumSaveStatus = 'Saved';
-                setTimeout(() => { this.compendiumSaveStatus = ''; }, 2000);
-            } catch (e) {
-                console.error('Failed to save compendium entry:', e);
-                this.compendiumSaveStatus = 'Error';
-                setTimeout(() => { this.compendiumSaveStatus = ''; }, 3000);
-            }
+            await window.CompendiumManager.saveCompendiumEntry(this);
         },
-
         addCompTag() {
-            if (!this.currentCompEntry) return;
-            const tag = (this.newCompTag || '').trim();
-            if (!tag) return;
-            this.currentCompEntry.tags = this.currentCompEntry.tags || [];
-            if (!this.currentCompEntry.tags.includes(tag)) this.currentCompEntry.tags.push(tag);
-            this.newCompTag = '';
+            window.CompendiumManager.addCompTag(this);
         },
-
         removeCompTag(index) {
-            if (!this.currentCompEntry || !this.currentCompEntry.tags) return;
-            this.currentCompEntry.tags.splice(index, 1);
+            window.CompendiumManager.removeCompTag(this, index);
         },
-
         setCompImageFromFile(e) {
-            // Accept events from input change or drop events. Also accept a direct File.
-            let file = null;
-            try {
-                if (e && e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
-                    file = e.dataTransfer.files[0];
-                } else if (e && e.target && e.target.files && e.target.files[0]) {
-                    file = e.target.files[0];
-                } else if (e instanceof File) {
-                    file = e;
-                }
-            } catch (err) { file = null; }
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                try {
-                    this.currentCompEntry.imageUrl = ev.target.result;
-                } catch (err) { }
-            };
-            reader.readAsDataURL(file);
-            // clear input if present
-            try { if (e && e.target) e.target.value = null; } catch (err) { }
+            window.CompendiumManager.setCompImageFromFile(this, e);
         },
-
         confirmRemoveCompImage() {
-            if (!this.currentCompEntry || !this.currentCompEntry.imageUrl) return;
-            if (confirm('Remove this image from the entry?')) {
-                this.currentCompEntry.imageUrl = null;
-            }
+            window.CompendiumManager.confirmRemoveCompImage(this);
         },
-
         async deleteCompendiumEntry(id) {
-            if (!id) return;
-            if (!confirm('Delete this compendium entry?')) return;
-            try {
-                await window.Compendium.deleteEntry(id);
-                this.currentCompEntry = null;
-                await this.loadCompendiumCategory(this.currentCompCategory);
-                await this.loadCompendiumCounts();
-            } catch (e) {
-                console.error('Failed to delete compendium entry:', e);
-            }
+            await window.CompendiumManager.deleteCompendiumEntry(this, id);
         },
-
         async moveCompendiumEntryUp(id) {
-            if (!this.currentCompCategory || !id) return;
-            try {
-                const list = await window.Compendium.listByCategory(this.currentProject.id, this.currentCompCategory) || [];
-                const idx = list.findIndex(x => x.id === id);
-                if (idx <= 0) return; // already at top
-                const above = list[idx - 1];
-                const item = list[idx];
-                const aOrder = (above.order || 0);
-                const iOrder = (item.order || 0);
-                await window.Compendium.updateEntry(above.id, { order: iOrder });
-                await window.Compendium.updateEntry(item.id, { order: aOrder });
-                await this.loadCompendiumCategory(this.currentCompCategory);
-            } catch (e) {
-                console.error('Failed to move compendium entry up:', e);
-            }
+            await window.CompendiumManager.moveCompendiumEntryUp(this, id);
         },
-
         async moveCompendiumEntryDown(id) {
-            if (!this.currentCompCategory || !id) return;
-            try {
-                const list = await window.Compendium.listByCategory(this.currentProject.id, this.currentCompCategory) || [];
-                const idx = list.findIndex(x => x.id === id);
-                if (idx === -1 || idx >= list.length - 1) return; // already at bottom
-                const below = list[idx + 1];
-                const item = list[idx];
-                const bOrder = (below.order || 0);
-                const iOrder = (item.order || 0);
-                await window.Compendium.updateEntry(below.id, { order: iOrder });
-                await window.Compendium.updateEntry(item.id, { order: bOrder });
-                await this.loadCompendiumCategory(this.currentCompCategory);
-            } catch (e) {
-                console.error('Failed to move compendium entry down:', e);
-            }
+            await window.CompendiumManager.moveCompendiumEntryDown(this, id);
         },
-
         async moveCompendiumEntryToCategory(id, newCategory) {
-            if (!id || !newCategory) return;
-            try {
-                // find current max order in target category and append
-                const items = await window.Compendium.listByCategory(this.currentProject.id, newCategory) || [];
-                const maxOrder = items.length ? Math.max(...items.map(it => (it.order || 0))) : -1;
-                await window.Compendium.updateEntry(id, { category: newCategory, order: maxOrder + 1 });
-                // if moved out of the currently-viewed category, refresh that list; else reload same category
-                await this.loadCompendiumCategory(this.currentCompCategory);
-                await this.loadCompendiumCounts();
-                // clear selection if we moved the selected entry away
-                if (this.currentCompEntry && this.currentCompEntry.id === id) this.currentCompEntry = null;
-            } catch (e) {
-                console.error('Failed to move compendium entry to category:', e);
-            }
+            await window.CompendiumManager.moveCompendiumEntryToCategory(this, id, newCategory);
         },
 
         async createPrompt(category) {
