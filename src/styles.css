@@ -8,8 +8,9 @@
     --bg-primary: #1a1a1a;
     --bg-secondary: #2a2a2a;
     --bg-tertiary: #3a3a3a;
-    --text-primary: #e0e0e0;
-    --text-secondary: #a0a0a0;
+    --text-primary: #e8e8e8;
+    --text-secondary: #b0b0b0;
+    --text-tertiary: #808080;
     --accent: #4a9eff;
     --accent-hover: #3a7fd9;
     --border: #404040;
@@ -213,7 +214,8 @@ body {
     font-size: 18px;
     border-radius: 6px;
     border-left: 4px solid transparent;
-    transition: background 0.15s ease, color 0.15s ease, border-left-color 0.15s ease;
+    transition: all 0.2s ease;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 /* Caret for expand/collapse with smooth rotation */
@@ -256,6 +258,7 @@ body {
     background: var(--bg-tertiary);
     color: var(--text-primary);
     border-left-color: var(--accent);
+    transform: translateX(2px);
 }
 
 /* Compendium category items (left column of compendium panel) */
@@ -263,12 +266,13 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px 12px;
+    padding: 12px 14px;
     border-radius: 6px;
     cursor: pointer;
     color: var(--text-secondary);
-    transition: background 0.15s ease, color 0.15s ease, border-left-color 0.15s ease, transform 0.12s ease;
+    transition: all 0.2s ease;
     border-left: 4px solid transparent;
+    background: rgba(255, 255, 255, 0.01);
 }
 
 .comp-category:hover,
@@ -276,14 +280,16 @@ body {
     background: var(--bg-tertiary);
     color: var(--text-primary);
     border-left-color: var(--accent);
-    transform: translateY(-1px);
+    transform: translateX(4px);
     outline: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .comp-category.active {
-    background: linear-gradient(90deg, rgba(74, 158, 255, 0.04), transparent);
+    background: linear-gradient(90deg, rgba(74, 158, 255, 0.08), rgba(74, 158, 255, 0.02));
     color: var(--text-primary);
     border-left-color: var(--accent);
+    box-shadow: 0 2px 6px rgba(74, 158, 255, 0.2);
 }
 
 .comp-category .comp-category-label {
@@ -298,13 +304,13 @@ body {
 
 /* Compendium entry items (individual entries in a category) */
 .comp-entry {
-    padding: 8px;
+    padding: 10px 12px;
     border-radius: 6px;
     margin-bottom: 6px;
     cursor: pointer;
     background: transparent;
     color: var(--text-secondary);
-    transition: background 0.12s ease, color 0.12s ease, transform 0.12s ease, border-left-color 0.12s ease;
+    transition: all 0.2s ease;
     border-left: 4px solid transparent;
 }
 
@@ -313,8 +319,9 @@ body {
     background: var(--bg-tertiary);
     color: var(--text-primary);
     border-left-color: var(--accent);
-    transform: translateY(-1px);
+    transform: translateX(4px);
     outline: none;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
 .comp-entry.active {
@@ -537,6 +544,7 @@ body {
     z-index: 4500;
     display: flex;
     flex-direction: column;
+    box-shadow: -8px 0 32px rgba(0, 0, 0, 0.5), -4px 0 16px rgba(74, 158, 255, 0.1);
 }
 
 .slide-panel-right.open {
@@ -608,7 +616,7 @@ body {
     background: transparent;
     border-radius: 6px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
     border: 2px solid transparent;
     border-left: 4px solid transparent;
 }
@@ -617,14 +625,17 @@ body {
     background: var(--bg-tertiary);
     color: var(--text-primary);
     border-left-color: var(--accent);
+    transform: translateX(4px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .scene-item.active {
     border-color: var(--accent);
-    background: linear-gradient(90deg, rgba(74, 158, 255, 0.06), rgba(74, 158, 255, 0.02));
+    background: linear-gradient(90deg, rgba(74, 158, 255, 0.12), rgba(74, 158, 255, 0.04));
     border-left: 6px solid var(--accent);
     padding-left: 12px;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+    box-shadow: 0 4px 16px rgba(74, 158, 255, 0.25), 0 2px 8px rgba(0, 0, 0, 0.3);
+    transform: translateX(2px);
 }
 
 .scene-item .scene-title {
@@ -635,6 +646,7 @@ body {
 .scene-item .scene-meta {
     font-size: 11px;
     color: var(--text-secondary);
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
 }
 
 .add-scene-btn {
@@ -772,12 +784,12 @@ body {
 
 .editor-textarea {
     flex: 1;
-    padding: 40px;
+    padding: 50px 60px;
     background: var(--bg-primary);
     border: none;
-    color: var(--text-primary);
-    font-size: 16px;
-    line-height: 1.8;
+    color: #e8e8e8;
+    font-size: 17px;
+    line-height: 2.0;
     resize: none;
     outline: none;
     font-family: 'Georgia', serif;
@@ -788,19 +800,22 @@ body {
 }
 
 .beat-panel {
-    background: var(--bg-secondary);
-    border-top: 1px solid var(--border);
-    padding: 12px 30px 12px 30px;
+    background: linear-gradient(180deg, var(--bg-secondary) 0%, rgba(26, 26, 26, 0.95) 100%);
+    border-top: 1px solid rgba(74, 158, 255, 0.15);
+    padding: 16px 30px 16px 30px;
     display: flex;
     flex-direction: column;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
 }
 
 .beat-panel h3 {
-    font-size: 14px;
-    margin-bottom: 10px;
-    color: var(--text-secondary);
+    font-size: 13px;
+    margin-bottom: 12px;
+    color: var(--accent);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 1px;
+    font-weight: 700;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .beat-input-group {
@@ -821,10 +836,10 @@ body {
 
 .beat-input {
     flex: 1;
-    padding: 12px;
-    background: var(--bg-tertiary);
-    border: 1px solid var(--border);
-    border-radius: 6px;
+    padding: 14px;
+    background: rgba(58, 58, 58, 0.6);
+    border: 1px solid rgba(74, 158, 255, 0.2);
+    border-radius: 8px;
     color: var(--text-primary);
     font-size: 14px;
     font-family: inherit;
@@ -832,6 +847,7 @@ body {
     resize: vertical;
     min-height: 56px;
     max-height: 480px;
+    transition: border-color 0.2s ease, background 0.2s ease;
 }
 
 /* Mirror overlay to render styled tokens above the textarea. The textarea's text is kept transparent so the mirror shows through. */
@@ -850,6 +866,8 @@ body {
 .beat-input:focus {
     outline: none;
     border-color: var(--accent);
+    background: rgba(58, 58, 58, 0.8);
+    box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.15);
 }
 
 /* thin visual separator between editor and beat panel */
