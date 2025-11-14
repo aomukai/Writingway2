@@ -74,6 +74,8 @@
         const aiApiKey = app?.aiApiKey || '';
         const aiModel = app?.aiModel || '';
         const aiEndpoint = app?.aiEndpoint || 'http://localhost:8080';
+        const temperature = app?.temperature || 0.8;
+        const maxTokens = app?.maxTokens || 300;
 
         // Convert prompt to appropriate format
         let promptStr = prompt;
@@ -89,22 +91,22 @@
 
         if (aiMode === 'api') {
             // API Mode - use configured provider with messages
-            return await streamGenerationAPI(messages || promptStr, onToken, aiProvider, aiApiKey, aiModel, aiEndpoint);
+            return await streamGenerationAPI(messages || promptStr, onToken, aiProvider, aiApiKey, aiModel, aiEndpoint, temperature, maxTokens);
         } else {
             // Local Mode - use llama-server with string prompt
-            return await streamGenerationLocal(promptStr, onToken, aiEndpoint);
+            return await streamGenerationLocal(promptStr, onToken, aiEndpoint, temperature, maxTokens);
         }
     }
 
-    async function streamGenerationLocal(prompt, onToken, endpoint) {
+    async function streamGenerationLocal(prompt, onToken, endpoint, temperature, maxTokens) {
         // Local llama-server completion
         const response = await fetch(endpoint + '/completion', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 prompt: prompt,
-                n_predict: 300,
-                temperature: 0.8,
+                n_predict: maxTokens || 300,
+                temperature: temperature || 0.8,
                 top_p: 0.9,
                 stop: ['<|im_end|>', '<|endoftext|>', '\n\n\n\n', 'USER:', 'HUMAN:'],
                 stream: true
@@ -146,7 +148,7 @@
         }
     }
 
-    async function streamGenerationAPI(prompt, onToken, provider, apiKey, model, customEndpoint) {
+    async function streamGenerationAPI(prompt, onToken, provider, apiKey, model, customEndpoint, temperature, maxTokens) {
         // API Mode - construct request based on provider
         let url, headers, body;
 
@@ -160,6 +162,9 @@
             messages = [{ role: 'user', content: String(prompt) }];
         }
 
+        const temp = temperature || 0.8;
+        const maxTok = maxTokens || 300;
+
         if (provider === 'openrouter') {
             url = 'https://openrouter.ai/api/v1/chat/completions';
             headers = {
@@ -171,6 +176,8 @@
             body = {
                 model: model || 'google/gemini-2.0-flash-exp:free',
                 messages: messages,
+                temperature: temp,
+                max_tokens: maxTok,
                 stream: true
             };
         } else if (provider === 'anthropic') {
@@ -183,7 +190,8 @@
             body = {
                 model: model || 'claude-3-5-sonnet-20241022',
                 messages: messages,
-                max_tokens: 1024,
+                temperature: temp,
+                max_tokens: maxTok,
                 stream: true
             };
         } else if (provider === 'openai') {
@@ -195,6 +203,8 @@
             body = {
                 model: model || 'gpt-4o-mini',
                 messages: messages,
+                temperature: temp,
+                max_tokens: maxTok,
                 stream: true
             };
         } else if (provider === 'google') {
@@ -203,7 +213,11 @@
             url = `https://generativelanguage.googleapis.com/v1beta/models/${model || 'gemini-2.0-flash-exp'}:streamGenerateContent?key=${apiKey}`;
             headers = { 'Content-Type': 'application/json' };
             body = {
-                contents: [{ parts: [{ text: text }] }]
+                contents: [{ parts: [{ text: text }] }],
+                generationConfig: {
+                    temperature: temp,
+                    maxOutputTokens: maxTok
+                }
             };
         } else if (provider === 'custom') {
             url = customEndpoint;
@@ -214,6 +228,8 @@
             body = {
                 model: model,
                 messages: messages,
+                temperature: temp,
+                max_tokens: maxTok,
                 stream: true
             };
         }

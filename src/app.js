@@ -281,6 +281,40 @@ document.addEventListener('alpine:init', () => {
         aiEndpoint: '', // Custom endpoint URL
         availableLocalModels: [],
         showAIQuickStart: false,
+        fetchingModels: false, // Loading state for model fetching
+        modelsFetched: false, // Whether we've already fetched models for current provider
+
+        // Generation Parameters
+        temperature: 0.8,
+        maxTokens: 300,
+
+        // Available models per provider
+        providerModels: {
+            openrouter: [
+                { id: 'google/gemini-2.0-flash-exp:free', name: 'Gemini 2.0 Flash (Free)', recommended: true },
+                { id: 'meta-llama/llama-3.2-3b-instruct:free', name: 'Llama 3.2 3B (Free)' },
+                { id: 'qwen/qwen-2-7b-instruct:free', name: 'Qwen 2 7B (Free)' },
+                { id: 'anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet (Paid)' },
+                { id: 'openai/gpt-4o-mini', name: 'GPT-4o Mini (Paid)' },
+                { id: 'openai/gpt-4o', name: 'GPT-4o (Paid)' }
+            ],
+            anthropic: [
+                { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet', recommended: true },
+                { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku' },
+                { id: 'claude-3-opus-20240229', name: 'Claude 3 Opus' }
+            ],
+            openai: [
+                { id: 'gpt-4o', name: 'GPT-4o', recommended: true },
+                { id: 'gpt-4o-mini', name: 'GPT-4o Mini' },
+                { id: 'gpt-4-turbo', name: 'GPT-4 Turbo' },
+                { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo' }
+            ],
+            google: [
+                { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash', recommended: true },
+                { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro' },
+                { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash' }
+            ]
+        },
 
         // Rewrite selection UI with modal
         showRewriteBtn: false,
@@ -585,6 +619,77 @@ document.addEventListener('alpine:init', () => {
         },
 
         // AI Configuration Functions
+        async fetchProviderModels() {
+            // Fetch available models from the current provider
+            if (this.aiMode !== 'api' || !this.aiApiKey) return;
+            if (this.fetchingModels) return; // Prevent duplicate fetches
+
+            try {
+                this.fetchingModels = true;
+
+                if (this.aiProvider === 'openrouter') {
+                    // OpenRouter has a models API endpoint
+                    const response = await fetch('https://openrouter.ai/api/v1/models', {
+                        headers: {
+                            'Authorization': `Bearer ${this.aiApiKey}`
+                        }
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        // Filter and format models, prioritize free ones
+                        this.providerModels.openrouter = data.data
+                            .filter(m => m.id) // Has valid ID
+                            .sort((a, b) => {
+                                // Free models first
+                                const aFree = a.id.includes(':free');
+                                const bFree = b.id.includes(':free');
+                                if (aFree && !bFree) return -1;
+                                if (!aFree && bFree) return 1;
+                                return 0;
+                            })
+                            .map(m => ({
+                                id: m.id,
+                                name: m.name || m.id,
+                                recommended: m.id.includes(':free') || m.id.includes('gemini-2.0-flash')
+                            }));
+                        this.modelsFetched = true;
+                    }
+                } else if (this.aiProvider === 'openai') {
+                    // OpenAI has a models API
+                    const response = await fetch('https://api.openai.com/v1/models', {
+                        headers: {
+                            'Authorization': `Bearer ${this.aiApiKey}`
+                        }
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        // Filter to chat models only
+                        this.providerModels.openai = data.data
+                            .filter(m => m.id.includes('gpt'))
+                            .map(m => ({
+                                id: m.id,
+                                name: m.id.toUpperCase().replace(/-/g, ' '),
+                                recommended: m.id === 'gpt-4o' || m.id === 'gpt-4o-mini'
+                            }));
+                        this.modelsFetched = true;
+                    }
+                } else if (this.aiProvider === 'anthropic') {
+                    // Anthropic doesn't have a public models API, keep hardcoded list
+                    // (Their models are well-known and don't change often)
+                    this.modelsFetched = true;
+                } else if (this.aiProvider === 'google') {
+                    // Google AI doesn't have a public models list API for free tier
+                    // Keep hardcoded list
+                    this.modelsFetched = true;
+                }
+            } catch (e) {
+                console.error('Failed to fetch models:', e);
+                // Fall back to hardcoded list on error
+            } finally {
+                this.fetchingModels = false;
+            }
+        },
+
         async scanLocalModels() {
             try {
                 // In a real file system environment, we'd scan the models folder
@@ -597,6 +702,24 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
+        // Quick save for generation parameters (no validation/testing)
+        saveGenerationParams() {
+            try {
+                const settings = {
+                    mode: this.aiMode,
+                    provider: this.aiProvider,
+                    apiKey: this.aiApiKey,
+                    model: this.aiModel,
+                    endpoint: this.aiEndpoint || (this.aiMode === 'local' ? 'http://localhost:8080' : ''),
+                    temperature: this.temperature,
+                    maxTokens: this.maxTokens
+                };
+                localStorage.setItem('writingway:aiSettings', JSON.stringify(settings));
+            } catch (e) {
+                console.error('Failed to save generation params:', e);
+            }
+        },
+
         async saveAISettings() {
             try {
                 // Save settings to localStorage
@@ -605,7 +728,9 @@ document.addEventListener('alpine:init', () => {
                     provider: this.aiProvider,
                     apiKey: this.aiApiKey,
                     model: this.aiModel,
-                    endpoint: this.aiEndpoint || (this.aiMode === 'local' ? 'http://localhost:8080' : '')
+                    endpoint: this.aiEndpoint || (this.aiMode === 'local' ? 'http://localhost:8080' : ''),
+                    temperature: this.temperature,
+                    maxTokens: this.maxTokens
                 };
                 localStorage.setItem('writingway:aiSettings', JSON.stringify(settings));
 
@@ -662,6 +787,13 @@ document.addEventListener('alpine:init', () => {
                     this.aiApiKey = settings.apiKey || '';
                     this.aiModel = settings.model || '';
                     this.aiEndpoint = settings.endpoint || '';
+                    this.temperature = settings.temperature || 0.8;
+                    this.maxTokens = settings.maxTokens || 300;
+
+                    // Fetch fresh model list if we have API credentials
+                    if (this.aiMode === 'api' && this.aiApiKey) {
+                        await this.fetchProviderModels();
+                    }
                 }
             } catch (e) {
                 console.error('Failed to load AI settings:', e);

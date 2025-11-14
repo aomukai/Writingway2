@@ -287,8 +287,16 @@
                                 <div style="display:flex;flex-direction:column;gap:8px;">
                                     <label style="font-size:12px;color:var(--text-secondary);">POV CHARACTER
                                         <input type="text" x-model="povCharacter" placeholder="e.g., Alice"
-                                            @blur="saveScene()" @keydown.enter.prevent="saveScene()"
+                                            list="character-list" @blur="saveScene()"
+                                            @keydown.enter.prevent="saveScene()"
                                             style="width:100%;margin-top:6px;padding:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
+                                        <datalist id="character-list">
+                                            <template
+                                                x-for="char in compendium.filter(c => c.category === 'characters')"
+                                                :key="char.id">
+                                                <option :value="char.title"></option>
+                                            </template>
+                                        </datalist>
                                     </label>
 
                                     <label style="font-size:12px;color:var(--text-secondary);">POV
@@ -319,6 +327,82 @@
                                             </template>
                                         </select>
                                     </label>
+
+                                    <!-- Generation Settings -->
+                                    <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+                                        <div
+                                            style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:12px;">
+                                            Generation Settings
+                                        </div>
+
+                                        <!-- Model Selection -->
+                                        <label style="font-size:12px;color:var(--text-secondary);"
+                                            title="The AI model used for generation. Different models have different capabilities and costs.">
+                                            MODEL
+                                            <select x-model="aiModel" @change="saveGenerationParams()"
+                                                style="width:100%;margin-top:6px;padding:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
+                                                <!-- API mode models -->
+                                                <template x-if="aiMode === 'api'">
+                                                    <template x-for="model in providerModels[aiProvider] || []"
+                                                        :key="model.id">
+                                                        <option :value="model.id" :selected="aiModel === model.id"
+                                                            x-text="model.name + (model.recommended ? ' ⭐' : '')">
+                                                        </option>
+                                                    </template>
+                                                </template>
+                                                <!-- Local mode models -->
+                                                <template x-if="aiMode === 'local'">
+                                                    <template x-for="modelName in availableLocalModels"
+                                                        :key="modelName">
+                                                        <option :value="modelName" x-text="modelName"></option>
+                                                    </template>
+                                                </template>
+                                                <template
+                                                    x-if="aiMode === 'local' && availableLocalModels.length === 0">
+                                                    <option value="">No models - Scan in AI Settings</option>
+                                                </template>
+                                            </select>
+                                        </label>
+
+                                        <!-- Temperature -->
+                                        <label
+                                            style="font-size:12px;color:var(--text-secondary);margin-top:12px;display:block;"
+                                            title="Controls randomness. Lower (0.3-0.6) = more focused and consistent. Higher (0.8-1.2) = more creative and varied.">
+                                            TEMPERATURE: <span x-text="temperature.toFixed(1)"></span>
+                                            <input type="range" x-model.number="temperature" min="0.1" max="1.5"
+                                                step="0.1" @input="saveGenerationParams()"
+                                                style="width:100%;margin-top:6px;">
+                                            <div
+                                                style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-tertiary);margin-top:2px;">
+                                                <span>Focused</span>
+                                                <span>Balanced</span>
+                                                <span>Creative</span>
+                                            </div>
+                                        </label>
+
+                                        <!-- Max Tokens -->
+                                        <label
+                                            style="font-size:12px;color:var(--text-secondary);margin-top:12px;display:block;"
+                                            title="Maximum length of generated text. 100-200 = short paragraph, 300-500 = multiple paragraphs, 800-1500 = longer scenes, 2000 = very long.">
+                                            MAX LENGTH: <span x-text="maxTokens"></span> tokens
+                                            <input type="range" x-model.number="maxTokens" min="100" max="2000"
+                                                step="50" @input="saveGenerationParams()"
+                                                style="width:100%;margin-top:6px;">
+                                            <div
+                                                style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-tertiary);margin-top:2px;">
+                                                <span>Short</span>
+                                                <span>Medium</span>
+                                                <span>Very Long</span>
+                                            </div>
+                                        </label>
+
+                                        <!-- Quick link to full AI Settings -->
+                                        <button class="btn btn-secondary"
+                                            @click="showSceneOptions = false; showAISettings = true"
+                                            style="width:100%;margin-top:12px;font-size:11px;">
+                                            ⚙️ Advanced AI Settings
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -584,13 +668,25 @@
                     </div>
 
                     <div style="margin-bottom:16px;">
-                        <label
-                            style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text-primary);">Model</label>
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                            <label
+                                style="display:block;font-size:13px;font-weight:600;color:var(--text-primary);">Model</label>
+                            <button class="btn btn-secondary" @click="fetchProviderModels()"
+                                :disabled="!aiApiKey || fetchingModels" style="font-size:11px;padding:4px 8px;"
+                                title="Refresh available models from provider">
+                                <span x-show="!fetchingModels">🔄 Refresh</span>
+                                <span x-show="fetchingModels">⏳ Loading...</span>
+                            </button>
+                        </div>
                         <input type="text" x-model="aiModel" :placeholder="aiProvider === 'openrouter' ? 'e.g., google/gemini-2.0-flash-exp:free' : 
                             aiProvider === 'anthropic' ? 'e.g., claude-3-5-sonnet-20241022' : 
                             aiProvider === 'openai' ? 'e.g., gpt-4o-mini' : 
                             aiProvider === 'google' ? 'e.g., gemini-2.0-flash-exp' : 'Model name'"
                             style="width:100%;padding:8px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);border-radius:6px;">
+                        <p style="font-size:11px;color:var(--text-secondary);margin:4px 0 0 0;"
+                            x-show="modelsFetched && aiMode === 'api'">
+                            ✓ Model list updated from provider
+                        </p>
                     </div>
 
                     <div x-show="aiProvider === 'custom'" style="margin-bottom:16px;">
