@@ -244,6 +244,12 @@ document.addEventListener('alpine:init', () => {
         updateAvailable: null,
         checkingForUpdates: false,
 
+        // TTS (Text-to-Speech) state
+        isReading: false,
+        ttsVoiceName: '', // Selected voice name (string)
+        ttsSpeed: 1.0, // Speech rate (0.5 - 2.0)
+        availableTTSVoices: [], // Populated on init
+
         currentScene: null,
         chapters: [],
         scenes: [], // flattened scenes list for quick access
@@ -536,6 +542,22 @@ document.addEventListener('alpine:init', () => {
                 setTimeout(() => window.UpdateChecker.checkAndNotify(this, true), 2000);
             }
 
+            // Initialize TTS voices
+            if (window.TTS) {
+                // Load voices (they load async)
+                setTimeout(() => {
+                    this.availableTTSVoices = window.TTS.getVoices();
+                    // Load saved voice preference
+                    const savedVoiceName = localStorage.getItem('writingway:ttsVoice');
+                    if (savedVoiceName) {
+                        this.ttsVoiceName = savedVoiceName;
+                    }
+                    // Load saved speed
+                    const savedSpeed = localStorage.getItem('writingway:ttsSpeed');
+                    if (savedSpeed) this.ttsSpeed = parseFloat(savedSpeed);
+                }, 500);
+            }
+
             // Selection change handler: show a floating "Rewrite" button when text is selected
             document.addEventListener('selectionchange', () => {
                 try {
@@ -764,6 +786,60 @@ document.addEventListener('alpine:init', () => {
             if (window.UpdateChecker) {
                 await window.UpdateChecker.checkAndNotify(this, false);
             }
+        },
+
+        // TTS: Toggle reading current scene aloud
+        toggleTTS() {
+            if (!window.TTS) {
+                alert('Text-to-Speech not available');
+                return;
+            }
+
+            if (this.isReading) {
+                // Stop reading
+                window.TTS.stop();
+                this.isReading = false;
+            } else {
+                // Start reading current scene
+                if (!this.currentScene) {
+                    alert('No scene selected to read');
+                    return;
+                }
+
+                // Get text from contenteditable element
+                const editor = document.querySelector('.editor-textarea[contenteditable="true"]');
+                const text = editor ? editor.innerText.trim() : '';
+
+                if (!text || text.length === 0) {
+                    alert('Scene is empty - nothing to read');
+                    return;
+                }
+
+                this.isReading = true;
+
+                // Find voice object by name
+                let voiceObj = null;
+                if (this.ttsVoiceName) {
+                    voiceObj = this.availableTTSVoices.find(v => v.name === this.ttsVoiceName);
+                }
+
+                // Read with current settings
+                window.TTS.speak(text, {
+                    voice: voiceObj,
+                    rate: this.ttsSpeed,
+                    onEnd: () => {
+                        this.isReading = false;
+                    }
+                });
+            }
+        },
+
+        // Save TTS settings to localStorage
+        saveTTSSettings() {
+            if (this.ttsVoiceName) {
+                localStorage.setItem('writingway:ttsVoice', this.ttsVoiceName);
+            }
+            localStorage.setItem('writingway:ttsSpeed', this.ttsSpeed.toString());
         },
 
         // Wire up the draggable beat splitter. Runs after Alpine has mounted.

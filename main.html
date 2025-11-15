@@ -20,6 +20,7 @@
     <script defer src="src/modules/ai-settings.js"></script>
     <script defer src="src/workshop.js"></script>
     <script defer src="src/update-checker.js"></script>
+    <script defer src="src/tts.js"></script>
     <script defer src="src/app.js"></script>
     <script defer src="src/compendium.js"></script>
     <!-- Local vendor Alpine (use a real alpine.min.js here for offline runs) -->
@@ -273,6 +274,13 @@
                         <button @click="formatMenuOpen = !formatMenuOpen" class="btn btn-secondary"
                             style="position:relative;">
                             ✎ Text Formatting
+                        </button>
+
+                        <!-- TTS Read Aloud Button -->
+                        <button @click="toggleTTS()" class="btn btn-secondary" :class="{ 'btn-primary': isReading }"
+                            :title="isReading ? 'Stop reading' : 'Read scene aloud'">
+                            <span x-show="!isReading">🔊 Read Aloud</span>
+                            <span x-show="isReading">⏸️ Stop</span>
                         </button>
                         <div x-show="formatMenuOpen" @click.away="formatMenuOpen = false" x-cloak
                             style="position:absolute;top:45px;left:80px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:8px;box-shadow:0 4px 12px rgba(0,0,0,0.3);z-index:1000;display:grid;grid-template-columns:1fr 1fr;gap:4px;min-width:280px;">
@@ -932,6 +940,55 @@
                 <div style="display:flex;gap:8px;padding-top:16px;border-top:1px solid var(--border);">
                     <button class="btn btn-primary" @click="saveAISettings()">💾 Save & Test Connection</button>
                     <button class="btn btn-secondary" @click="showAISettings = false">Cancel</button>
+                </div>
+
+                <!-- TTS Settings Section -->
+                <div style="margin-top:32px;padding-top:24px;border-top:2px solid var(--border);">
+                    <h4 style="margin:0 0 16px 0;color:var(--text-primary);">🔊 Text-to-Speech Settings</h4>
+
+                    <div style="margin-bottom:16px;">
+                        <label
+                            style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text-primary);">
+                            Voice
+                        </label>
+                        <select x-model="ttsVoiceName" @change="saveTTSSettings()"
+                            style="width:100%;padding:8px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);border-radius:6px;">
+                            <option value="">Default Voice</option>
+                            <template x-for="voice in availableTTSVoices" :key="voice.name">
+                                <option :value="voice.name" x-text="`${voice.name} (${voice.lang})`"></option>
+                            </template>
+                        </select>
+                        <p style="font-size:11px;color:var(--text-secondary);margin:4px 0 0 0;">
+                            💡 Chrome/Edge on Windows have excellent neural voices
+                        </p>
+                    </div>
+
+                    <div style="margin-bottom:16px;">
+                        <label
+                            style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text-primary);">
+                            Reading Speed: <span x-text="ttsSpeed.toFixed(1) + 'x'"></span>
+                        </label>
+                        <input type="range" x-model.number="ttsSpeed" @input="saveTTSSettings()" min="0.5" max="2.0"
+                            step="0.1" style="width:100%;margin-top:6px;">
+                        <div
+                            style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-tertiary);margin-top:2px;">
+                            <span>0.5x (Slower)</span>
+                            <span>1.0x (Normal)</span>
+                            <span>2.0x (Faster)</span>
+                        </div>
+                        <p style="font-size:11px;color:var(--text-secondary);margin:4px 0 0 0;">
+                            Higher speeds are useful when editing - you can catch errors faster
+                        </p>
+                    </div>
+
+                    <div
+                        style="background:rgba(74,158,255,0.05);border:1px solid rgba(74,158,255,0.2);border-radius:6px;padding:12px;">
+                        <p style="font-size:12px;color:var(--text-secondary);margin:0;line-height:1.5;">
+                            💡 <strong>Editing Tip:</strong> Your eyes go "blind" to typos after reading text 2-3 times.
+                            Listening with TTS helps catch errors you'd otherwise miss. Try 1.2x-1.5x speed for
+                            efficient editing!
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>
