@@ -57,8 +57,8 @@ echo   Starting AI Model Server...
 echo ================================
 echo.
 
-REM Start llama.cpp server in background
-start "Writingway AI Server" cmd /c "llama-server.exe -m models\Qwen3-4B-Instruct-2507-IQ4_XS.gguf -c 4096 -ngl 999 --port 8080 --host 127.0.0.1"
+REM Start llama.cpp server in background (keep window open with /k)
+start "Writingway AI Server" cmd /k "llama-server.exe -m models\Qwen3-4B-Instruct-2507-IQ4_XS.gguf -c 4096 -ngl 999 --port 8080 --host 127.0.0.1"
 
 echo [*] AI server starting on port 8080...
 echo [*] Waiting for AI server to initialize...

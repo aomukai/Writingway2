@@ -21,6 +21,7 @@
     <script defer src="src/workshop.js"></script>
     <script defer src="src/update-checker.js"></script>
     <script defer src="src/tts.js"></script>
+    <script defer src="src/w1-importer.js"></script>
     <script defer src="src/app.js"></script>
     <script defer src="src/compendium.js"></script>
     <!-- Local vendor Alpine (use a real alpine.min.js here for offline runs) -->
@@ -54,9 +55,144 @@
     </div>
 
     <div x-data="app" x-init="init()">
-        <!-- debug banner removed -->
+        <!-- Projects Landing Page -->
+        <template x-if="showProjectsView && !showModelLoading">
+            <div
+                style="min-height:100vh;background:linear-gradient(135deg, #1a1f2e 0%, #2d1b3d 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;position:relative;">
+                <!-- Header with Settings -->
+                <div style="position:absolute;top:20px;right:20px;">
+                    <button class="btn btn-secondary" @click="showAISettings = true" style="padding:8px 16px;"
+                        title="Settings">⚙️ Settings</button>
+                </div>
+
+                <!-- Title -->
+                <div style="text-align:center;margin-bottom:40px;">
+                    <div style="font-size:64px;margin-bottom:16px;">✍️</div>
+                    <h1 style="margin:0 0 8px 0;color:#4a9eff;font-size:42px;font-weight:700;">Writingway 2</h1>
+                    <p style="color:rgba(255,255,255,0.6);font-size:16px;margin:0;">Select a project to begin writing
+                    </p>
+                </div>
+
+                <!-- Project Carousel -->
+                <div style="position:relative;width:100%;max-width:800px;">
+                    <template x-if="projects.length === 0">
+                        <div
+                            style="text-align:center;padding:60px 20px;background:rgba(0,0,0,0.3);border-radius:16px;border:2px dashed rgba(255,255,255,0.2);">
+                            <div style="font-size:48px;margin-bottom:16px;opacity:0.5;">📚</div>
+                            <p style="color:rgba(255,255,255,0.7);font-size:18px;margin:0 0 24px 0;">No projects yet</p>
+                            <button class="btn btn-primary" @click="showNewProjectModal = true"
+                                style="padding:12px 24px;font-size:16px;">➕ Create Your First Project</button>
+                        </div>
+                    </template>
+
+                    <template x-if="projects.length > 0">
+                        <div>
+                            <!-- Navigation Arrows -->
+                            <template x-if="projects.length > 1">
+                                <div>
+                                    <button
+                                        @click="currentProjectCarouselIndex = (currentProjectCarouselIndex - 1 + projects.length) % projects.length"
+                                        class="btn btn-secondary"
+                                        style="position:absolute;left:-60px;top:50%;transform:translateY(-50%);padding:12px 16px;font-size:20px;z-index:10;"
+                                        title="Previous project">‹</button>
+                                    <button
+                                        @click="currentProjectCarouselIndex = (currentProjectCarouselIndex + 1) % projects.length"
+                                        class="btn btn-secondary"
+                                        style="position:absolute;right:-60px;top:50%;transform:translateY(-50%);padding:12px 16px;font-size:20px;z-index:10;"
+                                        title="Next project">›</button>
+                                </div>
+                            </template>
+
+                            <!-- Project Card -->
+                            <template x-for="(project, index) in projects" :key="project.id">
+                                <div x-show="index === currentProjectCarouselIndex"
+                                    x-transition:enter="transition ease-out duration-300"
+                                    x-transition:enter-start="opacity-0 transform scale-95"
+                                    x-transition:enter-end="opacity-100 transform scale-100"
+                                    x-data="{ menuOpen: false }"
+                                    style="background:rgba(0,0,0,0.4);border:2px solid rgba(74,158,255,0.3);border-radius:16px;padding:40px;position:relative;backdrop-filter:blur(10px);">
+
+                                    <!-- Card Menu Button -->
+                                    <div style="position:absolute;top:16px;right:16px;">
+                                        <button @click.stop="menuOpen = !menuOpen" class="btn btn-secondary"
+                                            style="padding:6px 12px;font-size:18px;" title="Project options">⋮</button>
+                                        <div x-show="menuOpen" x-cloak @click.away="menuOpen = false" x-transition
+                                            class="action-menu" style="right:0;left:auto;min-width:180px;">
+                                            <button @click.stop="openProject(project.id); menuOpen=false">📖
+                                                Open</button>
+                                            <button @click.stop="renameProject(project); menuOpen=false">✏️
+                                                Rename</button>
+                                            <button
+                                                @click.stop="document.getElementById('coverInput-' + project.id).click(); menuOpen=false">🖼️
+                                                Change Cover</button>
+                                            <button x-show="project.coverImage"
+                                                @click.stop="removeProjectCover(project.id); menuOpen=false">🗑️
+                                                Remove Cover</button>
+                                            <div style="border-top:1px solid var(--border);margin:6px 0"></div>
+                                            <button @click.stop="deleteProject(project.id); menuOpen=false"
+                                                style="color:#ff6b6b;">🗑️ Delete</button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Hidden file input for cover upload -->
+                                    <input type="file" :id="'coverInput-' + project.id" accept="image/*"
+                                        @change="updateProjectCover(project.id, $event.target.files[0]); $event.target.value = null"
+                                        style="display:none;">
+
+                                    <!-- Click card to open -->
+                                    <div @click="openProject(project.id)" style="cursor:pointer;text-align:center;"
+                                        @mouseenter="$el.style.transform = 'scale(1.02)'"
+                                        @mouseleave="$el.style.transform = 'scale(1)'"
+                                        style="transition:transform 0.2s ease;">
+
+                                        <!-- Cover Image or Fallback -->
+                                        <div style="margin-bottom:24px;">
+                                            <template x-if="project.coverImage">
+                                                <img :src="project.coverImage"
+                                                    style="max-width:240px;max-height:360px;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.4);"
+                                                    alt="Project cover">
+                                            </template>
+                                            <template x-if="!project.coverImage">
+                                                <div style="font-size:72px;">📖</div>
+                                            </template>
+                                        </div>
+
+                                        <h2 style="margin:0 0 16px 0;color:#fff;font-size:32px;font-weight:700;"
+                                            x-text="project.name"></h2>
+                                        <p style="color:rgba(255,255,255,0.6);font-size:14px;margin:0;">
+                                            <span
+                                                x-text="'Last modified: ' + new Date(project.modified).toLocaleDateString()"></span>
+                                        </p>
+                                        <p style="color:rgba(255,255,255,0.4);font-size:13px;margin:8px 0 0 0;">Click to
+                                            open</p>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- Project Counter -->
+                            <template x-if="projects.length > 1">
+                                <div
+                                    style="text-align:center;margin-top:24px;color:rgba(255,255,255,0.5);font-size:14px;">
+                                    <span x-text="(currentProjectCarouselIndex + 1) + ' / ' + projects.length"></span>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- New Project Button -->
+                <div style="margin-top:40px;display:flex;gap:16px;align-items:center;justify-content:center;">
+                    <button class="btn btn-primary" @click="showNewProjectModal = true"
+                        style="padding:12px 24px;font-size:16px;">➕ New Project</button>
+                    <button class="btn btn-secondary" @click="showW1ImportModal = true"
+                        style="padding:12px 24px;font-size:16px;" title="Migrate from Writingway 1">📥 Import from
+                        W1</button>
+                </div>
+            </div>
+        </template>
+
         <!-- Main App -->
-        <template x-if="currentProject && !showModelLoading">
+        <template x-if="currentProject && !showModelLoading && !showProjectsView">
             <div class="app-container">
                 <!-- Sidebar -->
                 <div class="sidebar">
@@ -70,6 +206,8 @@
                                 style="padding:6px 12px;font-size:18px;" title="Main Menu">☰</button>
                             <div x-show="mainMenuOpen" x-cloak @click.away="mainMenuOpen = false" x-transition
                                 class="action-menu" style="right:0;left:auto;min-width:200px;">
+                                <button @click.stop="backToProjects(); mainMenuOpen=false">◄ Back to Projects</button>
+                                <div style="border-top:1px solid var(--border);margin:6px 0"></div>
                                 <button @click.stop="showNewProjectModal = true; mainMenuOpen=false">➕ New
                                     Project</button>
                                 <button
@@ -113,17 +251,18 @@
                         </div>
                     </div>
 
-                    <div class="project-info" x-data="{ openMenu:false }" style="position:relative;">
+                    <div class="project-info" x-data="{ openMenu:false }"
+                        style="position:relative;padding:16px 12px;border-bottom:2px solid rgba(74,158,255,0.3);">
                         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
                             <h2 style="margin:0;padding-right:8px;">
                                 <button class="project-name-button" @click.stop="openCompendium()"
                                     title="Click to toggle Compendium" aria-controls="compendium-panel"
                                     :aria-expanded="showCodexPanel ? 'true' : 'false'"
-                                    style="background:none;border:none;padding:8px 12px 8px 0;font-size:1.1em;color:inherit;cursor:pointer;border-radius:6px;transition:background 0.2s;"
-                                    @mouseenter="$el.style.background='rgba(74,158,255,0.1)'"
+                                    style="background:none;border:none;padding:8px 12px 8px 0;font-size:18px;font-weight:700;color:#4a9eff;cursor:pointer;border-radius:6px;transition:all 0.2s;"
+                                    @mouseenter="$el.style.background='rgba(74,158,255,0.15)'"
                                     @mouseleave="$el.style.background='transparent'">
                                     <span x-text="currentProject.name"></span>
-                                    <span style="margin-left:8px;opacity:0.5;font-size:12px;">📚</span>
+                                    <span style="margin-left:8px;opacity:0.7;font-size:16px;">📚</span>
                                 </button>
                             </h2>
 
@@ -716,6 +855,42 @@
                     <div class="modal-buttons">
                         <button class="btn btn-secondary" @click="showRenameProjectModal = false">Cancel</button>
                         <button class="btn btn-primary" @click="renameCurrentProject">Rename</button>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <!-- Import from Writingway 1 Modal -->
+        <template x-if="showW1ImportModal">
+            <div class="modal-overlay" @click.self="showW1ImportModal = false">
+                <div class="modal" style="max-width:600px;">
+                    <h3>Import from Writingway 1</h3>
+                    <div
+                        style="background:rgba(255,200,100,0.1);border:1px solid rgba(255,200,100,0.3);border-radius:8px;padding:16px;margin:16px 0;line-height:1.6;">
+                        <p style="margin:0 0 12px 0;font-weight:600;color:#ffcc66;">⚠️ Import Notes:</p>
+                        <p style="margin:0 0 8px 0;font-size:14px;"><strong>What will be imported:</strong></p>
+                        <ul style="margin:0 0 12px 0;padding-left:24px;font-size:13px;">
+                            <li>Project structure (Acts flattened to Chapters)</li>
+                            <li>Scene content (latest backup used)</li>
+                            <li>Chapter and scene summaries</li>
+                            <li>Basic compendium entries (name + content)</li>
+                            <li>Prompts</li>
+                        </ul>
+                        <p style="margin:0 0 8px 0;font-size:14px;"><strong>What will NOT be imported:</strong></p>
+                        <ul style="margin:0 0 0 0;padding-left:24px;font-size:13px;">
+                            <li>Compendium relationships, templates, custom fields</li>
+                            <li>Compendium images (must be re-uploaded)</li>
+                            <li>Scene status markers (To Do, In Progress, etc.)</li>
+                            <li>Project cover images (must be re-uploaded)</li>
+                        </ul>
+                    </div>
+                    <p style="margin:16px 0 8px 0;font-size:14px;color:rgba(255,255,255,0.8);">Select your Writingway 1
+                        project folder:</p>
+                    <input type="file" webkitdirectory directory multiple @change="importFromW1($event)"
+                        style="margin:8px 0;padding:8px;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:4px;color:inherit;width:100%;">
+                    <div class="modal-buttons" style="margin-top:20px;">
+                        <button class="btn btn-secondary" @click="showW1ImportModal = false"
+                            :disabled="w1ImportInProgress">Cancel</button>
                     </div>
                 </div>
             </div>

@@ -798,6 +798,7 @@ body {
     resize: none;
     outline: none;
     font-family: 'Georgia', serif;
+    overflow-y: auto;
 }
 
 .editor-textarea::placeholder {

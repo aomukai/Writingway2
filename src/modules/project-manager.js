@@ -240,6 +240,80 @@
         },
 
         /**
+         * Delete a project and all its associated data
+         * @param {Object} app - Alpine app instance
+         * @param {string} projectId - ID of project to delete
+         */
+        async deleteProject(app, projectId) {
+            if (!projectId) return;
+
+            const project = await db.projects.get(projectId);
+            if (!project) return;
+
+            const confirmed = confirm(`Are you sure you want to delete "${project.name}"?\n\nThis will permanently delete:\n• All chapters and scenes\n• All compendium entries\n• All prompts\n• Workshop sessions\n\nThis cannot be undone!`);
+            if (!confirmed) return;
+
+            try {
+                // Delete all related data
+                await db.chapters.where('projectId').equals(projectId).delete();
+
+                const scenes = await db.scenes.where('projectId').equals(projectId).toArray();
+                for (const scene of scenes) {
+                    await db.content.where('sceneId').equals(scene.id).delete();
+                }
+                await db.scenes.where('projectId').equals(projectId).delete();
+
+                await db.compendium.where('projectId').equals(projectId).delete();
+                await db.prompts.where('projectId').equals(projectId).delete();
+
+                // Delete project itself
+                await db.projects.delete(projectId);
+
+                // Reload projects list
+                await this.loadProjects(app);
+
+                // If we deleted the current project, clear it
+                if (app.currentProject && app.currentProject.id === projectId) {
+                    app.currentProject = null;
+                    app.chapters = [];
+                    app.scenes = [];
+                    app.currentScene = null;
+                }
+
+                // Remove from localStorage if it was the last project
+                const lastProjectId = localStorage.getItem('writingway:lastProject');
+                if (lastProjectId === projectId) {
+                    localStorage.removeItem('writingway:lastProject');
+                }
+
+                alert(`Project "${project.name}" has been deleted.`);
+            } catch (e) {
+                console.error('Failed to delete project:', e);
+                alert('Failed to delete project. See console for details.');
+            }
+        },
+
+        /**
+         * Update project cover image
+         * @param {Object} app - Alpine app instance
+         * @param {string} projectId - ID of project to update
+         * @param {string} coverDataUrl - Base64 data URL of cover image
+         */
+        async updateProjectCover(app, projectId, coverDataUrl) {
+            if (!projectId) return;
+            try {
+                await db.projects.update(projectId, { coverImage: coverDataUrl, modified: new Date() });
+                await this.loadProjects(app);
+                // Refresh current project if it's the one being updated
+                if (app.currentProject && app.currentProject.id === projectId) {
+                    app.currentProject = await db.projects.get(projectId);
+                }
+            } catch (e) {
+                console.error('Failed to update project cover:', e);
+            }
+        },
+
+        /**
          * Export the current project as a ZIP file containing scenes (Markdown), metadata, and compendium
          * @param {Object} app - Alpine app instance
          */

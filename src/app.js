@@ -215,6 +215,14 @@ document.addEventListener('alpine:init', () => {
         showPromptsPanel: false,
         showCodexPanel: false,
 
+        // Projects carousel view
+        showProjectsView: false,
+        currentProjectCarouselIndex: 0,
+
+        // Writingway 1 import
+        showW1ImportModal: false,
+        w1ImportInProgress: false,
+
         // Workshop Chat state
         showWorkshopChat: false,
         workshopSessions: [],
@@ -490,20 +498,15 @@ document.addEventListener('alpine:init', () => {
 
             this.updateLoadingScreen(20, 'Loading projects...', 'Accessing local database...');
 
-            // Load projects and last project selection, but don't let DB failures block AI initialization
+            // Load projects and show projects view instead of auto-loading
             try {
                 await this.loadProjects();
                 // One-time migration: ensure scenes have a projectId so they are discoverable
                 try { await this.migrateMissingSceneProjectIds(); } catch (e) { /* ignore */ }
-                // restore last selected project from localStorage if present
-                const last = localStorage.getItem('writingway:lastProject');
-                if (last && this.projects.find(p => p.id === last)) {
-                    await this.selectProject(last);
-                } else {
-                    await this.loadLastProject();
-                }
+                // Show projects landing page
+                this.showProjectsView = true;
             } catch (e) {
-                console.error('Failed to load projects/last project:', e);
+                console.error('Failed to load projects:', e);
             }
 
             this.updateLoadingScreen(40, 'Loading AI settings...', 'Configuring generation parameters...');
@@ -563,6 +566,24 @@ document.addEventListener('alpine:init', () => {
                     // stop propagation so nested handlers don't re-open
                     e.preventDefault();
                     e.stopPropagation();
+                }
+
+                // Arrow key navigation for project carousel
+                if (this.showProjectsView && this.projects.length > 1) {
+                    if (e.key === 'ArrowLeft') {
+                        this.currentProjectCarouselIndex = (this.currentProjectCarouselIndex - 1 + this.projects.length) % this.projects.length;
+                        e.preventDefault();
+                    } else if (e.key === 'ArrowRight') {
+                        this.currentProjectCarouselIndex = (this.currentProjectCarouselIndex + 1) % this.projects.length;
+                        e.preventDefault();
+                    } else if (e.key === 'Enter') {
+                        // Open current carousel project
+                        const currentProj = this.projects[this.currentProjectCarouselIndex];
+                        if (currentProj) {
+                            this.openProject(currentProj.id);
+                            e.preventDefault();
+                        }
+                    }
                 }
             });
 
@@ -1147,6 +1168,106 @@ document.addEventListener('alpine:init', () => {
 
         async selectProject(projectId) {
             await window.ProjectManager.selectProject(this, projectId);
+        },
+
+        // Open project from carousel (used in landing page)
+        async openProject(projectId) {
+            this.showProjectsView = false;
+            await this.selectProject(projectId);
+            localStorage.setItem('writingway:lastProject', projectId);
+        },
+
+        // Navigate back to projects carousel
+        backToProjects() {
+            this.showProjectsView = true;
+            this.currentProject = null;
+            this.chapters = [];
+            this.scenes = [];
+            this.currentScene = null;
+        },
+
+        // Delete a project
+        async deleteProject(projectId) {
+            await window.ProjectManager.deleteProject(this, projectId);
+        },
+
+        // Rename a project from carousel
+        async renameProject(project) {
+            if (!project) return;
+            const newName = prompt('Enter new project name:', project.name);
+            if (!newName || newName === project.name) return;
+            try {
+                await db.projects.update(project.id, { name: newName, modified: new Date() });
+                await this.loadProjects();
+            } catch (e) {
+                console.error('Failed to rename project:', e);
+                alert('Failed to rename project.');
+            }
+        },
+
+        // Update project cover image
+        async updateProjectCover(projectId, file) {
+            if (!file || !file.type.startsWith('image/')) {
+                alert('Please select an image file.');
+                return;
+            }
+
+            // Resize and convert to data URL
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const img = new Image();
+                    img.onload = async () => {
+                        // Resize to max 400x600 (book cover proportions)
+                        const maxWidth = 400;
+                        const maxHeight = 600;
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > maxWidth || height > maxHeight) {
+                            const ratio = Math.min(maxWidth / width, maxHeight / height);
+                            width = width * ratio;
+                            height = height * ratio;
+                        }
+
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+                        await window.ProjectManager.updateProjectCover(this, projectId, dataUrl);
+                        // Force UI update by creating a new array reference
+                        this.projects = await db.projects.orderBy('created').reverse().toArray();
+                    };
+                    img.src = e.target.result;
+                } catch (err) {
+                    console.error('Failed to process cover image:', err);
+                    alert('Failed to process image.');
+                }
+            };
+            reader.readAsDataURL(file);
+        },
+
+        // Remove project cover image
+        async removeProjectCover(projectId) {
+            if (!projectId) return;
+            try {
+                await db.projects.update(projectId, { coverImage: null, modified: new Date() });
+                this.projects = await db.projects.orderBy('created').reverse().toArray();
+            } catch (e) {
+                console.error('Failed to remove cover:', e);
+            }
+        },
+
+        // Import project from Writingway 1
+        async importFromW1(event) {
+            if (!window.W1Importer) {
+                alert('W1 Importer module not loaded');
+                return;
+            }
+            await window.W1Importer.importProject(this, event.target.files);
         },
 
         // Load persisted prose prompt selection for the current project (localStorage key per project)
