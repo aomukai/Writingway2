@@ -113,11 +113,12 @@
                                     style="background:rgba(0,0,0,0.4);border:2px solid rgba(74,158,255,0.3);border-radius:16px;padding:40px;position:relative;backdrop-filter:blur(10px);">
 
                                     <!-- Card Menu Button -->
-                                    <div style="position:absolute;top:16px;right:16px;">
+                                    <div style="position:absolute;top:8px;right:8px;padding:8px;">
                                         <button @click.stop="menuOpen = !menuOpen" class="btn btn-secondary"
-                                            style="padding:6px 12px;font-size:18px;" title="Project options">⋮</button>
+                                            style="padding:10px 16px;font-size:20px;min-width:48px;min-height:48px;"
+                                            title="Project options">⋮</button>
                                         <div x-show="menuOpen" x-cloak @click.away="menuOpen = false" x-transition
-                                            class="action-menu" style="right:0;left:auto;min-width:180px;">
+                                            class="action-menu" style="right:8px;left:auto;min-width:180px;">
                                             <button @click.stop="openProject(project.id); menuOpen=false">📖
                                                 Open</button>
                                             <button @click.stop="renameProject(project); menuOpen=false">✏️
