@@ -19,6 +19,7 @@
     <script defer src="src/modules/compendium-manager.js"></script>
     <script defer src="src/modules/ai-settings.js"></script>
     <script defer src="src/workshop.js"></script>
+    <script defer src="src/update-checker.js"></script>
     <script defer src="src/app.js"></script>
     <script defer src="src/compendium.js"></script>
     <!-- Local vendor Alpine (use a real alpine.min.js here for offline runs) -->
@@ -60,6 +61,11 @@
                                 <button @click.stop="showAISettings = true; mainMenuOpen=false">⚙️ AI Settings</button>
                                 <button @click.stop="showPromptsPanel = true; mainMenuOpen=false">📝 Manage
                                     Prompts</button>
+                                <div style="border-top:1px solid var(--border);margin:6px 0"></div>
+                                <button @click.stop="checkForUpdates(); mainMenuOpen=false" :disabled="checkingForUpdates">
+                                    <span x-show="!checkingForUpdates">🔄 Check for Updates</span>
+                                    <span x-show="checkingForUpdates">⏳ Checking...</span>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -1214,10 +1220,60 @@
             </div>
         </template>
 
+        <!-- Update Available Dialog -->
+        <template x-if="showUpdateDialog && updateAvailable">
+            <div class="modal-overlay" @click.self="showUpdateDialog = false" style="z-index:10000;">
+                <div class="modal" style="max-width:600px;">
+                    <div class="modal-header">
+                        <h3 style="margin:0;display:flex;align-items:center;gap:8px;">
+                            <span style="font-size:24px;">🎉</span>
+                            Update Available!
+                        </h3>
+                        <button class="btn-icon" @click="showUpdateDialog = false">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <div style="background:linear-gradient(135deg,rgba(74,158,255,0.1),rgba(74,158,255,0.05));border:1px solid rgba(74,158,255,0.3);border-radius:8px;padding:16px;margin-bottom:16px;">
+                            <div style="font-size:18px;font-weight:600;margin-bottom:8px;color:var(--accent);">
+                                Version <span x-text="updateAvailable.version"></span> is now available!
+                            </div>
+                            <div style="font-size:13px;color:var(--text-secondary);">
+                                Released on <span x-text="updateAvailable.publishedAt"></span>
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom:16px;">
+                            <div style="font-weight:600;margin-bottom:8px;color:var(--text-primary);">What's New:</div>
+                            <div style="background:var(--bg-tertiary);padding:12px;border-radius:6px;max-height:200px;overflow-y:auto;">
+                                <pre style="margin:0;white-space:pre-wrap;font-size:13px;line-height:1.6;color:var(--text-secondary);" x-text="updateAvailable.notes"></pre>
+                            </div>
+                        </div>
+
+                        <div style="background:rgba(255,193,7,0.1);border:1px solid rgba(255,193,7,0.3);border-radius:6px;padding:12px;margin-bottom:16px;">
+                            <div style="font-size:12px;color:var(--text-secondary);line-height:1.5;">
+                                <strong>⚠️ Note:</strong> Writingway is a local application. To update:
+                                <ol style="margin:8px 0 0 0;padding-left:20px;">
+                                    <li>Download the new version from GitHub</li>
+                                    <li>Extract to a new folder (don't overwrite current installation)</li>
+                                    <li>Your projects are stored in the browser database and will be available in the new version</li>
+                                    <li>Optionally backup your database first (Export projects)</li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" @click="showUpdateDialog = false">Maybe Later</button>
+                        <button class="btn btn-primary" @click="window.open(updateAvailable.url, '_blank'); showUpdateDialog = false;">
+                            👉 View Release on GitHub
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </template>
+
         <!-- Workshop Chat Modal -->
         <template x-if="showWorkshopChat">
             <div class="modal-overlay" @click.self="showWorkshopChat = false" style="z-index:9000;"
-                x-init="await loadWorkshopSessions(); if (!workshopSessions || workshopSessions.length === 0) { workshopSessions = [window.workshopChat.createNewSession($data)]; await saveWorkshopSessions(); }">
+                x-init="(async () => { await loadWorkshopSessions(); if (!workshopSessions || workshopSessions.length === 0) { workshopSessions = [window.workshopChat.createNewSession($data)]; await saveWorkshopSessions(); } })();">
                 <div class="workshop-chat-container">
                     <!-- Left: Sessions List -->
                     <div class="workshop-sessions">
@@ -1230,10 +1286,24 @@
                             <template x-for="(session, idx) in workshopSessions" :key="session.id">
                                 <div class="workshop-session-item"
                                     :class="{ 'active': idx === currentWorkshopSessionIndex }"
-                                    @click="currentWorkshopSessionIndex = idx">
-                                    <span x-text="session.name"></span>
-                                    <button class="btn-icon-sm" @click.stop="deleteWorkshopSession(idx)"
-                                        title="Delete">×</button>
+                                    @click="currentWorkshopSessionIndex = idx" x-data="{ menuOpen: false }">
+                                    <span x-text="session.name"
+                                        style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+                                    <div style="position:relative;">
+                                        <button class="btn-icon-sm" @click.stop="menuOpen = !menuOpen"
+                                            title="Options">⋯</button>
+                                        <div x-show="menuOpen" @click.away="menuOpen = false" x-cloak
+                                            class="action-menu" style="right:0;top:100%;margin-top:4px;">
+                                            <button
+                                                @click.stop="renameWorkshopSession(idx); menuOpen=false">Rename</button>
+                                            <button @click.stop="clearWorkshopSession(idx); menuOpen=false">Clear
+                                                Messages</button>
+                                            <button @click.stop="exportWorkshopSession(idx); menuOpen=false">Export as
+                                                Markdown</button>
+                                            <button @click.stop="deleteWorkshopSession(idx); menuOpen=false"
+                                                style="color:var(--danger,#ef4444);">Delete</button>
+                                        </div>
+                                    </div>
                                 </div>
                             </template>
                         </div>
@@ -1292,9 +1362,18 @@
                             <template x-if="workshopSessions[currentWorkshopSessionIndex]">
                                 <template x-for="(msg, idx) in workshopSessions[currentWorkshopSessionIndex].messages"
                                     :key="idx">
-                                    <div class="workshop-message" :class="`workshop-message-${msg.role}`">
-                                        <div class="workshop-message-role"
-                                            x-text="msg.role === 'user' ? 'You' : 'Assistant'"></div>
+                                    <div class="workshop-message"
+                                        :class="`workshop-message-${msg.role}` + (msg.isError ? ' workshop-message-error' : '')">
+                                        <div class="workshop-message-header">
+                                            <div class="workshop-message-icon">
+                                                <span x-show="msg.role === 'user'">👤</span>
+                                                <span x-show="msg.role === 'assistant' && !msg.isError">🤖</span>
+                                                <span x-show="msg.isError">⚠️</span>
+                                            </div>
+                                            <div class="workshop-message-role"
+                                                x-text="msg.role === 'user' ? 'You' : (msg.isError ? 'Error' : 'Assistant')">
+                                            </div>
+                                        </div>
                                         <div class="workshop-message-content">
                                             <template x-if="msg.content">
                                                 <span x-text="msg.content"></span>

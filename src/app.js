@@ -239,6 +239,11 @@ document.addEventListener('alpine:init', () => {
         workshopCompendiumMap: {},
         workshopSceneMap: {},
 
+        // Update checker state
+        showUpdateDialog: false,
+        updateAvailable: null,
+        checkingForUpdates: false,
+
         currentScene: null,
         chapters: [],
         scenes: [], // flattened scenes list for quick access
@@ -526,6 +531,11 @@ document.addEventListener('alpine:init', () => {
             this.$watch('temperature', () => this.saveGenerationParams());
             this.$watch('maxTokens', () => this.saveGenerationParams());
 
+            // Check for updates on startup (silent mode)
+            if (window.UpdateChecker) {
+                setTimeout(() => window.UpdateChecker.checkAndNotify(this, true), 2000);
+            }
+
             // Selection change handler: show a floating "Rewrite" button when text is selected
             document.addEventListener('selectionchange', () => {
                 try {
@@ -747,6 +757,13 @@ document.addEventListener('alpine:init', () => {
         },
         async loadAISettings() {
             await window.AISettings.loadAISettings(this);
+        },
+
+        // Update Checker
+        async checkForUpdates() {
+            if (window.UpdateChecker) {
+                await window.UpdateChecker.checkAndNotify(this, false);
+            }
         },
 
         // Wire up the draggable beat splitter. Runs after Alpine has mounted.
@@ -1089,8 +1106,13 @@ document.addEventListener('alpine:init', () => {
                     .equals(this.currentProject.id)
                     .toArray();
 
+                console.log('Loaded workshop sessions:', sessions.length, sessions);
                 if (sessions.length > 0) {
                     this.workshopSessions = sessions;
+                    // Ensure currentWorkshopSessionIndex is valid
+                    if (this.currentWorkshopSessionIndex >= sessions.length) {
+                        this.currentWorkshopSessionIndex = 0;
+                    }
                 } else {
                     // Create a default session
                     this.workshopSessions = [window.workshopChat.createNewSession(this)];
@@ -1098,37 +1120,111 @@ document.addEventListener('alpine:init', () => {
                 }
             } catch (error) {
                 console.error('Failed to load workshop sessions:', error);
-                this.workshopSessions = [window.workshopChat.createNewSession()];
+                this.workshopSessions = [window.workshopChat.createNewSession(this)];
             }
         },
 
         async saveWorkshopSessions() {
             if (!this.currentProject || !this.workshopSessions) return;
             try {
-                // Clear existing sessions for this project
-                await db.workshopSessions
-                    .where('projectId')
-                    .equals(this.currentProject.id)
-                    .delete();
-
-                // Save all sessions
+                console.log('Saving workshop sessions:', this.workshopSessions.length);
+                // Save each session by updating or adding
                 for (const session of this.workshopSessions) {
-                    await db.workshopSessions.add({
-                        ...session,
+                    // Convert to plain object to avoid Proxy clone error
+                    const sessionData = {
+                        id: session.id,
+                        name: session.name,
+                        messages: JSON.parse(JSON.stringify(session.messages || [])), // Deep clone messages
+                        createdAt: session.createdAt,
                         projectId: this.currentProject.id,
                         updatedAt: new Date().toISOString()
-                    });
+                    };
+
+                    // Try to update first, if it doesn't exist, add it
+                    const existing = await db.workshopSessions.get(session.id);
+                    if (existing) {
+                        console.log('Updating session:', session.id, session.name);
+                        await db.workshopSessions.put(sessionData);
+                    } else {
+                        console.log('Adding new session:', session.id, session.name);
+                        await db.workshopSessions.add(sessionData);
+                    }
                 }
+
+                // Clean up any sessions in DB that are no longer in the array
+                const allSessions = await db.workshopSessions
+                    .where('projectId')
+                    .equals(this.currentProject.id)
+                    .toArray();
+
+                const currentIds = new Set(this.workshopSessions.map(s => s.id));
+                for (const session of allSessions) {
+                    if (!currentIds.has(session.id)) {
+                        console.log('Deleting orphaned session:', session.id);
+                        await db.workshopSessions.delete(session.id);
+                    }
+                }
+                console.log('✓ Workshop sessions saved successfully');
             } catch (error) {
                 console.error('Failed to save workshop sessions:', error);
             }
-        },
-
-        createWorkshopSession() {
+        }, createWorkshopSession() {
             const newSession = window.workshopChat.createNewSession(this);
             this.workshopSessions.push(newSession);
             this.currentWorkshopSessionIndex = this.workshopSessions.length - 1;
             this.saveWorkshopSessions();
+        },
+
+        renameWorkshopSession(index) {
+            const session = this.workshopSessions[index];
+            if (!session) return;
+            const newName = prompt('Rename conversation:', session.name);
+            if (newName && newName.trim()) {
+                session.name = newName.trim();
+                // Force array update to trigger reactivity
+                this.workshopSessions = [...this.workshopSessions];
+                this.saveWorkshopSessions();
+            }
+        },
+
+        async clearWorkshopSession(index) {
+            const session = this.workshopSessions[index];
+            if (!session) return;
+            if (confirm('Clear all messages in this conversation? The conversation will be kept but all messages will be deleted.')) {
+                session.messages = [];
+                await this.saveWorkshopSessions();
+            }
+        },
+
+        exportWorkshopSession(index) {
+            const session = this.workshopSessions[index];
+            if (!session || !session.messages || session.messages.length === 0) {
+                alert('No messages to export.');
+                return;
+            }
+
+            // Build markdown content
+            let markdown = `# ${session.name}\n\n`;
+            markdown += `*Created: ${new Date(session.createdAt).toLocaleString()}*\n\n`;
+            markdown += `---\n\n`;
+
+            for (const msg of session.messages) {
+                const timestamp = msg.timestamp ? new Date(msg.timestamp).toLocaleString() : '';
+                const role = msg.role === 'user' ? '**You**' : '**Assistant**';
+                markdown += `### ${role}${timestamp ? ' (' + timestamp + ')' : ''}\n\n`;
+                markdown += `${msg.content}\n\n`;
+                markdown += `---\n\n`;
+            }
+
+            // Download as file
+            const blob = new Blob([markdown], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const safeName = session.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+            a.download = `workshop_${safeName}_${Date.now()}.md`;
+            a.click();
+            URL.revokeObjectURL(url);
         },
 
         async deleteWorkshopSession(index) {

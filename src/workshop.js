@@ -11,7 +11,7 @@ window.workshopChat = {
     createNewSession(app) {
         const count = app && app.workshopSessions ? app.workshopSessions.length + 1 : 1;
         return {
-            id: Date.now() + Math.random(),
+            id: `ws_${Date.now()}_${Math.floor(Math.random() * 10000)}`,
             name: `Chat ${count}`,
             messages: [],
             createdAt: new Date().toISOString()
