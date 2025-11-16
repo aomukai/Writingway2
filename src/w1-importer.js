@@ -162,16 +162,45 @@
 
                 // Keep content as plain text (with optional HTML cleanup for .html files)
                 if (sceneFiles[0].endsWith('.html')) {
-                    // Strip HTML tags and convert to plain text
+                    // Convert HTML to plain text while preserving paragraph breaks
+                    // Replace <p> tags with double newlines to preserve paragraph structure
+                    let cleanedHtml = rawContent;
+
+                    // Replace closing </p> tags with double newlines
+                    cleanedHtml = cleanedHtml.replace(/<\/p>/gi, '\n\n');
+
+                    // Replace <br> and <br/> tags with single newlines
+                    cleanedHtml = cleanedHtml.replace(/<br\s*\/?>/gi, '\n');
+
+                    // Now strip remaining HTML tags
                     const tempDiv = document.createElement('div');
-                    tempDiv.innerHTML = rawContent;
+                    tempDiv.innerHTML = cleanedHtml;
                     sceneContent = tempDiv.textContent || tempDiv.innerText || '';
+
+                    // Clean up excessive newlines (more than 2 consecutive)
+                    sceneContent = sceneContent.replace(/\n{3,}/g, '\n\n');
+
+                    // Trim leading/trailing whitespace but keep internal structure
+                    sceneContent = sceneContent.trim();
+
+                    console.log('HTML → Text conversion:', {
+                        hasTextContent: !!tempDiv.textContent,
+                        hasInnerText: !!tempDiv.innerText,
+                        finalLength: sceneContent.length,
+                        newlineCount: (sceneContent.match(/\n/g) || []).length
+                    });
                 } else {
                     // Plain text - keep as-is
                     sceneContent = rawContent;
                 }
 
-                console.log('Converted content length:', sceneContent.length);
+                // Trim whitespace to check actual content
+                const trimmedContent = sceneContent.trim();
+                console.log('Converted content length:', sceneContent.length, '(trimmed:', trimmedContent.length + ')');
+
+                if (trimmedContent.length === 0) {
+                    console.warn('⚠️ WARNING: Scene has content in file but extracted 0 characters after HTML stripping!');
+                }
                 sceneFoundStatus = 'content loaded';
             } else {
                 console.warn('✗ No scene files found for pattern:', scenePattern);
@@ -181,7 +210,13 @@
 
             // Create scene
             const sceneId = Date.now().toString() + '-s' + sceneOrder + '-' + Math.random().toString(36).slice(2, 6);
-            console.log(`Creating scene: "${scene.name}" (${sceneFoundStatus})`);
+            const wordCount = this.countWords(sceneContent);
+            console.log(`Creating scene: "${scene.name}" (${sceneFoundStatus}) - ${wordCount} words`);
+
+            if (wordCount === 0 && sceneFiles.length > 0) {
+                console.error(`❌ Scene "${scene.name}" has 0 words despite file being found: ${sceneFiles[0]}`);
+            }
+
             await db.scenes.add({
                 id: sceneId,
                 projectId: projectId,
@@ -199,7 +234,7 @@
             await db.content.add({
                 sceneId: sceneId,
                 text: sceneContent,
-                wordCount: this.countWords(sceneContent)
+                wordCount: wordCount
             });
         },
 
