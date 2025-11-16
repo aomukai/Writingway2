@@ -265,6 +265,21 @@ document.addEventListener('alpine:init', () => {
         appReady: false,
         initProgress: 0,
 
+        // Alpine lifecycle - setup watchers
+        init() {
+            // Watch for preview mode changes and stop TTS when switching to edit mode
+            this.$watch('showMarkdownPreview', (isPreview) => {
+                if (!isPreview && this.isReading) {
+                    // Switched from preview to edit mode while reading - stop TTS
+                    window.TTS.stop();
+                    this.isReading = false;
+                }
+            });
+
+            // Continue with normal initialization
+            this.initializeApp();
+        },
+
         currentScene: null,
         chapters: [],
         scenes: [], // flattened scenes list for quick access
@@ -899,15 +914,20 @@ document.addEventListener('alpine:init', () => {
                 window.TTS.stop();
                 this.isReading = false;
             } else {
-                // Start reading current scene
+                // Start reading current scene (only works in preview mode)
                 if (!this.currentScene) {
                     alert('No scene selected to read');
                     return;
                 }
 
-                // Get text from contenteditable element
-                const editor = document.querySelector('.editor-textarea[contenteditable="true"]');
-                const text = editor ? editor.innerText.trim() : '';
+                if (!this.showMarkdownPreview) {
+                    alert('Switch to Preview mode to use Read Aloud');
+                    return;
+                }
+
+                // Read from preview (Markdown rendered as plain text)
+                const preview = document.querySelector('.editor-preview');
+                const text = preview ? preview.innerText.trim() : '';
 
                 if (!text || text.length === 0) {
                     alert('Scene is empty - nothing to read');

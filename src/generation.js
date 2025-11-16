@@ -34,9 +34,8 @@
         }
 
         // If compendium entries are provided, include them as references before the BEAT.
-        // For preview mode we omit the full compendium bodies to keep the overlay concise.
         let compendiumText = '';
-        if (!options.preview && options.compendiumEntries && Array.isArray(options.compendiumEntries) && options.compendiumEntries.length > 0) {
+        if (options.compendiumEntries && Array.isArray(options.compendiumEntries) && options.compendiumEntries.length > 0) {
             compendiumText = '\n\nCOMPENDIUM REFERENCES:\n';
             for (const ce of options.compendiumEntries) {
                 try {
@@ -48,9 +47,8 @@
         }
 
         // If scene summaries are provided, include them as context before the BEAT.
-        // For preview mode we omit them to keep the overlay concise.
         let sceneSummariesText = '';
-        if (!options.preview && options.sceneSummaries && Array.isArray(options.sceneSummaries) && options.sceneSummaries.length > 0) {
+        if (options.sceneSummaries && Array.isArray(options.sceneSummaries) && options.sceneSummaries.length > 0) {
             sceneSummariesText = '\n\nPREVIOUS SCENES:\n';
             for (const scene of options.sceneSummaries) {
                 try {
@@ -70,7 +68,17 @@
         if (sceneSummariesText) {
             userContent += sceneSummariesText;
         }
-        userContent += `\n\nBEAT TO EXPAND:\n${beat}\n\nWrite the next 2-3 paragraphs:`;
+
+        // Strip mention tags from beat since they're already resolved and included above
+        let cleanedBeat = beat;
+        // Remove @[Title] compendium mentions
+        cleanedBeat = cleanedBeat.replace(/@\[([^\]]+)\]/g, '');
+        // Remove #[Title] scene mentions
+        cleanedBeat = cleanedBeat.replace(/#\[([^\]]+)\]/g, '');
+        // Clean up extra whitespace
+        cleanedBeat = cleanedBeat.replace(/\s+/g, ' ').trim();
+
+        userContent += `\n\nBEAT TO EXPAND:\n${cleanedBeat}\n\nWrite the next 2-3 paragraphs:`;
 
         // Return object with both messages array (for APIs) and string format (for local)
         const result = {

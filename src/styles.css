@@ -211,12 +211,9 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    cursor: pointer;
     font-weight: 800;
     font-size: 18px;
     border-radius: 6px;
-    border-left: 4px solid transparent;
-    transition: all 0.2s ease;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
@@ -243,6 +240,7 @@ body {
     display: flex;
     gap: 6px;
     position: relative;
+    z-index: 100;
     /* ensure absolute popup is positioned relative to this container */
 }
 
@@ -257,10 +255,7 @@ body {
 }
 
 .chapter-header:hover {
-    background: var(--bg-tertiary);
-    color: var(--text-primary);
-    border-left-color: var(--accent);
-    transform: translateX(2px);
+    /* No hover effect - chapter headers are plain text */
 }
 
 /* Compendium category items (left column of compendium panel) */
@@ -503,24 +498,25 @@ body {
     top: calc(100% + 6px);
     background: var(--bg-secondary);
     border: 1px solid var(--border);
-    padding: 8px;
-    border-radius: 6px;
-    min-width: 160px;
-    z-index: 4000;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+    padding: 12px;
+    border-radius: 8px;
+    min-width: 200px;
+    z-index: 9999;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+    pointer-events: auto;
 }
 
 .action-menu button {
     display: block;
     width: 100%;
     text-align: left;
-    padding: 8px 10px;
+    padding: 10px 12px;
     background: transparent;
     border: none;
     color: var(--text-primary);
     cursor: pointer;
     border-radius: 4px;
-    font-size: 13px;
+    font-size: 14px;
 }
 
 .action-menu button:hover {
@@ -531,6 +527,15 @@ body {
     display: flex;
     gap: 8px;
     align-items: center;
+    padding: 4px 0;
+    margin-bottom: 8px;
+}
+
+.action-menu .move-select {
+    flex: 1;
+    padding: 6px 8px;
+    font-size: 13px;
+    min-height: 32px;
 }
 
 /* Slide-in right panels for Prompts and Codex */

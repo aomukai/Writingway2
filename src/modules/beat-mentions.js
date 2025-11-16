@@ -13,24 +13,61 @@
                 const pos = ta.selectionStart;
                 const text = app.beatInput || '';
 
-                // Check for # (scene mentions) first
+                // Check for # (scene mentions) - but exclude completed mentions like #[Title]
                 const lastHash = text.lastIndexOf('#', pos - 1);
+                let isActiveHashSearch = false;
+
                 if (lastHash !== -1 && (lastHash === 0 || /\s/.test(text.charAt(lastHash - 1)))) {
-                    const q = text.substring(lastHash + 1, pos).trim();
-                    if (q && q.length >= 1) {
-                        await this.handleSceneSearch(app, q);
-                        return;
+                    // Check if this # is part of a completed mention #[...]
+                    const afterHash = text.substring(lastHash, pos);
+                    const hasClosingBracket = afterHash.includes(']');
+
+                    // Only treat as active search if no closing bracket yet
+                    if (!hasClosingBracket) {
+                        const q = text.substring(lastHash + 1, pos).trim();
+                        if (q && q.length >= 1 && !q.startsWith('[')) {
+                            await this.handleSceneSearch(app, q);
+                            return;
+                        } else if (q.startsWith('[')) {
+                            // User typed #[ - this is the start of a mention, not a search
+                            const titlePart = q.substring(1);
+                            if (titlePart.length >= 1) {
+                                await this.handleSceneSearch(app, titlePart);
+                                return;
+                            }
+                        }
+                        isActiveHashSearch = true;
                     }
                 }
 
-                // Check for @ (compendium mentions)
+                // Check for @ (compendium mentions) - but exclude completed mentions like @[Title]
                 const lastAt = text.lastIndexOf('@', pos - 1);
                 try { console.debug('[onBeatInput] caret=', pos, 'textSlice=', text.substring(Math.max(0, pos - 20), pos + 5).replace(/\n/g, '\\n')); } catch (e) { }
-                if (lastAt === -1) {
+
+                // If neither active @ nor # search, hide all dropdowns
+                if (lastAt === -1 && !isActiveHashSearch) {
                     app.showQuickSearch = false;
                     app.quickSearchMatches = [];
                     app.showSceneSearch = false;
                     app.sceneSearchMatches = [];
+                    return;
+                }
+
+                // If @ not found, stop here
+                if (lastAt === -1) {
+                    app.showQuickSearch = false;
+                    app.quickSearchMatches = [];
+                    return;
+                }
+
+                // Check if @ is part of a completed mention @[...]
+                const afterAt = text.substring(lastAt, pos);
+                const hasClosingBracket = afterAt.includes(']');
+
+                // If completed mention, hide dropdown unless typing a new @
+                if (hasClosingBracket) {
+                    app.showQuickSearch = false;
+                    app.quickSearchMatches = [];
                     return;
                 }
 
@@ -44,12 +81,13 @@
                 }
 
                 const q = text.substring(lastAt + 1, pos).trim();
-                try { console.debug('[onBeatInput] lastAt=', lastAt, 'query=', q); } catch (e) { }
-                if (!q || q.length < 1) {
+                // Handle @[Title] format - search within the brackets
+                const searchQuery = q.startsWith('[') ? q.substring(1) : q;
+
+                try { console.debug('[onBeatInput] lastAt=', lastAt, 'query=', searchQuery); } catch (e) { }
+                if (!searchQuery || searchQuery.length < 1) {
                     app.showQuickSearch = false;
                     app.quickSearchMatches = [];
-                    app.showSceneSearch = false;
-                    app.sceneSearchMatches = [];
                     return;
                 }
 
@@ -58,7 +96,7 @@
                 try { console.debug('[onBeatInput] projectId=', pid); } catch (e) { }
                 if (!pid) return;
                 const all = await db.compendium.where('projectId').equals(pid).toArray();
-                const lower = q.toLowerCase();
+                const lower = searchQuery.toLowerCase();
                 const matches = (all || []).filter(it => (it.title || '').toLowerCase().includes(lower));
                 try { console.debug('[onBeatInput] matchesCount=', matches.length); } catch (e) { }
                 app.quickSearchMatches = matches.slice(0, 20);
@@ -83,12 +121,27 @@
                 const pid = app.currentProject ? app.currentProject.id : null;
                 if (!pid) return;
 
-                // Get all scenes in project
+                // Get all scenes and chapters in project
                 const allScenes = await db.scenes.where('projectId').equals(pid).toArray();
+                const allChapters = await db.chapters.where('projectId').equals(pid).toArray();
+
+                // Create chapter lookup map
+                const chapterMap = {};
+                for (const ch of allChapters) {
+                    chapterMap[ch.id] = ch.title;
+                }
+
                 const lower = query.toLowerCase();
 
-                // Filter by title match
-                let matches = allScenes.filter(s => (s.title || '').toLowerCase().includes(lower));
+                // Filter by title match and add chapter name + summary status
+                let matches = allScenes
+                    .filter(s => (s.title || '').toLowerCase().includes(lower))
+                    .map(s => ({
+                        ...s,
+                        chapterName: chapterMap[s.chapterId] || 'Unknown Chapter',
+                        hasSummary: !!(s.summary && s.summary.length > 0),
+                        summaryStale: s.summaryStale === true
+                    }));
 
                 // Sort: current chapter scenes first, then others
                 const currentChapterId = app.currentChapter?.id;

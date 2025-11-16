@@ -305,13 +305,11 @@
                                     x-data="{ openMenu:false }">
                                     <div
                                         style="flex:1;display:flex;justify-content:space-between;align-items:center;position:relative;">
-                                        <div @click="chapter.expanded = !chapter.expanded; currentChapter = chapter"
-                                            style="flex:1;cursor:pointer;display:flex;align-items:center;gap:8px;">
+                                        <div style="flex:1;display:flex;align-items:center;gap:8px;">
                                             <div style="flex:1;" x-text="chapter.title"></div>
                                             <div
                                                 style="font-size:12px;color:var(--text-secondary);display:flex;align-items:center;gap:6px;">
                                                 <span x-text="`${chapter.scenes ? chapter.scenes.length : 0}`"></span>
-                                                <span class="caret" :class="{ 'rotated': chapter.expanded }">▾</span>
                                             </div>
                                         </div>
 
@@ -322,6 +320,9 @@
 
                                             <div x-show="openMenu" x-cloak @click.away="openMenu = false" x-transition
                                                 class="action-menu">
+                                                <button
+                                                    @click.stop="chapter.expanded = !chapter.expanded; openMenu=false"
+                                                    x-text="chapter.expanded ? 'Collapse' : 'Expand'"></button>
                                                 <button @click.stop="moveChapterUp(chapter.id); openMenu=false">Move
                                                     chapter up</button>
                                                 <button @click.stop="moveChapterDown(chapter.id); openMenu=false">Move
@@ -354,28 +355,38 @@
                                             </div>
                                             <div class="item-actions" style="margin-left:12px;"
                                                 x-data="{ openMenu:false }">
+
+                                                <!-- Backdrop overlay -->
+                                                <div x-show="openMenu" x-cloak @click="openMenu = false"
+                                                    style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.3);z-index:9998;"
+                                                    x-transition:enter="transition ease-out duration-200"
+                                                    x-transition:enter-start="opacity-0"
+                                                    x-transition:enter-end="opacity-100"
+                                                    x-transition:leave="transition ease-in duration-150"
+                                                    x-transition:leave-start="opacity-100"
+                                                    x-transition:leave-end="opacity-0">
+                                                </div>
+
                                                 <button class="menu-button" @click.stop="openMenu = !openMenu"
                                                     title="More">
                                                     ⋯
                                                 </button>
 
-                                                <div x-show="openMenu" x-cloak @click.away="openMenu = false"
-                                                    x-transition class="action-menu">
-                                                    <div class="menu-row">
-                                                        <label
-                                                            style="font-size:12px;color:var(--text-secondary);flex:1;">Move
-                                                            to
-                                                            <select class="move-select"
-                                                                @change.stop="moveSceneToChapter(scene.id, $event.target.value); openMenu=false;">
-                                                                <option value="" disabled selected>Choose chapter
-                                                                </option>
-                                                                <template x-for="ch in chapters" :key="ch.id">
-                                                                    <option :value="ch.id"
-                                                                        :selected="ch.id === scene.chapterId"
-                                                                        x-text="ch.title"></option>
-                                                                </template>
-                                                            </select>
-                                                        </label>
+                                                <div x-show="openMenu" x-cloak @mouseenter.stop @mousemove.stop
+                                                    x-transition class="action-menu" @click.stop x-ref="actionMenu">
+                                                    <div
+                                                        style="font-size:13px;color:var(--text-secondary);padding:4px 0 8px 0;border-bottom:1px solid var(--border);margin-bottom:8px;">
+                                                        Move to:
+                                                    </div>
+                                                    <template x-for="ch in chapters" :key="ch.id">
+                                                        <button
+                                                            @click.stop="moveSceneToChapter(scene.id, ch.id); openMenu=false"
+                                                            :style="ch.id === scene.chapterId ? 'background: var(--bg-tertiary);' : ''"
+                                                            x-text="ch.title">
+                                                        </button>
+                                                    </template>
+                                                    <div
+                                                        style="border-top:1px solid var(--border);margin-top:8px;padding-top:8px;">
                                                     </div>
 
                                                     <button @click.stop="moveSceneUp(scene.id); openMenu=false">Move
@@ -447,8 +458,9 @@
                             <span x-show="showMarkdownPreview">✏️ Edit</span>
                         </button>
 
-                        <!-- TTS Read Aloud Button -->
-                        <button @click="toggleTTS()" class="btn btn-secondary" :class="{ 'btn-primary': isReading }"
+                        <!-- TTS Read Aloud Button (only in preview mode) -->
+                        <button x-show="showMarkdownPreview" @click="toggleTTS()" class="btn btn-secondary"
+                            :class="{ 'btn-primary': isReading }"
                             :title="isReading ? 'Stop reading' : 'Read scene aloud'">
                             <span x-show="!isReading">🔊 Read Aloud</span>
                             <span x-show="isReading">⏸️ Stop</span>
