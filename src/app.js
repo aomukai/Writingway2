@@ -387,6 +387,7 @@ document.addEventListener('alpine:init', () => {
         showModelLoading: false,
         loadingMessage: 'Setting up AI...',
         loadingProgress: 0,
+        isInitializing: true, // Flag to prevent watchers from firing during init
         // AI Configuration
         aiMode: 'local', // 'local' or 'api'
         aiProvider: 'anthropic', // 'anthropic', 'openrouter', 'openai', 'google'
@@ -404,14 +405,7 @@ document.addEventListener('alpine:init', () => {
 
         // Available models per provider
         providerModels: {
-            openrouter: [
-                { id: 'google/gemini-2.0-flash-exp:free', name: 'Gemini 2.0 Flash (Free)', recommended: true },
-                { id: 'meta-llama/llama-3.2-3b-instruct:free', name: 'Llama 3.2 3B (Free)' },
-                { id: 'qwen/qwen-2-7b-instruct:free', name: 'Qwen 2 7B (Free)' },
-                { id: 'anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet (Paid)' },
-                { id: 'openai/gpt-4o-mini', name: 'GPT-4o Mini (Paid)' },
-                { id: 'openai/gpt-4o', name: 'GPT-4o (Paid)' }
-            ],
+            openrouter: [],
             anthropic: [
                 { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet', recommended: true },
                 { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku' },
@@ -645,14 +639,14 @@ document.addEventListener('alpine:init', () => {
                 } catch (e) { /* ignore */ }
             }, true);
 
-            // Watch AI settings and auto-save when they change
-            this.$watch('aiMode', () => this.saveGenerationParams());
-            this.$watch('aiProvider', () => this.saveGenerationParams());
-            this.$watch('aiModel', () => this.saveGenerationParams());
-            this.$watch('aiApiKey', () => this.saveGenerationParams());
-            this.$watch('aiEndpoint', () => this.saveGenerationParams());
-            this.$watch('temperature', () => this.saveGenerationParams());
-            this.$watch('maxTokens', () => this.saveGenerationParams());
+            // Watch AI settings and auto-save when they change (but not during initialization)
+            this.$watch('aiMode', () => { if (!this.isInitializing) this.saveGenerationParams(); });
+            this.$watch('aiProvider', () => { if (!this.isInitializing) this.saveGenerationParams(); });
+            this.$watch('aiModel', () => { if (!this.isInitializing) this.saveGenerationParams(); });
+            this.$watch('aiApiKey', () => { if (!this.isInitializing) this.saveGenerationParams(); });
+            this.$watch('aiEndpoint', () => { if (!this.isInitializing) this.saveGenerationParams(); });
+            this.$watch('temperature', () => { if (!this.isInitializing) this.saveGenerationParams(); });
+            this.$watch('maxTokens', () => { if (!this.isInitializing) this.saveGenerationParams(); });
 
             this.updateLoadingScreen(70, 'Loading features...', 'Setting up text-to-speech and updates...');
 
@@ -754,6 +748,8 @@ document.addEventListener('alpine:init', () => {
             this.updateLoadingScreen(100, 'Ready!', 'Welcome to Writingway');
             setTimeout(() => {
                 this.hideLoadingScreen();
+                // Now that initialization is complete, enable watchers
+                this.isInitializing = false;
             }, 300);
         },
 

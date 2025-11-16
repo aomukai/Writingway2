@@ -13,7 +13,17 @@
                     app.updateLoadingScreen(60, 'AI Ready', `Connected to ${app.aiProvider || 'API'}`);
                 }
                 app.aiStatus = 'ready';
-                app.aiStatusText = `AI Ready (${app.aiProvider || 'API'})`;
+
+                // Get the display name for the model
+                let modelDisplayName = app.aiModel;
+                if (app.providerModels[app.aiProvider]) {
+                    const modelInfo = app.providerModels[app.aiProvider].find(m => m.id === app.aiModel);
+                    if (modelInfo) {
+                        modelDisplayName = modelInfo.name;
+                    }
+                }
+
+                app.aiStatusText = modelDisplayName ? `AI Ready (${modelDisplayName})` : `AI Ready (${app.aiProvider || 'API'})`;
                 console.log('✓ AI configured with API provider');
                 return;
             }

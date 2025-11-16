@@ -32,7 +32,10 @@
                                 const bFree = b.id.includes(':free');
                                 if (aFree && !bFree) return -1;
                                 if (!aFree && bFree) return 1;
-                                return 0;
+                                // Then alphabetically by name
+                                const aName = (a.name || a.id).toLowerCase();
+                                const bName = (b.name || b.id).toLowerCase();
+                                return aName.localeCompare(bName);
                             })
                             .map(m => ({
                                 id: m.id,
@@ -202,8 +205,18 @@
                     if (!app.aiModel) {
                         throw new Error('Model name is required');
                     }
+
+                    // Get the display name for the model
+                    let modelDisplayName = app.aiModel;
+                    if (app.providerModels[app.aiProvider]) {
+                        const modelInfo = app.providerModels[app.aiProvider].find(m => m.id === app.aiModel);
+                        if (modelInfo) {
+                            modelDisplayName = modelInfo.name;
+                        }
+                    }
+
                     app.aiStatus = 'ready';
-                    app.aiStatusText = `AI Ready (${app.aiProvider})`;
+                    app.aiStatusText = `AI Ready (${modelDisplayName})`;
                     app.loadingProgress = 100;
                     setTimeout(() => { app.showModelLoading = false; }, 500);
                     alert('✓ API settings saved! Ready to generate.');
@@ -231,7 +244,7 @@
                     app.aiMode = settings.mode || 'local';
                     app.aiProvider = settings.provider || 'anthropic';
                     app.aiApiKey = settings.apiKey || '';
-                    app.aiModel = settings.model || '';
+                    const savedModel = settings.model || '';
                     app.aiEndpoint = settings.endpoint || '';
                     app.temperature = settings.temperature || 0.8;
                     app.maxTokens = settings.maxTokens || 300;
@@ -240,6 +253,9 @@
                     if (app.aiMode === 'api' && app.aiApiKey) {
                         await this.fetchProviderModels(app);
                     }
+
+                    // Set model AFTER fetching the list to ensure the dropdown has the option
+                    app.aiModel = savedModel;
                 }
             } catch (e) {
                 console.error('Failed to load AI settings:', e);

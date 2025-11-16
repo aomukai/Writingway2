@@ -720,9 +720,14 @@
                                                     :key="modelName">
                                                     <option :value="modelName" x-text="modelName"></option>
                                                 </template>
-                                                <!-- Fallback when no local models -->
-                                                <option x-show="aiMode === 'local' && availableLocalModels.length === 0"
-                                                    value="">Local model (via llama-server)</option>
+                                                <!-- Show current model if not in lists -->
+                                                <option
+                                                    x-show="aiModel && ((aiMode === 'api' && !(providerModels[aiProvider] || []).find(m => m.id === aiModel)) || (aiMode === 'local' && !availableLocalModels.includes(aiModel)))"
+                                                    :value="aiModel" x-text="aiModel"></option>
+                                                <!-- Fallback for local mode with no models -->
+                                                <option
+                                                    x-show="aiMode === 'local' && availableLocalModels.length === 0 && !aiModel"
+                                                    value="" disabled>Local model (via llama-server)</option>
                                             </select>
                                         </label>
 
@@ -1118,6 +1123,9 @@
                                 <option :value="model.id" x-text="model.name + (model.recommended ? ' ⭐' : '')">
                                 </option>
                             </template>
+                            <!-- Show current model if not in list -->
+                            <option x-show="aiModel && !(providerModels[aiProvider] || []).find(m => m.id === aiModel)"
+                                :value="aiModel" x-text="aiModel"></option>
                         </select>
                         <p style="font-size:11px;color:var(--text-secondary);margin:4px 0 0 0;"
                             x-show="modelsFetched && aiMode === 'api'">
@@ -1750,6 +1758,10 @@
                                         :key="modelName">
                                         <option :value="modelName" x-text="modelName"></option>
                                     </template>
+                                    <!-- Show current model if not in lists -->
+                                    <option
+                                        x-show="aiModel && ((aiMode === 'api' && !(providerModels[aiProvider] || []).find(m => m.id === aiModel)) || (aiMode === 'local' && !availableLocalModels.includes(aiModel)))"
+                                        :value="aiModel" x-text="aiModel"></option>
                                 </select>
                                 <span x-show="aiMode === 'local' && availableLocalModels.length === 0"
                                     style="padding:4px 12px;background:rgba(76,175,80,0.1);border:1px solid rgba(76,175,80,0.3);border-radius:6px;font-size:12px;">
