@@ -638,34 +638,30 @@
                                     </div>
                                 </div>
 
-                                <button class="generate-btn" @click="previewPrompt"
-                                    :disabled="!beatInput || aiStatus !== 'ready'">
-                                    Preview
-                                </button>
-
-                                <button class="generate-btn" @click="generateFromBeat"
-                                    :disabled="!beatInput || isGenerating || aiStatus !== 'ready'">
-                                    <span x-text="isGenerating ? 'Generating...' : 'Generate'"></span>
-                                </button>
-
-                                <button class="generate-btn" @click="showPromptsPanel = !showPromptsPanel"
-                                    title="Toggle Prompts Panel" aria-label="Toggle prompts panel">
-                                    Prompts
-                                </button>
-
-                                <button class="generate-btn" @click="loadPromptHistory(); showPromptHistory = true"
+                                <button class="btn btn-secondary" @click="loadPromptHistory(); showPromptHistory = true"
                                     title="View Prompt History" aria-label="View prompt history">
-                                    History
-                                </button>
-
-                                <button class="generate-btn" @click="showContextPanel = !showContextPanel"
-                                    title="Scene Context Settings" aria-label="Toggle context panel">
-                                    Context
+                                    🕐
                                 </button>
 
                                 <button class="btn btn-secondary" @click="showSceneOptions = !showSceneOptions"
                                     title="Scene options">
                                     ⚙️
+                                </button>
+
+                                <button class="btn btn-secondary" @click="showContextPanel = !showContextPanel"
+                                    title="Context Panel" aria-label="Toggle context panel">
+                                    📚
+                                </button>
+
+                                <button class="btn btn-secondary" @click="previewPrompt"
+                                    :disabled="!beatInput || aiStatus !== 'ready'" title="Preview Prompt">
+                                    👁️
+                                </button>
+
+                                <button class="btn btn-secondary" @click="generateFromBeat"
+                                    :disabled="!beatInput || isGenerating || aiStatus !== 'ready'"
+                                    title="Generate Text">
+                                    ✨
                                 </button>
                             </div>
 
