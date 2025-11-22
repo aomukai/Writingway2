@@ -155,6 +155,8 @@
             try { await app.loadWorkshopSessions(); } catch (e) { console.error('Failed to load workshop sessions:', e); }
             // Load selected workshop prompt
             try { await app.loadSelectedWorkshopPrompt(); } catch (e) { /* ignore */ }
+            // Load context panel settings for this project
+            try { app.loadContextPanel(); } catch (e) { console.error('Failed to load context panel:', e); }
             if (app.scenes.length > 0) {
                 await app.loadScene(app.scenes[0].id);
             } else {

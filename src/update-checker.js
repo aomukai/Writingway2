@@ -4,7 +4,7 @@
     const UpdateChecker = {
         // Build timestamp - update this when you push a new version
         // This represents when this version was created
-        buildDate: new Date('2025-11-23T06:57:00Z').getTime(), // Update before each push
+        buildDate: new Date('2025-11-23T07:40:00Z').getTime(), // Update before each push
 
         // GitHub repository info
         repoOwner: 'aomukai',

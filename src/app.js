@@ -349,6 +349,7 @@ document.addEventListener('alpine:init', () => {
 
         // Scene generation options
         showSceneOptions: false,
+        showContextPanel: false,
         povCharacter: '',
         pov: '3rd person limited',
         tense: 'past',
@@ -363,6 +364,14 @@ document.addEventListener('alpine:init', () => {
 
         // Tags (for scenes only)
         sceneTags: '', // Comma-separated tags for current scene being edited
+
+        // Context Panel (persistent scene context for generation)
+        contextPanel: {
+            compendiumIds: [], // Array of compendium entry IDs
+            chapters: {}, // { chapterId: 'full' | 'summary' | null }
+            scenes: {}, // { sceneId: 'full' | 'summary' | null }
+            tags: [] // Array of tag strings
+        },
 
         // Prompts / Codex state
         prompts: [],
@@ -1403,6 +1412,84 @@ document.addEventListener('alpine:init', () => {
             return Array.from(tagsSet).sort();
         },
 
+        // Context Panel Management
+        toggleContextCompendium(entryId) {
+            const index = this.contextPanel.compendiumIds.indexOf(entryId);
+            if (index > -1) {
+                this.contextPanel.compendiumIds.splice(index, 1);
+            } else {
+                this.contextPanel.compendiumIds.push(entryId);
+            }
+            this.saveContextPanel();
+        },
+
+        setContextChapter(chapterId, mode) {
+            // mode: 'full', 'summary', or null
+            if (mode === null) {
+                delete this.contextPanel.chapters[chapterId];
+            } else {
+                this.contextPanel.chapters[chapterId] = mode;
+            }
+            this.saveContextPanel();
+        },
+
+        setContextScene(sceneId, mode) {
+            // mode: 'full', 'summary', or null
+            if (mode === null) {
+                delete this.contextPanel.scenes[sceneId];
+            } else {
+                this.contextPanel.scenes[sceneId] = mode;
+            }
+            this.saveContextPanel();
+        },
+
+        toggleContextTag(tag) {
+            const index = this.contextPanel.tags.indexOf(tag);
+            if (index > -1) {
+                this.contextPanel.tags.splice(index, 1);
+            } else {
+                this.contextPanel.tags.push(tag);
+            }
+            this.saveContextPanel();
+        },
+
+        saveContextPanel() {
+            if (!this.currentProject) return;
+            try {
+                const key = `writingway:contextPanel:${this.currentProject.id}`;
+                localStorage.setItem(key, JSON.stringify(this.contextPanel));
+            } catch (e) {
+                console.warn('Failed to save context panel:', e);
+            }
+        },
+
+        loadContextPanel() {
+            if (!this.currentProject) return;
+            try {
+                const key = `writingway:contextPanel:${this.currentProject.id}`;
+                const saved = localStorage.getItem(key);
+                if (saved) {
+                    this.contextPanel = JSON.parse(saved);
+                } else {
+                    // Reset to default
+                    this.contextPanel = {
+                        compendiumIds: [],
+                        chapters: {},
+                        scenes: {},
+                        tags: []
+                    };
+                }
+            } catch (e) {
+                console.warn('Failed to load context panel:', e);
+                this.contextPanel = {
+                    compendiumIds: [],
+                    chapters: {},
+                    scenes: {},
+                    tags: []
+                };
+            }
+        },
+
         // Project Management
         async createProject() {
             await window.ProjectManager.createProject(this, this.newProjectName);
@@ -1571,6 +1658,17 @@ document.addEventListener('alpine:init', () => {
         },
         async loadCompendiumCategory(category) {
             await window.CompendiumManager.loadCompendiumCategory(this, category);
+        },
+        // Get all compendium entries for the current project (for context panel)
+        async getAllCompendiumEntries() {
+            if (!this.currentProject) return [];
+            try {
+                const entries = await db.compendium.where('projectId').equals(this.currentProject.id).toArray();
+                return entries || [];
+            } catch (e) {
+                console.error('Failed to load all compendium entries:', e);
+                return [];
+            }
         },
         async createCompendiumEntry(category) {
             await window.CompendiumManager.createCompendiumEntry(this, category);
@@ -2165,12 +2263,26 @@ document.addEventListener('alpine:init', () => {
                 // Resolve prose prompt text (in-memory first, then DB fallback)
                 const proseInfo = await this.resolveProsePromptInfo();
                 const prosePromptText = proseInfo && proseInfo.text ? proseInfo.text : null;
-                // Resolve compendium entries referenced in beat and include them in options
-                let compEntries = [];
-                try { compEntries = await this.resolveCompendiumEntriesFromBeat(this.beatInput || ''); } catch (e) { compEntries = []; }
-                // Resolve scene summaries referenced in beat
-                let sceneSummaries = [];
-                try { sceneSummaries = await this.resolveSceneSummariesFromBeat(this.beatInput || ''); } catch (e) { sceneSummaries = []; }
+
+                // Get context from context panel
+                const panelContext = await this.buildContextFromPanel();
+
+                // Resolve compendium entries and scene summaries from beat mentions
+                let beatCompEntries = [];
+                let beatSceneSummaries = [];
+                try { beatCompEntries = await this.resolveCompendiumEntriesFromBeat(this.beatInput || ''); } catch (e) { beatCompEntries = []; }
+                try { beatSceneSummaries = await this.resolveSceneSummariesFromBeat(this.beatInput || ''); } catch (e) { beatSceneSummaries = []; }
+
+                // Merge context
+                const compMap = new Map();
+                panelContext.compendiumEntries.forEach(e => compMap.set(e.id, e));
+                beatCompEntries.forEach(e => compMap.set(e.id, e));
+                const compEntries = Array.from(compMap.values());
+
+                const sceneMap = new Map();
+                panelContext.sceneSummaries.forEach(s => sceneMap.set(s.title, s));
+                beatSceneSummaries.forEach(s => sceneMap.set(s.title, s));
+                const sceneSummaries = Array.from(sceneMap.values());
 
                 let prompt;
                 if (window.Generation && typeof window.Generation.buildPrompt === 'function') {
@@ -2514,6 +2626,124 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
+        // Build context from context panel settings
+        async buildContextFromPanel() {
+            const context = {
+                compendiumEntries: [],
+                sceneSummaries: []
+            };
+
+            if (!this.currentProject) return context;
+
+            // 1. Add compendium entries from context panel
+            for (const entryId of this.contextPanel.compendiumIds) {
+                try {
+                    const entry = await db.compendium.get(entryId);
+                    if (entry) {
+                        context.compendiumEntries.push(entry);
+                    }
+                } catch (e) {
+                    console.warn('Failed to load compendium entry:', entryId, e);
+                }
+            }
+
+            // 2. Add scenes based on chapter/scene selections
+            const processedScenes = new Set();
+
+            // Process chapter-level selections
+            for (const [chapterId, mode] of Object.entries(this.contextPanel.chapters)) {
+                if (!mode) continue; // skip if no mode selected
+
+                const chapter = this.chapters.find(c => c.id === chapterId);
+                if (!chapter || !chapter.scenes) continue;
+
+                for (const scene of chapter.scenes) {
+                    if (processedScenes.has(scene.id)) continue;
+                    processedScenes.add(scene.id);
+
+                    if (mode === 'full') {
+                        // Load full scene content
+                        try {
+                            const fullScene = await db.scenes.get(scene.id);
+                            const content = await db.content.get(scene.id);
+                            if (fullScene && content) {
+                                context.sceneSummaries.push({
+                                    title: fullScene.title,
+                                    summary: content.text || ''
+                                });
+                            }
+                        } catch (e) {
+                            console.warn('Failed to load scene content:', scene.id, e);
+                        }
+                    } else if (mode === 'summary' && scene.summary) {
+                        context.sceneSummaries.push({
+                            title: scene.title,
+                            summary: scene.summary
+                        });
+                    }
+                }
+            }
+
+            // Process individual scene selections (only if chapter doesn't have a mode)
+            for (const [sceneId, mode] of Object.entries(this.contextPanel.scenes)) {
+                if (!mode || processedScenes.has(sceneId)) continue;
+
+                // Check if this scene's chapter has a mode set
+                const scene = this.scenes.find(s => s.id === sceneId);
+                if (!scene) continue;
+
+                if (this.contextPanel.chapters[scene.chapterId]) {
+                    // Chapter mode takes precedence, skip individual scene
+                    continue;
+                }
+
+                processedScenes.add(sceneId);
+
+                if (mode === 'full') {
+                    // Load full scene content
+                    try {
+                        const fullScene = await db.scenes.get(sceneId);
+                        const content = await db.content.get(sceneId);
+                        if (fullScene && content) {
+                            context.sceneSummaries.push({
+                                title: fullScene.title,
+                                summary: content.text || ''
+                            });
+                        }
+                    } catch (e) {
+                        console.warn('Failed to load scene content:', sceneId, e);
+                    }
+                } else if (mode === 'summary' && scene.summary) {
+                    context.sceneSummaries.push({
+                        title: scene.title,
+                        summary: scene.summary
+                    });
+                }
+            }
+
+            // 3. Add scenes by tags
+            for (const tag of this.contextPanel.tags) {
+                const taggedScenes = this.scenes.filter(s =>
+                    s.tags && Array.isArray(s.tags) && s.tags.includes(tag)
+                );
+
+                for (const scene of taggedScenes) {
+                    if (processedScenes.has(scene.id)) continue;
+                    processedScenes.add(scene.id);
+
+                    // Use summary if available, otherwise skip
+                    if (scene.summary) {
+                        context.sceneSummaries.push({
+                            title: scene.title,
+                            summary: scene.summary
+                        });
+                    }
+                }
+            }
+
+            return context;
+        },
+
         async generateFromBeat() {
             if (!this.beatInput || this.aiStatus !== 'ready') return;
 
@@ -2529,16 +2759,39 @@ document.addEventListener('alpine:init', () => {
                     // Resolve prose prompt text (in-memory first, then DB fallback)
                     const proseInfo = await this.resolveProsePromptInfo();
                     const prosePromptText = proseInfo && proseInfo.text ? proseInfo.text : null;
-                    // Resolve compendium entries referenced in beat and include them in options
-                    let compEntries = [];
-                    try { compEntries = await this.resolveCompendiumEntriesFromBeat(this.beatInput || ''); } catch (e) { compEntries = []; }
-                    // Resolve scene summaries referenced in beat
-                    let sceneSummaries = [];
-                    try { sceneSummaries = await this.resolveSceneSummariesFromBeat(this.beatInput || ''); } catch (e) { sceneSummaries = []; }
-                    // DEBUG: log resolved prose info for generation
+
+                    // Get context from context panel
+                    const panelContext = await this.buildContextFromPanel();
+
+                    // Resolve compendium entries and scene summaries from beat mentions (@/#)
+                    let beatCompEntries = [];
+                    let beatSceneSummaries = [];
+                    try { beatCompEntries = await this.resolveCompendiumEntriesFromBeat(this.beatInput || ''); } catch (e) { beatCompEntries = []; }
+                    try { beatSceneSummaries = await this.resolveSceneSummariesFromBeat(this.beatInput || ''); } catch (e) { beatSceneSummaries = []; }
+
+                    // Merge context: panel context + beat mentions
+                    // Use Map to deduplicate by ID
+                    const compMap = new Map();
+                    panelContext.compendiumEntries.forEach(e => compMap.set(e.id, e));
+                    beatCompEntries.forEach(e => compMap.set(e.id, e));
+                    const compEntries = Array.from(compMap.values());
+
+                    // Merge scene summaries (deduplicate by title)
+                    const sceneMap = new Map();
+                    panelContext.sceneSummaries.forEach(s => sceneMap.set(s.title, s));
+                    beatSceneSummaries.forEach(s => sceneMap.set(s.title, s));
+                    const sceneSummaries = Array.from(sceneMap.values());
+
+                    // DEBUG: log resolved context
                     try { console.debug('[generate] proseInfo=', proseInfo); } catch (e) { }
                     try { console.debug('[generate] prosePrompt raw:', JSON.stringify(prosePromptText)); } catch (e) { }
-                    try { console.debug('[generate] sceneSummaries:', sceneSummaries); } catch (e) { }
+                    try { console.debug('[generate] panel compendium:', panelContext.compendiumEntries.length); } catch (e) { }
+                    try { console.debug('[generate] panel scenes:', panelContext.sceneSummaries.length); } catch (e) { }
+                    try { console.debug('[generate] beat compendium:', beatCompEntries.length); } catch (e) { }
+                    try { console.debug('[generate] beat scenes:', beatSceneSummaries.length); } catch (e) { }
+                    try { console.debug('[generate] merged compendium:', compEntries.length); } catch (e) { }
+                    try { console.debug('[generate] merged scenes:', sceneSummaries.length); } catch (e) { }
+
                     const genOpts = { povCharacter: this.povCharacter, pov: this.pov, tense: this.tense, prosePrompt: prosePromptText, compendiumEntries: compEntries, sceneSummaries: sceneSummaries };
                     try { console.debug('[generate] buildPrompt opts:', { proseType: typeof genOpts.prosePrompt, len: genOpts.prosePrompt ? genOpts.prosePrompt.length : 0 }); } catch (e) { }
                     prompt = window.Generation.buildPrompt(this.beatInput, this.currentScene?.content || '', genOpts);
