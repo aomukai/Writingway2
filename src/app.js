@@ -450,8 +450,6 @@ document.addEventListener('alpine:init', () => {
 
         // Rewrite selection UI with modal
         showRewriteBtn: false,
-        rewriteBtnX: 0,
-        rewriteBtnY: 0,
         selectedTextForRewrite: '',
         rewriteSelectionRange: null,
         rewriteTextareaStart: null,
@@ -699,8 +697,7 @@ document.addEventListener('alpine:init', () => {
 
             this.updateLoadingScreen(85, 'Almost ready...', 'Finalizing setup...');
 
-            // Selection change handler: show a floating "Rewrite" button when text is selected
-            // For textarea elements, we need to listen to mouseup and keyup events
+            // Selection change handler: show Rewrite button when text is selected
             const self = this;
             const handleTextareaSelection = () => {
                 try {
@@ -725,19 +722,8 @@ document.addEventListener('alpine:init', () => {
                         return;
                     }
 
-                    // Calculate position for the button using textarea coordinates
-                    const coords = self._getTextareaSelectionCoords(editor, end);
-                    if (!coords) {
-                        self.showRewriteBtn = false;
-                        return;
-                    }
-
-                    // Position the button near the end of the selection
-                    const btnLeft = coords.left + 8;
-                    self.rewriteBtnX = Math.min(window.innerWidth - 140, Math.max(8, btnLeft));
-                    self.rewriteBtnY = Math.max(8, coords.top + coords.height + 6);
+                    // Store selection info
                     self.selectedTextForRewrite = selectedText;
-                    // Store selection range for later
                     self.rewriteTextareaStart = start;
                     self.rewriteTextareaEnd = end;
                     self.showRewriteBtn = true;
@@ -795,6 +781,11 @@ document.addEventListener('alpine:init', () => {
             try {
                 const rect = textarea.getBoundingClientRect();
 
+                // Don't show button if textarea is not visible
+                if (rect.width === 0 || rect.height === 0) {
+                    return null;
+                }
+
                 // Create mirror div placed at the textarea's position
                 const div = document.createElement('div');
                 const style = window.getComputedStyle(textarea);
@@ -806,8 +797,8 @@ document.addEventListener('alpine:init', () => {
                 div.style.overflow = 'hidden';
                 div.style.boxSizing = 'border-box';
                 div.style.width = rect.width + 'px';
-                div.style.left = rect.left + 'px';
-                div.style.top = rect.top + 'px';
+                div.style.left = rect.left + window.scrollX + 'px';
+                div.style.top = rect.top + window.scrollY + 'px';
                 div.style.font = style.font || `${style.fontSize} ${style.fontFamily}`;
                 div.style.fontSize = style.fontSize;
                 div.style.lineHeight = style.lineHeight;

@@ -481,6 +481,12 @@
                             <span x-show="showMarkdownPreview">✏️ Edit</span>
                         </button>
 
+                        <!-- Rewrite Selection Button (only visible when text is selected) -->
+                        <button x-show="showRewriteBtn && !showMarkdownPreview" @click="handleRewriteButtonClick()"
+                            class="btn btn-secondary" title="Rewrite selected text with AI">
+                            ✨ Rewrite
+                        </button>
+
                         <!-- TTS Read Aloud Button (only in preview mode) -->
                         <button x-show="showMarkdownPreview" @click="toggleTTS()" class="btn btn-secondary"
                             :class="{ 'btn-primary': isReading }"
@@ -978,12 +984,6 @@
                 </div>
             </div>
         </template>
-
-        <!-- Floating Rewrite button (appears when text selected in scene textarea) -->
-        <button x-show="showRewriteBtn" x-cloak @click.prevent="handleRewriteButtonClick()"
-            :style="`position:fixed;left:${rewriteBtnX}px;top:${rewriteBtnY}px;z-index:6000;`" class="rewrite-btn">
-            Rewrite
-        </button>
 
         <!-- Rewrite Modal -->
         <div x-show="showRewriteModal" x-cloak class="modal-overlay" @click.self="discardRewrite()">
