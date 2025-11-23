@@ -17,7 +17,13 @@
             // Check for conflicts: if scene has loadedUpdatedAt, verify it hasn't changed
             if (scene.loadedUpdatedAt) {
                 const dbScene = await db.scenes.get(scene.id);
+                console.log('💾 Pre-save conflict check:', {
+                    sceneLoadedUpdatedAt: scene.loadedUpdatedAt,
+                    dbUpdatedAt: dbScene?.updatedAt,
+                    hasConflict: dbScene?.updatedAt > scene.loadedUpdatedAt
+                });
                 if (dbScene && dbScene.updatedAt && dbScene.updatedAt > scene.loadedUpdatedAt) {
+                    console.warn('⚠️ Pre-save conflict detected!');
                     const shouldOverwrite = confirm(
                         `Warning: This scene was modified in another tab since you loaded it.\n\n` +
                         `Click OK to overwrite with your changes, or Cancel to reload the latest version.`
