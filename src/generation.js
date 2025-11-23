@@ -348,6 +348,16 @@
             let content = null;
             if (provider === 'openrouter' || provider === 'openai' || provider === 'custom') {
                 content = data.choices?.[0]?.message?.content;
+
+                // For thinking models (o1, o3, etc.) that return encrypted reasoning,
+                // check if content is empty but there's a finish_reason
+                if (!content && data.choices?.[0]?.finish_reason) {
+                    console.warn('⚠️ Thinking model returned empty content. This usually means:');
+                    console.warn('   - Max tokens was hit during reasoning phase');
+                    console.warn('   - Model never produced final answer');
+                    console.warn('   - Try increasing max_tokens significantly (10000+) for thinking models');
+                    throw new Error('Thinking model returned empty response. The model likely hit max_tokens during its reasoning phase before generating an answer. Try increasing Max Length to 10000+ tokens in AI Settings.');
+                }
             } else if (provider === 'anthropic') {
                 content = data.content?.[0]?.text;
             } else if (provider === 'google') {
@@ -365,6 +375,7 @@
                 }
             } else {
                 console.error('❌ No content found in non-streaming response');
+                throw new Error('No content received from API');
             }
             return;
         }
