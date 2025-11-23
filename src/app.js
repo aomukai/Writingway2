@@ -277,6 +277,10 @@ document.addEventListener('alpine:init', () => {
         updateAvailable: null,
         checkingForUpdates: false,
 
+        // Export reminder state
+        showExportReminder: false,
+        exportReminderDismissed: false,
+
         // TTS (Text-to-Speech) state
         isReading: false,
         ttsVoiceName: '', // Selected voice name (string)
@@ -1647,6 +1651,69 @@ document.addEventListener('alpine:init', () => {
         // Export the current project as a ZIP file containing scenes (Markdown), metadata, and compendium
         async exportProject() {
             await window.ProjectManager.exportProject(this);
+            // Track last export time
+            if (this.currentProject) {
+                try {
+                    const key = `writingway:lastExport:${this.currentProject.id}`;
+                    localStorage.setItem(key, new Date().toISOString());
+                    this.showExportReminder = false;
+                    this.exportReminderDismissed = false;
+                } catch (e) {
+                    console.warn('Could not save last export time:', e);
+                }
+            }
+        },
+
+        checkExportReminder() {
+            if (!this.currentProject) return;
+
+            try {
+                const key = `writingway:lastExport:${this.currentProject.id}`;
+                const dismissKey = `writingway:exportReminderDismissed:${this.currentProject.id}`;
+                const lastExportStr = localStorage.getItem(key);
+                const dismissedStr = localStorage.getItem(dismissKey);
+
+                // If already dismissed for this session, don't show again
+                if (dismissedStr) {
+                    const dismissedAt = new Date(dismissedStr);
+                    const hoursSinceDismiss = (Date.now() - dismissedAt.getTime()) / (1000 * 60 * 60);
+                    if (hoursSinceDismiss < 24) {
+                        return; // Don't show if dismissed in last 24 hours
+                    }
+                }
+
+                if (!lastExportStr) {
+                    // Never exported - show reminder after they've been working for a bit
+                    // Check if project has content (more than just default chapter)
+                    const hasContent = this.scenes && this.scenes.length > 0 &&
+                        this.scenes.some(s => s.wordCount > 100);
+                    if (hasContent) {
+                        this.showExportReminder = true;
+                    }
+                } else {
+                    // Check if it's been more than 7 days since last export
+                    const lastExport = new Date(lastExportStr);
+                    const daysSinceExport = (Date.now() - lastExport.getTime()) / (1000 * 60 * 60 * 24);
+                    if (daysSinceExport > 7) {
+                        this.showExportReminder = true;
+                    }
+                }
+            } catch (e) {
+                console.warn('Could not check export reminder:', e);
+            }
+        },
+
+        dismissExportReminder() {
+            this.showExportReminder = false;
+            this.exportReminderDismissed = true;
+            if (this.currentProject) {
+                try {
+                    const dismissKey = `writingway:exportReminderDismissed:${this.currentProject.id}`;
+                    localStorage.setItem(dismissKey, new Date().toISOString());
+                } catch (e) {
+                    console.warn('Could not save reminder dismissal:', e);
+                }
+            }
         },
 
         // Import a project from a ZIP file
@@ -2528,6 +2595,13 @@ document.addEventListener('alpine:init', () => {
 
             this.isSaving = false;
             this.saveStatus = 'Saved';
+
+            // Periodically check if export reminder should be shown (every 10 saves)
+            if (!this._saveCount) this._saveCount = 0;
+            this._saveCount++;
+            if (this._saveCount % 10 === 0) {
+                this.checkExportReminder();
+            }
         },
 
         // Generation action handlers

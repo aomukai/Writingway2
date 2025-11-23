@@ -523,6 +523,35 @@
                     </div>
 
                     <div class="editor-main">
+                        <!-- Export Reminder Banner -->
+                        <template x-if="showExportReminder && !exportReminderDismissed">
+                            <div
+                                style="background:linear-gradient(135deg, rgba(255,193,7,0.15), rgba(255,152,0,0.1));border-bottom:2px solid rgba(255,193,7,0.4);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
+                                <div style="display:flex;align-items:center;gap:12px;flex:1;">
+                                    <span style="font-size:24px;">💾</span>
+                                    <div>
+                                        <div style="font-weight:600;color:var(--text-primary);margin-bottom:4px;">
+                                            Don't forget to backup your work!
+                                        </div>
+                                        <div style="font-size:12px;color:var(--text-secondary);line-height:1.4;">
+                                            Your project is saved in your browser. Export it regularly to keep a backup
+                                            on your computer.
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style="display:flex;gap:8px;align-items:center;">
+                                    <button class="btn btn-primary" @click="exportProject()"
+                                        style="padding:8px 16px;font-size:13px;white-space:nowrap;">
+                                        📦 Export Now
+                                    </button>
+                                    <button class="btn btn-secondary" @click="dismissExportReminder()"
+                                        style="padding:8px 12px;font-size:13px;">
+                                        Dismiss
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+
                         <template x-if="currentScene">
                             <div style="position:relative;height:100%;display:flex;flex-direction:column;">
                                 <!-- Edit Mode: Textarea -->

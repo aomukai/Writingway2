@@ -16,9 +16,8 @@
 
         let contextText = '';
         if (sceneContext && sceneContext.length > 0) {
-            const words = sceneContext.split(/\s+/);
-            const contextWords = words.slice(-500).join(' ');
-            contextText = `\n\nCURRENT SCENE SO FAR:\n${contextWords}`;
+            // Include the full scene context - modern models have large context windows
+            contextText = `\n\nCURRENT SCENE SO FAR:\n${sceneContext}`;
         }
 
         // If a prose prompt template is provided, include it before the BEAT so the model can use it.
