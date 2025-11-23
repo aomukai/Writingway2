@@ -344,14 +344,16 @@
             const data = await response.json();
             console.log('📄 Full response data:', JSON.stringify(data, null, 2));
 
-            // Extract content from non-streaming response
+            // Extract content and finish_reason from non-streaming response
             let content = null;
+            let finishReason = null;
             if (provider === 'openrouter' || provider === 'openai' || provider === 'custom') {
                 content = data.choices?.[0]?.message?.content;
+                finishReason = data.choices?.[0]?.finish_reason;
 
                 // For thinking models (o1, o3, etc.) that return encrypted reasoning,
                 // check if content is empty but there's a finish_reason
-                if (!content && data.choices?.[0]?.finish_reason) {
+                if (!content && finishReason) {
                     console.warn('⚠️ Thinking model returned empty content. This usually means:');
                     console.warn('   - Max tokens was hit during reasoning phase');
                     console.warn('   - Model never produced final answer');
@@ -360,11 +362,14 @@
                 }
             } else if (provider === 'anthropic') {
                 content = data.content?.[0]?.text;
+                finishReason = data.stop_reason;
             } else if (provider === 'google') {
                 content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                finishReason = data.candidates?.[0]?.finishReason;
             }
 
             console.log('✅ Extracted content length:', content?.length || 0);
+            console.log('🏁 Finish reason:', finishReason);
 
             if (content) {
                 // Emit content in chunks to simulate streaming
@@ -377,13 +382,14 @@
                 console.error('❌ No content found in non-streaming response');
                 throw new Error('No content received from API');
             }
-            return;
+            return { finishReason };
         }
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let buffer = '';
         let hasReceivedContent = false;
+        let finishReason = null;
 
         while (true) {
             const { done, value } = await reader.read();
@@ -405,7 +411,7 @@
                         if (!hasReceivedContent) {
                             console.warn('⚠️ Stream ended without content - possible thinking model without streaming support');
                         }
-                        return;
+                        return { finishReason };
                     }
 
                     const data = JSON.parse(jsonStr);
@@ -418,6 +424,11 @@
                     // Extract token based on provider format
                     let token = null;
                     if (provider === 'openrouter' || provider === 'openai' || provider === 'custom') {
+                        // Capture finish_reason if present
+                        if (data.choices?.[0]?.finish_reason) {
+                            finishReason = data.choices[0].finish_reason;
+                        }
+
                         // For thinking models (o1, o3, etc), reasoning is in a separate field
                         // We want to capture both reasoning and regular content
                         const delta = data.choices?.[0]?.delta;
@@ -438,9 +449,14 @@
                     } else if (provider === 'anthropic') {
                         if (data.type === 'content_block_delta') {
                             token = data.delta?.text;
+                        } else if (data.type === 'message_delta') {
+                            finishReason = data.delta?.stop_reason;
                         }
                     } else if (provider === 'google') {
                         token = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                        if (data.candidates?.[0]?.finishReason) {
+                            finishReason = data.candidates[0].finishReason;
+                        }
                     }
 
                     if (token) {
@@ -464,6 +480,9 @@
             console.error('3. Require stream=false in the API request');
             throw new Error('No content received from API. This model may not support streaming or may require different parameters.');
         }
+
+        console.log('🏁 Final finish reason:', finishReason);
+        return { finishReason };
     }
 
     window.Generation = {

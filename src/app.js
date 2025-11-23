@@ -894,10 +894,16 @@ document.addEventListener('alpine:init', () => {
                 this.rewriteOutput = '';
                 this.rewriteInProgress = true;
                 const prompt = this.buildRewritePrompt();
-                await window.Generation.streamGeneration(prompt, (token) => {
+                const result = await window.Generation.streamGeneration(prompt, (token) => {
                     this.rewriteOutput += token;
                 }, this);
                 this.rewriteInProgress = false;
+
+                // Notify user if response was truncated
+                if (result?.finishReason === 'length' || result?.finishReason === 'MAX_TOKENS') {
+                    console.warn('⚠️ Rewrite hit token limit');
+                    alert('⚠️ The generation reached the token limit and may be incomplete.\n\nTip: Increase "Max Length" in AI Settings (⚙️) for longer responses.');
+                }
             } catch (e) {
                 console.error('performRewrite error', e);
                 this.rewriteInProgress = false;
