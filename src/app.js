@@ -179,6 +179,50 @@ db.version(7).stores({
     // noop: new table will be created automatically
 });
 
+// Add updatedAt timestamps for multi-tab sync (v8)
+db.version(8).stores({
+    projects: 'id, name, created, modified, updatedAt',
+    chapters: 'id, projectId, title, order, created, modified, updatedAt',
+    scenes: 'id, projectId, chapterId, title, order, created, modified, updatedAt',
+    content: 'sceneId, text, wordCount, updatedAt',
+    prompts: 'id, projectId, category, title, created, modified, updatedAt',
+    codex: 'id, projectId, title, created, modified, updatedAt',
+    compendium: 'id, [projectId+category], projectId, category, title, modified, tags, updatedAt',
+    promptHistory: 'id, projectId, sceneId, timestamp, beat, prompt',
+    workshopSessions: 'id, projectId, name, createdAt, updatedAt'
+}).upgrade(async tx => {
+    // Add updatedAt to existing records
+    const now = Date.now();
+
+    await tx.table('projects').toCollection().modify(proj => {
+        if (!proj.updatedAt) proj.updatedAt = now;
+    });
+
+    await tx.table('chapters').toCollection().modify(ch => {
+        if (!ch.updatedAt) ch.updatedAt = now;
+    });
+
+    await tx.table('scenes').toCollection().modify(sc => {
+        if (!sc.updatedAt) sc.updatedAt = now;
+    });
+
+    await tx.table('content').toCollection().modify(cont => {
+        if (!cont.updatedAt) cont.updatedAt = now;
+    });
+
+    await tx.table('prompts').toCollection().modify(pr => {
+        if (!pr.updatedAt) pr.updatedAt = now;
+    });
+
+    await tx.table('codex').toCollection().modify(cd => {
+        if (!cd.updatedAt) cd.updatedAt = now;
+    });
+
+    await tx.table('compendium').toCollection().modify(comp => {
+        if (!comp.updatedAt) comp.updatedAt = now;
+    });
+});
+
 // Expose the global Dexie instance for debugging and console usage
 try { window.db = window.db || db; } catch (e) { /* ignore in non-browser env */ }
 
@@ -588,6 +632,16 @@ document.addEventListener('alpine:init', () => {
             await this.loadAISettings();
 
             this.updateLoadingScreen(50, 'Initializing AI...', 'This may take 2-3 minutes on first run...');
+
+            // Initialize tab sync for multi-tab coordination
+            if (window.TabSync && typeof window.TabSync.init === 'function') {
+                try {
+                    window.TabSync.init(this);
+                    console.log('✅ Multi-tab sync initialized');
+                } catch (e) {
+                    console.warn('Tab sync init failed:', e);
+                }
+            }
 
             // Initialize AI via extracted module (src/ai.js)
             if (window.AI && typeof window.AI.init === 'function') {

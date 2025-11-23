@@ -10,14 +10,25 @@
         async createProject(app, projectName) {
             if (!projectName) return;
 
+            const now = Date.now();
             const project = {
-                id: Date.now().toString(),
+                id: now.toString(),
                 name: projectName,
                 created: new Date(),
-                modified: new Date()
+                modified: new Date(),
+                updatedAt: now
             };
 
             await db.projects.add(project);
+
+            // Broadcast project creation
+            if (window.TabSync) {
+                window.TabSync.broadcast(window.TabSync.MSG_TYPES.PROJECT_SAVED, {
+                    id: project.id,
+                    updatedAt: project.updatedAt
+                });
+            }
+
             app.currentProject = project;
             app.showNewProjectModal = false;
             app.newProjectName = '';
@@ -231,7 +242,21 @@
         async renameCurrentProject(app, newName) {
             if (!app.currentProject || !newName) return;
             try {
-                await db.projects.update(app.currentProject.id, { name: newName, modified: new Date() });
+                const now = Date.now();
+                await db.projects.update(app.currentProject.id, {
+                    name: newName,
+                    modified: new Date(),
+                    updatedAt: now
+                });
+
+                // Broadcast project update
+                if (window.TabSync) {
+                    window.TabSync.broadcast(window.TabSync.MSG_TYPES.PROJECT_SAVED, {
+                        id: app.currentProject.id,
+                        updatedAt: now
+                    });
+                }
+
                 await this.loadProjects(app);
                 // refresh currentProject reference
                 app.currentProject = await db.projects.get(app.currentProject.id);
@@ -270,6 +295,13 @@
 
                 // Delete project itself
                 await db.projects.delete(projectId);
+
+                // Broadcast project deletion
+                if (window.TabSync) {
+                    window.TabSync.broadcast(window.TabSync.MSG_TYPES.PROJECT_DELETED, {
+                        id: projectId
+                    });
+                }
 
                 // Reload projects list
                 await this.loadProjects(app);

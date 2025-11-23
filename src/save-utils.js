@@ -13,6 +13,42 @@
                 app.isSaving = false;
                 return false;
             }
+
+            // Check for conflicts: if scene has loadedUpdatedAt, verify it hasn't changed
+            if (scene.loadedUpdatedAt) {
+                const dbScene = await db.scenes.get(scene.id);
+                if (dbScene && dbScene.updatedAt && dbScene.updatedAt > scene.loadedUpdatedAt) {
+                    const shouldOverwrite = confirm(
+                        `Warning: This scene was modified in another tab since you loaded it.\n\n` +
+                        `Click OK to overwrite with your changes, or Cancel to reload the latest version.`
+                    );
+                    if (!shouldOverwrite) {
+                        app.isSaving = false;
+                        app.saveStatus = 'Cancelled';
+                        // Reload the scene with latest version
+                        await app.loadScene?.(scene.id);
+                        return false;
+                    }
+                }
+            }
+
+            // Check for content conflicts
+            if (scene.contentLoadedUpdatedAt) {
+                const dbContent = await db.content.get(scene.id);
+                if (dbContent && dbContent.updatedAt && dbContent.updatedAt > scene.contentLoadedUpdatedAt) {
+                    const shouldOverwrite = confirm(
+                        `Warning: This scene's content was modified in another tab since you loaded it.\n\n` +
+                        `Click OK to overwrite with your changes, or Cancel to reload the latest version.`
+                    );
+                    if (!shouldOverwrite) {
+                        app.isSaving = false;
+                        app.saveStatus = 'Cancelled';
+                        await app.loadScene?.(scene.id);
+                        return false;
+                    }
+                }
+            }
+
             // compute word count from scene content
             const contentText = (scene.content || '').trim();
             const wordCount = contentText ? contentText.split(/\s+/).filter(w => w.length > 0).length : 0;
@@ -28,14 +64,25 @@
             } catch (e) { /* ignore */ }
 
             // persist content and scene metadata using the global `db` instance
+            const now = Date.now();
             const contentRecord = {
                 sceneId: scene.id,
                 text: scene.content || '',
                 wordCount: wordCount,
-                modified: new Date()
+                modified: new Date(),
+                updatedAt: now
             };
 
             await db.content.put(contentRecord);
+
+            // Broadcast content change
+            if (window.TabSync) {
+                window.TabSync.broadcast(window.TabSync.MSG_TYPES.CONTENT_SAVED, {
+                    sceneId: scene.id,
+                    projectId: scene.projectId,
+                    updatedAt: now
+                });
+            }
 
             const scenePatch = {
                 id: scene.id,
@@ -49,6 +96,7 @@
                 pov: (app.pov !== undefined ? app.pov : (scene.pov || '')),
                 tense: (app.tense !== undefined ? app.tense : (scene.tense || '')),
                 modified: new Date(),
+                updatedAt: now,
                 wordCount
             };
 
@@ -85,6 +133,16 @@
             let mergedScene = null;
             try {
                 mergedScene = await safeMergeUpdate(scene.id, scenePatch);
+
+                // Broadcast scene change
+                if (window.TabSync && mergedScene) {
+                    window.TabSync.broadcast(window.TabSync.MSG_TYPES.SCENE_SAVED, {
+                        id: scene.id,
+                        projectId: scenePatch.projectId,
+                        chapterId: scenePatch.chapterId,
+                        updatedAt: scenePatch.updatedAt
+                    });
+                }
             } catch (e) {
                 // If safe merge fails, fallback to update/put already handled inside helper
                 try { mergedScene = await db.scenes.get(scene.id); } catch (err) { /* ignore */ }

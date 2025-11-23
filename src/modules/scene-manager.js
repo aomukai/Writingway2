@@ -35,8 +35,9 @@
 
             const targetChapter = app.currentChapter || app.chapters[0];
 
+            const now = Date.now();
             const scene = {
-                id: Date.now().toString(),
+                id: now.toString(),
                 projectId: app.currentProject.id,
                 chapterId: targetChapter.id,
                 title: sceneName,
@@ -46,15 +47,27 @@
                 pov: app.pov || '3rd person limited',
                 tense: app.tense || 'past',
                 created: new Date(),
-                modified: new Date()
+                modified: new Date(),
+                updatedAt: now
             };
 
             await db.scenes.add(scene);
             await db.content.add({
                 sceneId: scene.id,
                 text: '',
-                wordCount: 0
+                wordCount: 0,
+                updatedAt: now
             });
+
+            // Broadcast scene creation
+            if (window.TabSync) {
+                window.TabSync.broadcast(window.TabSync.MSG_TYPES.SCENE_SAVED, {
+                    id: scene.id,
+                    projectId: scene.projectId,
+                    chapterId: scene.chapterId,
+                    updatedAt: scene.updatedAt
+                });
+            }
 
             app.showNewSceneModal = false;
             app.newSceneName = '';
@@ -90,7 +103,10 @@
 
             app.currentScene = {
                 ...scene,
-                content: cleanContent
+                content: cleanContent,
+                // Track when this version was loaded for conflict detection
+                loadedUpdatedAt: scene.updatedAt || Date.now(),
+                contentLoadedUpdatedAt: content?.updatedAt || Date.now()
             };
 
             // Load scene-specific generation options into UI state
@@ -187,8 +203,19 @@
         async deleteScene(app, sceneId) {
             if (!confirm('Delete this scene? This cannot be undone.')) return;
             try {
+                const scene = await db.scenes.get(sceneId);
                 await db.scenes.delete(sceneId);
                 await db.content.delete(sceneId);
+
+                // Broadcast scene deletion
+                if (window.TabSync && scene) {
+                    window.TabSync.broadcast(window.TabSync.MSG_TYPES.SCENE_DELETED, {
+                        id: sceneId,
+                        projectId: scene.projectId,
+                        chapterId: scene.chapterId
+                    });
+                }
+
                 if (app.currentScene && app.currentScene.id === sceneId) app.currentScene = null;
                 await app.normalizeAllOrders();
             } catch (e) {

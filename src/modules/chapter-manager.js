@@ -27,10 +27,21 @@
                 title: chapterName,
                 order: app.chapters.length,
                 created: new Date(),
-                modified: new Date()
+                modified: new Date(),
+                updatedAt: Date.now()
             };
 
             await db.chapters.add(chapter);
+
+            // Broadcast chapter creation
+            if (window.TabSync) {
+                window.TabSync.broadcast(window.TabSync.MSG_TYPES.CHAPTER_SAVED, {
+                    id: chapter.id,
+                    projectId: chapter.projectId,
+                    updatedAt: chapter.updatedAt
+                });
+            }
+
             app.showNewChapterModal = false;
             app.newChapterName = '';
 
@@ -100,6 +111,15 @@
                 }
 
                 await db.chapters.delete(chapterId);
+
+                // Broadcast chapter deletion
+                if (window.TabSync) {
+                    window.TabSync.broadcast(window.TabSync.MSG_TYPES.CHAPTER_DELETED, {
+                        id: chapterId,
+                        projectId: app.currentProject.id
+                    });
+                }
+
                 if (app.currentChapter && app.currentChapter.id === chapterId) app.currentChapter = target || null;
                 await app.normalizeAllOrders();
             } catch (e) {
