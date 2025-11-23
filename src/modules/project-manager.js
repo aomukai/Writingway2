@@ -351,8 +351,9 @@
 
                         // Export as plain text/Markdown
                         // Only remove filesystem-unsafe characters, keep Unicode (Cyrillic, etc.)
+                        const safeChapterTitle = (ch.title || 'chapter').replace(/[<>:"/\\|?*\x00-\x1F]/g, '_').slice(0, 40).trim();
                         const safeTitle = (s.title || 'scene').replace(/[<>:"/\\|?*\x00-\x1F]/g, '_').slice(0, 80).trim();
-                        const filename = `scenes/${String(s.order).padStart(2, '0')}-${safeTitle || s.id}.txt`;
+                        const filename = `scenes/${String(ch.order).padStart(2, '0')}-${safeChapterTitle}/${String(s.order).padStart(2, '0')}-${safeTitle || s.id}.txt`;
                         chapterObj.scenes.push({ id: s.id, title: s.title, order: s.order, filename });
                         zip.file(filename, htmlText || '');
                     }
