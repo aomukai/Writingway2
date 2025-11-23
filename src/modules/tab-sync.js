@@ -102,7 +102,14 @@
                     if (updatedScene && updatedScene.updatedAt && updatedScene.updatedAt > loadedTimestamp) {
                         // Only show conflict dialog if this tab doesn't have focus
                         // If user is actively working here, don't interrupt them
-                        if (document.hasFocus()) {
+                        const hasFocus = document.hasFocus();
+                        console.log('🔍 Focus check:', {
+                            hasFocus,
+                            activeElement: document.activeElement?.tagName,
+                            activeElementId: document.activeElement?.id
+                        });
+
+                        if (hasFocus) {
                             console.log('⏭️ Tab has focus, silently updating loadedUpdatedAt without showing dialog');
                             // Silently acknowledge the change so we don't get repeated notifications
                             if (app.currentScene) {
