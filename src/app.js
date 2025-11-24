@@ -2067,8 +2067,12 @@ document.addEventListener('alpine:init', () => {
                 if (window.Editor) window.Editor.handleAutoReplace(this, event);
             },
 
-            // AI Generation (delegates to src/generation.js)
+            // AI Generation (delegates to src/modules/generation.js)
             async loadPromptHistory() {
+                if (window.Generation && typeof window.Generation.loadPromptHistory === 'function') {
+                    return window.Generation.loadPromptHistory(this);
+                }
+                // fallback (legacy)
                 if (!this.currentProject) {
                     this.promptHistoryList = [];
                     return;
@@ -2092,132 +2096,10 @@ document.addEventListener('alpine:init', () => {
             },
 
             async generateFromBeat() {
-                if (!this.beatInput || this.aiStatus !== 'ready') return;
-
-                this.isGenerating = true;
-
-                try {
-                    // store the beat so retry can reuse it
-                    this.lastBeat = this.beatInput;
-
-                    // Build the prompt using the generation module
-                    let prompt;
-                    if (window.Generation && typeof window.Generation.buildPrompt === 'function') {
-                        // Resolve prose prompt text (in-memory first, then DB fallback)
-                        const proseInfo = await this.resolveProsePromptInfo();
-                        const prosePromptText = proseInfo && proseInfo.text ? proseInfo.text : null;
-
-                        // Get context from context panel
-                        const panelContext = await this.buildContextFromPanel();
-
-                        // Resolve compendium entries and scene summaries from beat mentions (@/#)
-                        let beatCompEntries = [];
-                        let beatSceneSummaries = [];
-                        try { beatCompEntries = await this.resolveCompendiumEntriesFromBeat(this.beatInput || ''); } catch (e) { beatCompEntries = []; }
-                        try { beatSceneSummaries = await this.resolveSceneSummariesFromBeat(this.beatInput || ''); } catch (e) { beatSceneSummaries = []; }
-
-                        // Merge context: panel context + beat mentions
-                        // Use Map to deduplicate by ID
-                        const compMap = new Map();
-                        panelContext.compendiumEntries.forEach(e => compMap.set(e.id, e));
-                        beatCompEntries.forEach(e => compMap.set(e.id, e));
-                        const compEntries = Array.from(compMap.values());
-
-                        // Merge scene summaries (deduplicate by title)
-                        const sceneMap = new Map();
-                        panelContext.sceneSummaries.forEach(s => sceneMap.set(s.title, s));
-                        beatSceneSummaries.forEach(s => sceneMap.set(s.title, s));
-                        const sceneSummaries = Array.from(sceneMap.values());
-
-                        // DEBUG: log resolved context
-                        try { console.debug('[generate] proseInfo=', proseInfo); } catch (e) { }
-                        try { console.debug('[generate] prosePrompt raw:', JSON.stringify(prosePromptText)); } catch (e) { }
-                        try { console.debug('[generate] panel compendium:', panelContext.compendiumEntries.length); } catch (e) { }
-                        try { console.debug('[generate] panel scenes:', panelContext.sceneSummaries.length); } catch (e) { }
-                        try { console.debug('[generate] beat compendium:', beatCompEntries.length); } catch (e) { }
-                        try { console.debug('[generate] beat scenes:', beatSceneSummaries.length); } catch (e) { }
-                        try { console.debug('[generate] merged compendium:', compEntries.length); } catch (e) { }
-                        try { console.debug('[generate] merged scenes:', sceneSummaries.length); } catch (e) { }
-
-                        const genOpts = { povCharacter: this.povCharacter, pov: this.pov, tense: this.tense, prosePrompt: prosePromptText, compendiumEntries: compEntries, sceneSummaries: sceneSummaries };
-                        try { console.debug('[generate] buildPrompt opts:', { proseType: typeof genOpts.prosePrompt, len: genOpts.prosePrompt ? genOpts.prosePrompt.length : 0 }); } catch (e) { }
-                        prompt = window.Generation.buildPrompt(this.beatInput, this.currentScene?.content || '', genOpts);
-                        try { console.debug('[generate] builtPrompt preview:', String(prompt).slice(0, 600).replace(/\n/g, '\\n')); } catch (e) { }
-                    } else {
-                        throw new Error('Generation module not available');
-                    }
-
-                    // Save prompt to history
-                    try {
-                        await db.promptHistory.add({
-                            id: Date.now().toString() + '-' + Math.random().toString(36).slice(2, 9),
-                            projectId: this.currentProject?.id,
-                            sceneId: this.currentScene?.id,
-                            timestamp: new Date(),
-                            beat: this.beatInput,
-                            prompt: typeof prompt === 'object' && prompt.asString ? prompt.asString() : String(prompt)
-                        });
-                    } catch (e) {
-                        console.warn('Failed to save prompt history:', e);
-                    }
-
-                    // remember where generated text will start
-                    const prevLen = this.currentScene ? (this.currentScene.content ? this.currentScene.content.length : 0) : 0;
-                    this.lastGenStart = prevLen;
-                    this.lastGenText = '';
-                    this.showGenActions = false;
-
-                    console.log('Sending generation request to llama-server...');
-
-                    if (!(window.Generation && typeof window.Generation.streamGeneration === 'function')) {
-                        throw new Error('Generation.streamGeneration not available');
-                    }
-
-                    // Stream tokens and append into the current scene
-                    await window.Generation.streamGeneration(prompt, (token) => {
-                        this.currentScene.content += token;
-                        this.lastGenText += token;
-                    }, this);
-
-                    // Generation complete — expose accept/retry/discard actions
-                    this.showGenActions = true;
-                    this.showGeneratedHighlight = true;
-
-                    // Select the newly generated text in the textarea
-                    this.$nextTick(() => {
-                        try {
-                            const ta = document.querySelector('.editor-textarea');
-                            if (ta) {
-                                ta.focus();
-                                // set selection to the generated region
-                                const start = this.lastGenStart || 0;
-                                const end = (this.currentScene && this.currentScene.content) ? this.currentScene.content.length : start;
-                                ta.selectionStart = start;
-                                ta.selectionEnd = end;
-                                // scroll selection into view
-                                const lineHeight = parseInt(window.getComputedStyle(ta).lineHeight) || 20;
-                                ta.scrollTop = Math.max(0, Math.floor(start / 80) * lineHeight);
-                            }
-                        } catch (e) { }
-
-                        // Auto-hide highlight after 5 seconds
-                        setTimeout(() => {
-                            this.showGeneratedHighlight = false;
-                        }, 5000);
-                    });
-
-                    // Clear beat input (we keep lastBeat so retry can reuse it)
-                    this.beatInput = '';
-
-                    // Auto-save after generation
-                    await this.saveScene();
-
-                } catch (error) {
-                    console.error('Generation error:', error);
-                    alert('Failed to generate text. Make sure llama-server is running.\n\nError: ' + (error && error.message ? error.message : error));
-                } finally {
-                    this.isGenerating = false;
+                if (window.Generation && typeof window.Generation.generateFromBeat === 'function') {
+                    return window.Generation.generateFromBeat(this);
                 }
+                // fallback: do nothing
             },
 
 
