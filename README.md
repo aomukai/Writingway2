@@ -3,6 +3,9 @@
   <img src="logo.png" width="450" alt="Writingway Logo"/>
 </p>
 
+You can ask questions or just visit me on Discord at:
+https://discord.gg/HyRmNKe5QA
+
 # Writingway 2
 **AI-powered creative writing tool — simple, friendly, and built for storytellers**
 
