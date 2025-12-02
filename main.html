@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="zh-CN" dir="ltr">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Writingway 2.0</title>
+    <title x-text="(locale, t('app.title'))"></title>
     <!-- Note: This file should be named main.html and opened via start.bat -->
     <script src="https://cdn.jsdelivr.net/npm/dexie@3.2.4/dist/dexie.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -20,6 +20,7 @@
     <script defer src="src/modules/context-panel.js"></script>
     <script defer src="src/generation.js"></script>
     <script defer src="src/prompts.js"></script>
+    <script defer src="src/i18n.js"></script>
     <script defer src="src/ai.js"></script>
     <script defer src="src/save-utils.js"></script>
     <script defer src="src/modules/project-manager.js"></script>
@@ -50,9 +51,8 @@
         style="position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(135deg, #1a1f2e 0%, #2d1b3d 100%);display:flex;align-items:center;justify-content:center;z-index:99999;transition:opacity 0.5s ease-out;">
         <div style="text-align:center;max-width:500px;padding:40px;">
             <div style="font-size:48px;margin-bottom:24px;">✍️</div>
-            <h1 style="margin:0 0 16px 0;color:#4a9eff;font-size:32px;font-weight:700;">Writingway</h1>
-            <p id="loadingStatus" style="color:rgba(255,255,255,0.8);font-size:16px;margin:16px 0;min-height:24px;">
-                Starting up...</p>
+            <h1 style="margin:0 0 16px 0;color:#4a9eff;font-size:32px;font-weight:700;" x-text="(locale, t('app.title'))"></h1>
+            <p id="loadingStatus" style="color:rgba(255,255,255,0.8);font-size:16px;margin:16px 0;min-height:24px;" x-text="(locale, t('loading.starting'))"></p>
 
             <!-- Loading bar -->
             <div
@@ -63,7 +63,7 @@
             </div>
 
             <p style="color:rgba(255,255,255,0.5);font-size:13px;line-height:1.6;margin:16px 0 0 0;">
-                <span id="loadingTip">Loading your workspace...</span>
+                <span id="loadingTip" x-text="(locale, t('loading.workspace'))"></span>
             </p>
         </div>
     </div>
@@ -76,15 +76,14 @@
                 <!-- Header with Settings -->
                 <div style="position:absolute;top:20px;right:20px;">
                     <button class="btn btn-secondary" @click="showAISettings = true" style="padding:8px 16px;"
-                        title="Settings">⚙️ Settings</button>
+                        :title="(locale, t('btn.settings'))"><span>⚙️</span> <span x-text="(locale, t('btn.settings'))"></span></button>
                 </div>
 
                 <!-- Title -->
                 <div style="text-align:center;margin-bottom:40px;">
                     <div style="font-size:64px;margin-bottom:16px;">✍️</div>
-                    <h1 style="margin:0 0 8px 0;color:#4a9eff;font-size:42px;font-weight:700;">Writingway 2</h1>
-                    <p style="color:rgba(255,255,255,0.6);font-size:16px;margin:0;">Select a project to begin writing
-                    </p>
+                    <h1 style="margin:0 0 8px 0;color:#4a9eff;font-size:42px;font-weight:700;" x-text="(locale, t('app.title'))"></h1>
+                    <p style="color:rgba(255,255,255,0.6);font-size:16px;margin:0;" x-text="(locale, t('projects.selectToBegin'))"></p>
                 </div>
 
                 <!-- Project Carousel -->
@@ -93,9 +92,9 @@
                         <div
                             style="text-align:center;padding:60px 20px;background:rgba(0,0,0,0.3);border-radius:16px;border:2px dashed rgba(255,255,255,0.2);">
                             <div style="font-size:48px;margin-bottom:16px;opacity:0.5;">📚</div>
-                            <p style="color:rgba(255,255,255,0.7);font-size:18px;margin:0 0 24px 0;">No projects yet</p>
+                            <p style="color:rgba(255,255,255,0.7);font-size:18px;margin:0 0 24px 0;" x-text="(locale, t('projects.none'))"></p>
                             <button class="btn btn-primary" @click="showNewProjectModal = true"
-                                style="padding:12px 24px;font-size:16px;">➕ Create Your First Project</button>
+                                style="padding:12px 24px;font-size:16px;"><span>➕</span> <span x-text="(locale, t('projects.createFirst'))"></span></button>
                         </div>
                     </template>
 
@@ -108,12 +107,12 @@
                                         @click="currentProjectCarouselIndex = (currentProjectCarouselIndex - 1 + projects.length) % projects.length"
                                         class="btn btn-secondary"
                                         style="position:absolute;left:-60px;top:50%;transform:translateY(-50%);padding:12px 16px;font-size:20px;z-index:10;"
-                                        title="Previous project">‹</button>
+                                        :title="(locale, t('nav.prevProject'))">‹</button>
                                     <button
                                         @click="currentProjectCarouselIndex = (currentProjectCarouselIndex + 1) % projects.length"
                                         class="btn btn-secondary"
                                         style="position:absolute;right:-60px;top:50%;transform:translateY(-50%);padding:12px 16px;font-size:20px;z-index:10;"
-                                        title="Next project">›</button>
+                                        :title="(locale, t('nav.nextProject'))">›</button>
                                 </div>
                             </template>
 
@@ -130,22 +129,18 @@
                                     <div style="position:absolute;top:8px;right:8px;padding:8px;">
                                         <button @click.stop="menuOpen = !menuOpen" class="btn btn-secondary"
                                             style="padding:10px 16px;font-size:20px;min-width:48px;min-height:48px;"
-                                            title="Project options">⋮</button>
+                                            :title="(locale, t('project.options'))">⋮</button>
                                         <div x-show="menuOpen" x-cloak @click.away="menuOpen = false" x-transition
                                             class="action-menu" style="right:8px;left:auto;min-width:180px;">
-                                            <button @click.stop="openProject(project.id); menuOpen=false">📖
-                                                Open</button>
-                                            <button @click.stop="renameProject(project); menuOpen=false">✏️
-                                                Rename</button>
+                                        <button @click.stop="openProject(project.id); menuOpen=false">📖 <span x-text="(locale, t('project.card.open'))"></span></button>
+                                            <button @click.stop="renameProject(project); menuOpen=false">✏️ <span x-text="(locale, t('project.card.rename'))"></span></button>
                                             <button
-                                                @click.stop="document.getElementById('coverInput-' + project.id).click(); menuOpen=false">🖼️
-                                                Change Cover</button>
+                                                @click.stop="document.getElementById('coverInput-' + project.id).click(); menuOpen=false">🖼️ <span x-text="(locale, t('project.card.changeCover'))"></span></button>
                                             <button x-show="project.coverImage"
-                                                @click.stop="removeProjectCover(project.id); menuOpen=false">🗑️
-                                                Remove Cover</button>
+                                                @click.stop="removeProjectCover(project.id); menuOpen=false">🗑️ <span x-text="(locale, t('project.card.removeCover'))"></span></button>
                                             <div style="border-top:1px solid var(--border);margin:6px 0"></div>
                                             <button @click.stop="deleteProject(project.id); menuOpen=false"
-                                                style="color:#ff6b6b;">🗑️ Delete</button>
+                                                style="color:#ff6b6b;">🗑️ <span x-text="(locale, t('project.card.delete'))"></span></button>
                                         </div>
                                     </div>
 
@@ -165,7 +160,7 @@
                                             <template x-if="project.coverImage">
                                                 <img :src="project.coverImage"
                                                     style="max-width:240px;max-height:360px;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.4);"
-                                                    alt="Project cover">
+                                                    :alt="(locale, t('project.card.changeCover'))">
                                             </template>
                                             <template x-if="!project.coverImage">
                                                 <div style="font-size:72px;">📖</div>
@@ -175,11 +170,9 @@
                                         <h2 style="margin:0 0 16px 0;color:#fff;font-size:32px;font-weight:700;"
                                             x-text="project.name"></h2>
                                         <p style="color:rgba(255,255,255,0.6);font-size:14px;margin:0;">
-                                            <span
-                                                x-text="'Last modified: ' + new Date(project.modified).toLocaleDateString()"></span>
+                                            <span x-text="(locale, t('project.lastModified')) + ' ' + new Date(project.modified).toLocaleDateString()"></span>
                                         </p>
-                                        <p style="color:rgba(255,255,255,0.4);font-size:13px;margin:8px 0 0 0;">Click to
-                                            open</p>
+                                        <p style="color:rgba(255,255,255,0.4);font-size:13px;margin:8px 0 0 0;" x-text="(locale, t('project.clickToOpen'))"></p>
                                     </div>
                                 </div>
                             </template>
@@ -198,10 +191,9 @@
                 <!-- New Project Button -->
                 <div style="margin-top:40px;display:flex;gap:16px;align-items:center;justify-content:center;">
                     <button class="btn btn-primary" @click="showNewProjectModal = true"
-                        style="padding:12px 24px;font-size:16px;">➕ New Project</button>
+                        style="padding:12px 24px;font-size:16px;"><span>➕</span> <span x-text="(locale, t('projects.new'))"></span></button>
                     <button class="btn btn-secondary" @click="showW1ImportModal = true"
-                        style="padding:12px 24px;font-size:16px;" title="Migrate from Writingway 1">📥 Import from
-                        W1</button>
+                        style="padding:12px 24px;font-size:16px;" :title="(locale, t('projects.importW1.title'))"><span>📥</span> <span x-text="(locale, t('projects.importW1'))"></span></button>
                 </div>
             </div>
         </template>
@@ -211,39 +203,35 @@
             <div class="app-container">
                 <!-- Sidebar -->
                 <div class="sidebar">
-                    <div class="sidebar-header" style="position:relative;">
-                        <h1>Writingway</h1>
-                        <p>AI-Powered Creative Writing</p>
+                        <div class="sidebar-header" style="position:relative;">
+                        <h1 x-text="(locale, t('app.title'))"></h1>
+                        <p x-text="(locale, t('sidebar.subtitle'))"></p>
 
                         <!-- Main Menu Button -->
                         <div x-data="{ mainMenuOpen: false }" style="position:absolute;top:12px;right:12px;">
                             <button class="btn btn-secondary" @click.stop="mainMenuOpen = !mainMenuOpen"
-                                style="padding:6px 12px;font-size:18px;" title="Main Menu">☰</button>
+                                style="padding:6px 12px;font-size:18px;" :title="(locale, t('menu.main'))">☰</button>
                             <div x-show="mainMenuOpen" x-cloak @click.away="mainMenuOpen = false" x-transition
                                 class="action-menu" style="right:0;left:auto;min-width:200px;">
-                                <button @click.stop="backToProjects(); mainMenuOpen=false">◄ Back to Projects</button>
+                                <button @click.stop="backToProjects(); mainMenuOpen=false"><span>◄</span> <span x-text="(locale, t('menu.backToProjects'))"></span></button>
                                 <div style="border-top:1px solid var(--border);margin:6px 0"></div>
-                                <button @click.stop="showNewProjectModal = true; mainMenuOpen=false">➕ New
-                                    Project</button>
-                                <button
-                                    @click.stop="document.getElementById('importProjectInput').click(); mainMenuOpen=false">📥
-                                    Import Project</button>
+                                <button @click.stop="showNewProjectModal = true; mainMenuOpen=false"><span>➕</span> <span x-text="(locale, t('projects.new'))"></span></button>
+                                <button @click.stop="document.getElementById('importProjectInput').click(); mainMenuOpen=false"><span>📥</span> <span x-text="(locale, t('menu.importProject'))"></span></button>
                                 <div style="border-top:1px solid var(--border);margin:6px 0"></div>
-                                <button @click.stop="exportProject(); mainMenuOpen=false" :disabled="!currentProject">📦
-                                    Export Current Project</button>
+                                <button @click.stop="exportProject(); mainMenuOpen=false" :disabled="!currentProject"><span>📦</span> <span x-text="(locale, t('menu.exportCurrent'))"></span></button>
                                 <div style="border-top:1px solid var(--border);margin:6px 0"></div>
-                                <button @click.stop="openCompendium(); mainMenuOpen=false">📚 Compendium</button>
-                                <button @click.stop="showWorkshopChat = true; mainMenuOpen=false">💬 Workshop
-                                    Chat</button>
-                                <button @click.stop="showAISettings = true; mainMenuOpen=false">⚙️ AI Settings</button>
-                                <button @click.stop="showPromptsPanel = true; mainMenuOpen=false">📝 Manage
-                                    Prompts</button>
-                                <button @click.stop="openBackupSettings(); mainMenuOpen=false">☁️ Cloud Backup</button>
+                                <button @click.stop="openCompendium(); mainMenuOpen=false"><span>📚</span> <span x-text="(locale, t('menu.compendium'))"></span></button>
+                                <button @click.stop="showWorkshopChat = true; mainMenuOpen=false"><span>💬</span> <span x-text="(locale, t('menu.workshopChat'))"></span></button>
+                                <button @click.stop="showAISettings = true; mainMenuOpen=false"><span>⚙️</span> <span x-text="(locale, t('menu.aiSettings'))"></span></button>
+                                <button @click.stop="showPromptsPanel = true; mainMenuOpen=false"><span>📝</span> <span x-text="(locale, t('menu.managePrompts'))"></span></button>
+                                <button @click.stop="openBackupSettings(); mainMenuOpen=false"><span>☁️</span> <span x-text="(locale, t('menu.cloudBackup'))"></span></button>
+                                <button @click.stop="window.i18n.setLocale('zh-CN'); locale = 'zh-CN'; mainMenuOpen=false">🌐 中文</button>
+                                <button @click.stop="window.i18n.setLocale('en-US'); locale = 'en-US'; mainMenuOpen=false">🌐 <span x-text="(locale, t('lang.english'))"></span></button>
                                 <div style="border-top:1px solid var(--border);margin:6px 0"></div>
                                 <button @click.stop="checkForUpdates(); mainMenuOpen=false"
                                     :disabled="checkingForUpdates">
-                                    <span x-show="!checkingForUpdates">🔄 Check for Updates</span>
-                                    <span x-show="checkingForUpdates">⏳ Checking...</span>
+                                    <span x-show="!checkingForUpdates" x-text="(locale, t('menu.checkUpdates'))">🔄</span>
+                                    <span x-show="checkingForUpdates" x-text="(locale, t('menu.checking'))">⏳</span>
                                 </button>
                             </div>
                         </div>
@@ -259,8 +247,8 @@
                             style="cursor:pointer;padding:10px 16px;border-radius:8px;transition:background 0.2s;"
                             @click="showAISettings = !showAISettings"
                             @mouseenter="$el.style.background='rgba(74,158,255,0.1)'"
-                            @mouseleave="$el.style.background='transparent'" title="Click to toggle AI settings"
-                            aria-label="Toggle AI settings" role="button">
+                            @mouseleave="$el.style.background='transparent'" :title="(locale, t('menu.aiSettings'))"
+                            :aria-label="(locale, t('menu.aiSettings'))" role="button">
                             <div class="status-dot" :class="aiStatus"></div>
                             <span x-text="aiStatusText"></span>
                             <span style="margin-left:8px;opacity:0.5;font-size:12px;">▼</span>
@@ -270,9 +258,9 @@
                         <div x-show="backupEnabled" class="ai-status-item"
                             style="cursor:pointer;padding:8px 16px;border-radius:8px;transition:background 0.2s;font-size:12px;"
                             @click="openBackupSettings()" @mouseenter="$el.style.background='rgba(76,175,80,0.1)'"
-                            @mouseleave="$el.style.background='transparent'" title="Click for backup settings">
+                            @mouseleave="$el.style.background='transparent'" :title="(locale, t('menu.cloudBackup'))">
                             <span>☁️</span>
-                            <span x-text="backupStatus || 'Auto-backup active'"></span>
+                            <span x-text="backupStatus || (locale, t('backup.autoEnabled'))"></span>
                         </div>
                     </div>
 
@@ -281,7 +269,7 @@
                         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
                             <h2 style="margin:0;padding-right:8px;">
                                 <button class="project-name-button" @click.stop="openCompendium()"
-                                    title="Click to toggle Compendium" aria-controls="compendium-panel"
+                                    :title="(locale, t('menu.compendium'))" aria-controls="compendium-panel"
                                     :aria-expanded="showCodexPanel ? 'true' : 'false'"
                                     style="background:none;border:none;padding:8px 12px 8px 0;font-size:18px;font-weight:700;color:#4a9eff;cursor:pointer;border-radius:6px;transition:all 0.2s;"
                                     @mouseenter="$el.style.background='rgba(74,158,255,0.15)'"
@@ -293,16 +281,14 @@
 
                             <div style="display:flex;align-items:center;gap:6px;">
                                 <button class="menu-button" @click.stop="openMenu = !openMenu"
-                                    title="Project menu">⋯</button>
+                                    :title="(locale, t('project.options'))">⋯</button>
                                 <div x-show="openMenu" x-cloak @click.away="openMenu = false" x-transition
                                     class="action-menu">
                                     <button
-                                        @click.stop="showRenameProjectModal = true; renameProjectName = currentProject.name; openMenu=false">Rename</button>
+                                        @click.stop="showRenameProjectModal = true; renameProjectName = currentProject.name; openMenu=false" x-text="(locale, t('common.rename'))"></button>
                                     <div style="border-top:1px solid var(--border);margin:6px 0"></div>
                                     <div style="max-height:200px;overflow:auto;margin-bottom:6px;">
-                                        <strong
-                                            style="display:block;padding:6px 10px;color:var(--text-secondary);font-size:12px;">Switch
-                                            project</strong>
+                                        <strong style="display:block;padding:6px 10px;color:var(--text-secondary);font-size:12px;" x-text="(locale, t('project.switch'))"></strong>
                                         <template x-for="p in projects" :key="p.id">
                                             <button @click.stop="selectProject(p.id); openMenu=false"
                                                 style="padding-left:10px;">
@@ -311,15 +297,14 @@
                                         </template>
                                     </div>
                                     <div style="border-top:1px solid var(--border);margin:6px 0"></div>
-                                    <button @click.stop="exportProject(); openMenu=false">📦 Export Project</button>
+                                    <button @click.stop="exportProject(); openMenu=false"><span>📦</span> <span x-text="(locale, t('menu.exportCurrent'))"></span></button>
                                     <div style="margin-top:6px"></div>
-                                    <button @click.stop="showNewProjectModal = true; openMenu=false">➕ New
-                                        Project</button>
+                                    <button @click.stop="showNewProjectModal = true; openMenu=false"><span>➕</span> <span x-text="(locale, t('projects.new'))"></span></button>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="word-count" x-text="`${totalWords} words`" style="margin-top:6px;"></div>
+                        <div class="word-count" x-text="(locale, `${totalWords} ` + t('common.words'))" style="margin-top:6px;"></div>
                     </div>
 
                     <div class="scene-list">
@@ -332,8 +317,8 @@
                                         <div style="flex:1;display:flex;align-items:center;gap:8px;">
                                             <span class="summary-dot"
                                                 :class="{ 'has': chapter.summary && !chapter.summaryStale, 'stale': chapter.summaryStale, 'none': !chapter.summary }"
-                                                :title="`${chapter.title}: ${chapter.summary ? (chapter.summaryStale ? 'Summary outdated' : 'Has summary') : 'No summary yet'}`"
-                                                :aria-label="`${chapter.title}: ${chapter.summary ? (chapter.summaryStale ? 'Summary outdated' : 'Has summary') : 'No summary yet'}`"></span>
+                                                :title="`${chapter.title}: ${chapter.summary ? (chapter.summaryStale ? t('summary.outdated') : t('summary.has')) : t('summary.none')}`"
+                                                :aria-label="`${chapter.title}: ${chapter.summary ? (chapter.summaryStale ? t('summary.outdated') : t('summary.has')) : t('summary.none')}`"></span>
                                             <div style="flex:1;" x-text="chapter.title"></div>
                                             <div
                                                 style="font-size:12px;color:var(--text-secondary);display:flex;align-items:center;gap:6px;">
@@ -342,7 +327,7 @@
                                         </div>
 
                                         <div class="item-actions" style="margin-left:8px;">
-                                            <button class="menu-button" @click.stop="openMenu = !openMenu" title="More">
+                                            <button class="menu-button" @click.stop="openMenu = !openMenu" :title="(locale, t('common.more'))">
                                                 ⋯
                                             </button>
 
@@ -350,18 +335,14 @@
                                                 class="action-menu">
                                                 <button
                                                     @click.stop="chapter.expanded = !chapter.expanded; openMenu=false"
-                                                    x-text="chapter.expanded ? 'Collapse' : 'Expand'"></button>
+                                                    x-text="(locale, chapter.expanded ? t('common.collapse') : t('common.expand'))"></button>
                                                 <button
-                                                    @click.stop="openRenameChapterModal(chapter.id); openMenu=false">Rename
-                                                    chapter</button>
+                                                    @click.stop="openRenameChapterModal(chapter.id); openMenu=false" x-text="(locale, t('modal.renameChapter.title'))"></button>
                                                 <button
-                                                    @click.stop="openChapterSummary(chapter.id); openMenu=false">Summary</button>
-                                                <button @click.stop="moveChapterUp(chapter.id); openMenu=false">Move
-                                                    chapter up</button>
-                                                <button @click.stop="moveChapterDown(chapter.id); openMenu=false">Move
-                                                    chapter down</button>
-                                                <button @click.stop="deleteChapter(chapter.id); openMenu=false">Delete
-                                                    chapter</button>
+                                                    @click.stop="openChapterSummary(chapter.id); openMenu=false" x-text="(locale, t('summary.chapter'))"></button>
+                                                <button @click.stop="moveChapterUp(chapter.id); openMenu=false" x-text="(locale, t('common.moveUp'))"></button>
+                                                <button @click.stop="moveChapterDown(chapter.id); openMenu=false" x-text="(locale, t('common.moveDown'))"></button>
+                                                <button @click.stop="deleteChapter(chapter.id); openMenu=false" x-text="(locale, t('project.card.delete'))"></button>
                                             </div>
                                         </div>
                                     </div>
@@ -372,17 +353,17 @@
                                         <div class="scene-item"
                                             :class="{ 'active': currentScene && currentScene.id === scene.id }"
                                             @click="loadScene(scene.id)"
-                                            :title="`${scene.title}${scene.povCharacter ? ' (POV: ' + scene.povCharacter + ')' : ''}\n${scene.summary ? (scene.summaryStale ? 'Summary outdated' : 'Has summary') : 'No summary yet'}`"
-                                            :aria-label="`${scene.title}: ${scene.summary ? (scene.summaryStale ? 'Summary outdated' : 'Has summary') : 'No summary yet'}`"
+                                            :title="`${scene.title}${scene.povCharacter ? ' (' + t('pov.label') + ': ' + scene.povCharacter + ')' : ''}\n${scene.summary ? (scene.summaryStale ? t('summary.outdated') : t('summary.has')) : t('summary.none')}`"
+                                            :aria-label="`${scene.title}: ${scene.summary ? (scene.summaryStale ? t('summary.outdated') : t('summary.has')) : t('summary.none')}`"
                                             style="display:flex;justify-content:space-between;align-items:center;">
                                             <div style="display:flex;align-items:center;gap:8px;">
                                                 <span class="summary-dot"
                                                     :class="{ 'has': scene.summary && !scene.summaryStale, 'stale': scene.summaryStale, 'none': !scene.summary }"
-                                                    :title="`${scene.title}: ${scene.summary ? (scene.summaryStale ? 'Summary outdated' : 'Has summary') : 'No summary yet'}`"
-                                                    :aria-label="`${scene.title}: ${scene.summary ? (scene.summaryStale ? 'Summary outdated' : 'Has summary') : 'No summary yet'}`"></span>
+                                                    :title="`${scene.title}: ${scene.summary ? (scene.summaryStale ? t('summary.outdated') : t('summary.has')) : t('summary.none')}`"
+                                                    :aria-label="`${scene.title}: ${scene.summary ? (scene.summaryStale ? t('summary.outdated') : t('summary.has')) : t('summary.none')}`"></span>
                                                 <div>
                                                     <div class="scene-title" x-text="scene.title"></div>
-                                                    <div class="scene-meta" x-text="`${scene.wordCount || 0} words`">
+                                                    <div class="scene-meta" x-text="(locale, `${scene.wordCount || 0} ` + t('common.words'))">
                                                     </div>
                                                 </div>
                                             </div>
@@ -401,7 +382,7 @@
                                                 </div>
 
                                                 <button class="menu-button" @click.stop="openMenu = !openMenu"
-                                                    title="More">
+                                                    :title="(locale, t('common.more'))">
                                                     ⋯
                                                 </button>
 
@@ -409,7 +390,7 @@
                                                     x-transition class="action-menu" @click.stop x-ref="actionMenu">
                                                     <div
                                                         style="font-size:13px;color:var(--text-secondary);padding:4px 0 8px 0;border-bottom:1px solid var(--border);margin-bottom:8px;">
-                                                        Move to:
+                                                        <span x-text="(locale, t('common.moveToLabel'))"></span>
                                                     </div>
                                                     <template x-for="ch in chapters" :key="ch.id">
                                                         <button
@@ -422,17 +403,13 @@
                                                         style="border-top:1px solid var(--border);margin-top:8px;padding-top:8px;">
                                                     </div>
 
-                                                    <button @click.stop="moveSceneUp(scene.id); openMenu=false">Move
-                                                        up</button>
-                                                    <button @click.stop="moveSceneDown(scene.id); openMenu=false">Move
-                                                        down</button>
+                                                    <button @click.stop="moveSceneUp(scene.id); openMenu=false" x-text="(locale, t('common.moveUp'))"></button>
+                                                    <button @click.stop="moveSceneDown(scene.id); openMenu=false" x-text="(locale, t('common.moveDown'))"></button>
                                                     <button
-                                                        @click.stop="openRenameSceneModal(scene.id); openMenu=false">Rename
-                                                        scene</button>
+                                                        @click.stop="openRenameSceneModal(scene.id); openMenu=false" x-text="(locale, t('modal.renameScene.title'))"></button>
                                                     <button
-                                                        @click.stop="openSceneSummary(scene.id); openMenu=false">Summary</button>
-                                                    <button @click.stop="deleteScene(scene.id); openMenu=false">Delete
-                                                        scene</button>
+                                                        @click.stop="openSceneSummary(scene.id); openMenu=false" x-text="(locale, t('summary.scene'))"></button>
+                                                    <button @click.stop="deleteScene(scene.id); openMenu=false" x-text="(locale, t('project.card.delete'))"></button>
                                                 </div>
                                             </div>
                                         </div>
@@ -444,16 +421,16 @@
 
                     <div class="sidebar-actions"
                         style="display:flex;flex-direction:row;padding:10px;gap:8px;align-items:center;">
-                        <button class="add-scene-btn" @click="openNewChapterModal()" aria-label="New chapter"
-                            title="New Chapter">
+                        <button class="add-scene-btn" @click="openNewChapterModal()" :aria-label="(locale, t('modal.newChapter.title'))"
+                            :title="(locale, t('modal.newChapter.title'))">
                             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                                 <path d="M3 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"
                                     fill="currentColor" />
                             </svg>
                         </button>
 
-                        <button class="add-scene-btn" @click="openNewSceneModal()" aria-label="New scene"
-                            title="New Scene">
+                        <button class="add-scene-btn" @click="openNewSceneModal()" :aria-label="(locale, t('modal.newScene.title'))"
+                            :title="(locale, t('modal.newScene.title'))">
                             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                                 <path
                                     d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM14 3.5L18.5 8H15a1 1 0 0 1-1-1V3.5z"
@@ -475,17 +452,17 @@
                     }">
                     <div class="editor-header">
                         <div style="display:flex;justify-content:space-between;align-items:center;width:100%;">
-                            <div class="editor-title" x-text="currentScene ? currentScene.title : 'No scene selected'">
+                            <div class="editor-title" x-text="currentScene ? currentScene.title : t('tts.noSceneSelected')">
                             </div>
                             <div style="display:flex;align-items:center;gap:12px;">
                                 <button class="btn btn-secondary"
                                     @click="showEmbeddedWorkshop = !showEmbeddedWorkshop; if (showEmbeddedWorkshop && (!workshopSessions || workshopSessions.length === 0)) { workshopSessions = [window.workshopChat.createNewSession($data)]; saveWorkshopSessions(); }"
                                     :style="showEmbeddedWorkshop ? 'background: rgba(76,175,80,0.2); border-color: rgba(76,175,80,0.5);' : ''"
-                                    title="Toggle Workshop Chat panel">
+                                    :title="(locale, t('menu.workshopChat'))">
                                     💬
                                 </button>
                                 <div class="editor-stats" style="white-space:nowrap;">
-                                    <span x-text="`${currentSceneWords} words`"></span>
+                                    <span x-text="(locale, `${currentSceneWords} ` + t('common.words'))"></span>
                                     <span class="save-indicator" :class="{ 'saving': isSaving }"
                                         x-text="saveStatus"></span>
                                 </div>
@@ -496,57 +473,57 @@
                     <!-- Formatting Toolbar (compact dropdown) -->
                     <div x-show="currentScene" x-cloak x-data="{ formatMenuOpen: false }"
                         style="padding:8px 30px;background:var(--bg-secondary);border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center;">
-                        <span style="font-size:12px;color:var(--text-secondary);">Format:</span>
+                        <span style="font-size:12px;color:var(--text-secondary);" x-text="(locale, t('format.title'))"></span>
                         <button @click="formatMenuOpen = !formatMenuOpen" class="btn btn-secondary"
                             style="position:relative;">
-                            ✎ Text Formatting
+                            ✎ <span x-text="(locale, t('format.textFormatting'))"></span>
                         </button>
 
                         <!-- Preview Toggle Button -->
                         <button @click="showMarkdownPreview = !showMarkdownPreview" class="btn btn-secondary"
                             :class="{ 'btn-primary': showMarkdownPreview }"
-                            :title="showMarkdownPreview ? 'Switch to edit mode' : 'Preview formatted text'">
-                            <span x-show="!showMarkdownPreview">👁️ Preview</span>
-                            <span x-show="showMarkdownPreview">✏️ Edit</span>
+                            :title="(locale, showMarkdownPreview ? t('common.more') : t('gen.generateTextTitle'))">
+                            <span x-show="!showMarkdownPreview">👁️ <span x-text="(locale, t('editor.preview'))"></span></span>
+                            <span x-show="showMarkdownPreview">✏️ <span x-text="(locale, t('editor.edit'))"></span></span>
                         </button>
 
                         <!-- Rewrite Selection Button (only visible when text is selected) -->
                         <button x-show="showRewriteBtn && !showMarkdownPreview" @click="handleRewriteButtonClick()"
-                            class="btn btn-secondary" title="Rewrite selected text with AI">
-                            ✨ Rewrite
+                            class="btn btn-secondary" :title="(locale, t('rewrite.title'))">
+                            ✨ <span x-text="(locale, t('rewrite.title'))"></span>
                         </button>
 
                         <!-- TTS Read Aloud Button (only in preview mode) -->
                         <button x-show="showMarkdownPreview" @click="toggleTTS()" class="btn btn-secondary"
                             :class="{ 'btn-primary': isReading }"
-                            :title="isReading ? 'Stop reading' : 'Read scene aloud'">
-                            <span x-show="!isReading">🔊 Read Aloud</span>
-                            <span x-show="isReading">⏸️ Stop</span>
+                            :title="(locale, isReading ? t('tts.notAvailable') : t('tts.readingSpeed'))">
+                            <span x-show="!isReading">🔊 <span x-text="(locale, t('tts.readAloud'))"></span></span>
+                            <span x-show="isReading">⏸️ <span x-text="(locale, t('tts.stop'))"></span></span>
                         </button>
                         <div x-show="formatMenuOpen" @click.away="formatMenuOpen = false" x-cloak
                             style="position:absolute;top:45px;left:80px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:8px;box-shadow:0 4px 12px rgba(0,0,0,0.3);z-index:1000;display:grid;grid-template-columns:1fr 1fr;gap:4px;min-width:280px;">
                             <button @click="applyFormatting('bold'); formatMenuOpen=false" class="btn btn-secondary"
-                                style="justify-content:flex-start;font-weight:bold;" title="Wrap selection in **bold**">
-                                <span style="width:20px;display:inline-block;">B</span> Bold
+                                style="justify-content:flex-start;font-weight:bold;" :title="(locale, t('format.boldTip'))">
+                                <span style="width:20px;display:inline-block;">B</span> <span x-text="(locale, t('format.boldLabel'))"></span>
                             </button>
                             <button @click="applyFormatting('italic'); formatMenuOpen=false" class="btn btn-secondary"
                                 style="justify-content:flex-start;font-style:italic;"
-                                title="Wrap selection in *italic*">
-                                <span style="width:20px;display:inline-block;">I</span> Italic
+                                :title="(locale, t('format.italicTip'))">
+                                <span style="width:20px;display:inline-block;">I</span> <span x-text="(locale, t('format.italicLabel'))"></span>
                             </button>
                             <button @click="applyFormatting('strikethrough'); formatMenuOpen=false"
                                 class="btn btn-secondary"
                                 style="justify-content:flex-start;text-decoration:line-through;"
-                                title="Wrap selection in ~~strikethrough~~">
-                                <span style="width:20px;display:inline-block;">S</span> Strike
+                                :title="(locale, t('format.strikeTip'))">
+                                <span style="width:20px;display:inline-block;">S</span> <span x-text="(locale, t('format.strikeLabel'))"></span>
                             </button>
                             <button @click="applyFormatting('heading'); formatMenuOpen=false" class="btn btn-secondary"
-                                style="justify-content:flex-start;" title="Make selection a ## Heading">
-                                <span style="width:20px;display:inline-block;">H</span> Heading
+                                style="justify-content:flex-start;" :title="(locale, t('format.headingTip'))">
+                                <span style="width:20px;display:inline-block;">H</span> <span x-text="(locale, t('format.headingLabel'))"></span>
                             </button>
                             <button @click="applyFormatting('quote'); formatMenuOpen=false" class="btn btn-secondary"
-                                style="justify-content:flex-start;" title="Make selection a > quote">
-                                <span style="width:20px;display:inline-block;">"</span> Quote
+                                style="justify-content:flex-start;" :title="(locale, t('format.quoteTip'))">
+                                <span style="width:20px;display:inline-block;">"</span> <span x-text="(locale, t('format.quoteLabel'))"></span>
                             </button>
                         </div>
                     </div>
@@ -600,11 +577,11 @@
                                     <div style="position:relative;height:100%;display:flex;flex-direction:column;">
                                         <!-- Edit Mode: Textarea -->
                                         <textarea x-show="!showMarkdownPreview" class="editor-textarea"
-                                            :class="{ 'has-generated-text': showGeneratedHighlight }"
-                                            @input="onEditorChange($event); handleAutoReplace($event)"
-                                            @paste="handlePaste" x-model="currentScene.content"
-                                            style="outline:none;direction:ltr;resize:none;" dir="ltr"
-                                            placeholder="Start writing your scene here..."></textarea>
+                                                :class="{ 'has-generated-text': showGeneratedHighlight }"
+                                                @input="onEditorChange($event); handleAutoReplace($event)"
+                                                @paste="handlePaste" x-model="currentScene.content"
+                                                style="outline:none;direction:ltr;resize:none;" dir="ltr"
+                                                :placeholder="(locale, t('place.scene.writeHere'))"></textarea>
 
                                         <!-- Preview Mode: Rendered HTML -->
                                         <div x-show="showMarkdownPreview" class="editor-preview"
@@ -615,8 +592,8 @@
                                 </template> <template x-if="!currentScene">
                                     <div class="welcome-screen">
                                         <div class="welcome-content">
-                                            <h2>Ready to Write</h2>
-                                            <p>Select a scene from the sidebar or create a new one to get started.</p>
+                                            <h2 x-text="(locale, t('welcome.title'))"></h2>
+                                            <p x-text="(locale, t('welcome.message'))"></p>
                                         </div>
                                     </div>
                                 </template>
@@ -635,7 +612,7 @@
                             <!-- Workshop Header -->
                             <div class="embedded-workshop-header">
                                 <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
-                                    <span style="font-size:14px;font-weight:600;white-space:nowrap;">Workshop</span>
+                                    <span style="font-size:14px;font-weight:600;white-space:nowrap;" x-text="(locale, t('workshop.title'))"></span>
                                     <select x-model="currentWorkshopSessionIndex" class="workshop-select"
                                         style="flex:1;min-width:0;font-size:12px;">
                                         <template x-for="(session, idx) in workshopSessions" :key="session.id">
@@ -644,7 +621,7 @@
                                     </select>
                                 </div>
                                 <button class="btn btn-secondary btn-sm" @click="createWorkshopSession"
-                                    title="New Chat">+</button>
+                                    :title="(locale, t('workshop.newChatTitle'))">+</button>
                             </div>
 
                             <!-- Workshop Messages -->
@@ -673,19 +650,19 @@
                                 <textarea class="embedded-workshop-textarea workshop-textarea" x-model="workshopInput"
                                     @input="window.workshopChat.onWorkshopInput($data, $event)"
                                     @keydown="window.workshopChat.handleWorkshopKeydown($data, $event); if ($event.key === 'Enter' && !$event.shiftKey) { $event.preventDefault(); window.workshopChat.sendMessage($data, workshopInput); }"
-                                    placeholder="Type your message... Use @name for compendium entries, #scene for scenes."
+                                    :placeholder="(locale, t('place.workshop.inputAlt'))"
                                     :disabled="workshopIsGenerating"></textarea>
                                 <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
                                     <button class="btn btn-secondary btn-sm"
                                         @click="useWorkshopContextPanel = !useWorkshopContextPanel"
                                         :style="useWorkshopContextPanel ? 'background: rgba(76,175,80,0.2); border-color: rgba(76,175,80,0.5);' : ''"
-                                        title="Use context from Context Panel">
+                                        :title="(locale, t('workshop.useContextTitle'))">
                                         📚
                                     </button>
                                     <button class="btn btn-primary btn-sm"
                                         @click="window.workshopChat.sendMessage($data, workshopInput)"
                                         :disabled="!workshopInput.trim() || workshopIsGenerating" style="flex:1;">
-                                        <span x-show="!workshopIsGenerating">Send</span>
+                                        <span x-show="!workshopIsGenerating" x-text="(locale, t('workshop.send'))"></span>
                                         <span x-show="workshopIsGenerating">...</span>
                                     </button>
                                 </div>
@@ -698,11 +675,11 @@
                         @mousedown="beatSplitterDragging = true; $event.preventDefault();"></div>
                     <div class="beat-panel"
                         :style="`height: ${beatPanelHeight}px; min-height: ${beatPanelHeight}px; max-height: ${beatPanelHeight}px;`">
-                        <h3>Generate from Beat</h3>
+                        <h3 x-text="(locale, t('beat.generateFrom'))"></h3>
                         <div class="beat-input-group" style="position:relative;">
                             <textarea class="beat-input" x-model="beatInput" @input="onBeatInput($event)"
                                 @keydown="onBeatKey($event)"
-                                placeholder="Describe what happens next (e.g., 'She grabs her bag and leaves'). Use @name for compendium entries, #scene for scenes."
+                                :placeholder="(locale, t('place.scene.describeNext'))"
                                 spellcheck="true" rows="2"></textarea>
 
                             <div class="quick-search-dropdown" x-show="showQuickSearch" x-cloak
@@ -734,11 +711,11 @@
                                             <div style="display:flex;align-items:center;gap:6px;">
                                                 <span
                                                     x-text="scene.hasSummary ? (scene.summaryStale ? '⚠️' : '✅') : '❌'"
-                                                    :title="scene.hasSummary ? (scene.summaryStale ? 'Summary is outdated' : 'Summary available') : 'No summary'"></span>
+                                                    :title="scene.hasSummary ? (scene.summaryStale ? t('summary.outdated') : t('summary.has')) : t('summary.none')"></span>
                                                 <span style="font-weight:600" x-text="scene.title"></span>
                                             </div>
                                             <div style="font-size:12px;color:var(--text-secondary);"
-                                                x-text="scene.chapterName || 'Unknown Chapter'"></div>
+                                                x-text="scene.chapterName || t('chapter.unknown')"></div>
                                         </div>
                                     </template>
                                 </div>
@@ -750,43 +727,29 @@
                             <div class="beat-actions" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
                                 <div style="position:relative;">
                                     <button class="btn btn-secondary" @click="showSpecialChars = !showSpecialChars"
-                                        title="Insert special character"
+                                        :title="(locale, t('special.insert'))"
                                         :disabled="!currentScene || showMarkdownPreview"
                                         style="font-size:14px;padding:6px 12px;">
                                         ⌘
                                     </button>
                                     <div x-show="showSpecialChars" @click.outside="showSpecialChars = false" x-cloak
                                         style="position:absolute;left:0;bottom:100%;margin-bottom:4px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;padding:8px;min-width:280px;z-index:1000;box-shadow:0 4px 12px rgba(0,0,0,0.3);">
-                                        <div
-                                            style="font-size:11px;color:var(--text-secondary);margin-bottom:6px;font-weight:600;">
-                                            INSERT SPECIAL CHARACTER</div>
-                                        <button @click="insertSpecialChar('—')" class="special-char-btn">Em dash — (long
-                                            dash)</button>
-                                        <button @click="insertSpecialChar('–')" class="special-char-btn">En dash –
-                                            (short dash)</button>
-                                        <button @click="insertSpecialChar('\u00A0')"
-                                            class="special-char-btn">Non-breaking space</button>
-                                        <button @click="insertSpecialChar('«')" class="special-char-btn">French quote «
-                                            (opening)</button>
-                                        <button @click="insertSpecialChar('»')" class="special-char-btn">French quote »
-                                            (closing)</button>
-                                        <button @click="insertSpecialChar('„')" class="special-char-btn">Low-high quote
-                                            „ (opening)</button>
-                                        <button @click="insertSpecialChar('&quot;')" class="special-char-btn">Low-high
-                                            quote " (closing)</button>
-                                        <button @click="insertSpecialChar(&#39;)" class="special-char-btn">Single quote
-                                            ' (opening)</button>
-                                        <button @click="insertSpecialChar(&#39;)" class="special-char-btn">Single quote
-                                            ' (closing)</button>
-                                        <button @click="insertSpecialChar(')')" class="special-char-btn">)</button>
-                                        <button @click="insertSpecialChar('…')" class="special-char-btn">Ellipsis
-                                            …</button>
-                                        <button @click="insertSpecialChar('\u2003')" class="special-char-btn">Em space
-                                        </button>
-                                        <button @click="insertSpecialChar('\u2002')" class="special-char-btn">En space
-                                        </button>
-                                        <button @click="insertSpecialChar('\u2009')" class="special-char-btn">Thin space
-                                        </button>
+                                        <div style="font-size:11px;color:var(--text-secondary);margin-bottom:6px;font-weight:600;"
+                                            x-text="(locale, t('special.insertTitle'))"></div>
+                                        <button @click="insertSpecialChar('—')" class="special-char-btn" x-text="(locale, t('special.emDash'))"></button>
+                                        <button @click="insertSpecialChar('–')" class="special-char-btn" x-text="(locale, t('special.enDash'))"></button>
+                                        <button @click="insertSpecialChar('\u00A0')" class="special-char-btn" x-text="(locale, t('special.nbsp'))"></button>
+                                        <button @click="insertSpecialChar('«')" class="special-char-btn" x-text="(locale, t('special.frenchQuoteLeft'))"></button>
+                                        <button @click="insertSpecialChar('»')" class="special-char-btn" x-text="(locale, t('special.frenchQuoteRight'))"></button>
+                                        <button @click="insertSpecialChar('„')" class="special-char-btn" x-text="(locale, t('special.lowHighQuote'))"></button>
+                                        <button @click="insertSpecialChar('&quot;')" class="special-char-btn" x-text="(locale, t('special.lowHighDouble'))"></button>
+                                        <button @click="insertSpecialChar('\u0027')" class="special-char-btn" x-text="(locale, t('special.singleQuote'))"></button>
+                                        <button @click="insertSpecialChar('\u0027')" class="special-char-btn" x-text="(locale, t('special.singleQuote'))"></button>
+                                        <button @click="insertSpecialChar(')')" class="special-char-btn" x-text="(locale, t('special.parenRight'))"></button>
+                                        <button @click="insertSpecialChar('…')" class="special-char-btn" x-text="(locale, t('special.ellipsis'))"></button>
+                                        <button @click="insertSpecialChar('\u2003')" class="special-char-btn" x-text="(locale, t('special.emSpace'))"></button>
+                                        <button @click="insertSpecialChar('\u2002')" class="special-char-btn" x-text="(locale, t('special.enSpace'))"></button>
+                                        <button @click="insertSpecialChar('\u2009')" class="special-char-btn" x-text="(locale, t('special.thinSpace'))"></button>
                                         <div
                                             style="font-size:10px;color:var(--text-secondary);margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
                                             Tip: Type -- for em dash (—)</div>
@@ -794,45 +757,43 @@
                                 </div>
 
                                 <button class="btn btn-secondary" @click="loadPromptHistory(); showPromptHistory = true"
-                                    title="View Prompt History" aria-label="View prompt history">
+                                    :title="(locale, t('promptHistory.view'))" :aria-label="(locale, t('promptHistory.aria'))">
                                     🕐
                                 </button>
 
                                 <button class="btn btn-secondary" @click="showSceneOptions = !showSceneOptions"
-                                    title="Scene options">
+                                    :title="(locale, t('scene.options.title'))">
                                     ⚙️
                                 </button>
 
                                 <button class="btn btn-secondary" @click="showContextPanel = !showContextPanel"
-                                    title="Context Panel" aria-label="Toggle context panel">
+                                    :title="(locale, t('context.panel.title'))" :aria-label="(locale, t('context.panel.title'))">
                                     📚
                                 </button>
 
                                 <button class="btn btn-secondary" @click="previewPrompt"
-                                    :disabled="!beatInput || aiStatus !== 'ready'" title="Preview Prompt">
+                                    :disabled="!beatInput || aiStatus !== 'ready'" :title="(locale, t('promptHistory.view'))">
                                     👁️
                                 </button>
 
                                 <button class="btn btn-secondary" @click="generateFromBeat"
                                     :disabled="!beatInput || isGenerating || aiStatus !== 'ready'"
-                                    title="Generate Text">
+                                    :title="(locale, t('gen.generateTextTitle'))">
                                     ✨
                                 </button>
                             </div>
 
                             <div class="context-info">
-                                <span x-show="aiStatus === 'ready'">✓ AI ready • Will use current scene as
-                                    context</span>
-                                <span x-show="aiStatus === 'loading'">⏳ Loading model...</span>
-                                <span x-show="aiStatus === 'error'">⚠️ Model not loaded (using placeholder text for
-                                    now)</span>
+                                <span x-show="aiStatus === 'ready'" x-text="(locale, t('ai.readyInline'))"></span>
+                                <span x-show="aiStatus === 'loading'" x-text="(locale, t('ai.loadingModel'))"></span>
+                                <span x-show="aiStatus === 'error'" x-text="(locale, t('ai.modelNotLoaded'))"></span>
                             </div>
 
                             <!-- Generation actions (accept/retry/discard) -->
                             <div x-show="showGenActions" x-cloak style="display:flex;gap:8px;justify-content:flex-end;">
-                                <button class="btn btn-primary" @click="acceptGeneration">Accept</button>
-                                <button class="btn btn-secondary" @click="retryGeneration">Retry</button>
-                                <button class="btn btn-secondary" @click="discardGeneration">Discard</button>
+                                <button class="btn btn-primary" @click="acceptGeneration" x-text="(locale, t('common.accept'))"></button>
+                                <button class="btn btn-secondary" @click="retryGeneration" x-text="(locale, t('common.retry'))"></button>
+                                <button class="btn btn-secondary" @click="discardGeneration" x-text="(locale, t('common.discard'))"></button>
                             </div>
                         </div>
                     </div>
@@ -844,13 +805,13 @@
         <div x-show="showRewriteModal" x-cloak class="modal-overlay" @click.self="discardRewrite()">
             <div class="rewrite-modal" @click.stop>
                 <div class="modal-header">
-                    <h3 style="margin:0;">Rewrite Selection</h3>
-                    <button class="btn btn-secondary" @click="discardRewrite()">Close</button>
+                    <h3 style="margin:0;" x-text="(locale, t('rewrite.title'))"></h3>
+                    <button class="btn btn-secondary" @click="discardRewrite()" x-text="(locale, t('common.close'))"></button>
                 </div>
 
                 <div class="modal-body">
-                    <label style="font-size:12px;color:var(--text-secondary);">POV CHARACTER
-                        <input type="text" x-model="povCharacter" placeholder="e.g., Alice" list="character-list"
+                    <label style="font-size:12px;color:var(--text-secondary);"><span x-text="(locale, t('pov.character.label'))"></span>
+                        <input type="text" x-model="povCharacter" :placeholder="(locale, t('place.scene.pov'))" list="character-list"
                             @blur="saveScene()" @keydown.enter.prevent="saveScene()"
                             style="width:100%;margin-top:6px;padding:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
                         <datalist id="character-list">
@@ -861,43 +822,45 @@
                         </datalist>
                     </label>
 
-                    <label style="font-size:12px;color:var(--text-secondary);">POV
+                    <label style="font-size:12px;color:var(--text-secondary);">
+                        <span x-text="(locale, t('pov.label'))"></span>
                         <select x-model="pov" @change="saveScene()"
                             style="width:100%;margin-top:6px;padding:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
-                            <option>3rd person limited</option>
-                            <option>1st person</option>
-                            <option>omniscient</option>
+                            <option value="3rd person limited" x-text="(locale, t('pov.option.3rdLimited'))"></option>
+                            <option value="1st person" x-text="(locale, t('pov.option.1stPerson'))"></option>
+                            <option value="omniscient" x-text="(locale, t('pov.option.omniscient'))"></option>
                         </select>
                     </label>
 
-                    <label style="font-size:12px;color:var(--text-secondary);">TENSE
+                    <label style="font-size:12px;color:var(--text-secondary);">
+                        <span x-text="(locale, t('tense.label'))"></span>
                         <select x-model="tense" @change="saveScene()"
                             style="width:100%;margin-top:6px;padding:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
-                            <option value="past">past tense</option>
-                            <option value="present">present tense</option>
-                        </select>
+                            <option value="past" x-text="(locale, t('tense.option.past'))"></option>
+                            <option value="present" x-text="(locale, t('tense.option.present'))"></option
+                        ></select>
                     </label>
 
-                    <label style="font-size:12px;color:var(--text-secondary);">Prose Prompt
+                    <label style="font-size:12px;color:var(--text-secondary);">
+                        <span x-text="(locale, t('prose.promptLabel'))"></span>
                         <select x-model="selectedProsePromptId" @change="saveSelectedProsePrompt(selectedProsePromptId)"
                             style="width:100%;margin-top:6px;padding:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
-                            <option value="">Use current prompt (fallback)</option>
-                            <template x-for="pr in prompts.filter(p => p.category === 'prose')" :key="pr.id">
-                                <option :value="pr.id" x-text="pr.title"></option>
-                            </template>
+                            <option value="" x-text="(locale, t('prose.useCurrentPromptFallback'))"></option
+                        >
+                        <template x-for="pr in prompts.filter(p => p.category === 'prose')" :key="pr.id">
+                            <option :value="pr.id" x-text="pr.title"></option>
+                        </template>
                         </select>
                     </label>
 
                     <!-- Generation Settings -->
                     <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
-                        <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:12px;">
-                            Generation Settings
-                        </div>
+                        <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:12px;" x-text="(locale, t('gen.settings.title'))"></div>
 
                         <!-- Model Selection -->
                         <label style="font-size:12px;color:var(--text-secondary);"
-                            title="The AI model used for generation. Different models have different capabilities and costs.">
-                            MODEL
+                            :title="(locale, t('gen.model.help'))">
+                            <span x-text="(locale, t('gen.model.label'))"></span>
                             <select x-model="aiModel" @change="saveGenerationParams()"
                                 style="width:100%;margin-top:6px;padding:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
                                 <!-- API mode models -->
@@ -917,42 +880,42 @@
                                     :value="aiModel" x-text="aiModel"></option>
                                 <!-- Fallback for local mode with no models -->
                                 <option x-show="aiMode === 'local' && availableLocalModels.length === 0 && !aiModel"
-                                    value="" disabled>Local model (via llama-server)</option>
+                                    value="" disabled x-text="(locale, t('ai.localModel.placeholder'))"></option>
                             </select>
                         </label>
 
                         <!-- Temperature -->
                         <label style="font-size:12px;color:var(--text-secondary);margin-top:12px;display:block;"
-                            title="Controls randomness. Lower (0.3-0.6) = more focused and consistent. Higher (0.8-1.2) = more creative and varied.">
-                            TEMPERATURE: <span x-text="temperature.toFixed(1)"></span>
+                            :title="(locale, t('gen.temperature.help'))">
+                            <span x-text="(locale, t('gen.temperature.label'))"></span>: <span x-text="temperature.toFixed(1)"></span>
                             <input type="range" x-model.number="temperature" min="0.1" max="1.5" step="0.1"
                                 @input="saveGenerationParams()" style="width:100%;margin-top:6px;">
                             <div
                                 style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-tertiary);margin-top:2px;">
-                                <span>Focused</span>
-                                <span>Balanced</span>
-                                <span>Creative</span>
+                                <span x-text="(locale, t('gen.modes.focused'))"></span>
+                                <span x-text="(locale, t('gen.modes.balanced'))"></span>
+                                <span x-text="(locale, t('gen.modes.creative'))"></span>
                             </div>
                         </label>
 
                         <!-- Max Tokens -->
                         <label style="font-size:12px;color:var(--text-secondary);margin-top:12px;display:block;"
-                            title="Maximum length of generated text. 100-200 = short paragraph, 300-500 = multiple paragraphs, 800-1500 = longer scenes, 2000-5000 = very long, 10000+ = thinking models with reasoning.">
-                            MAX LENGTH: <span x-text="maxTokens"></span> tokens
+                            :title="(locale, t('gen.maxLength.help'))">
+                            <span x-text="(locale, t('gen.maxLength'))"></span>: <span x-text="maxTokens"></span> <span x-text="(locale, t('gen.tokens'))"></span>
                             <input type="range" x-model.number="maxTokens" min="100" max="20000" step="100"
                                 @input="saveGenerationParams()" style="width:100%;margin-top:6px;">
                             <div
                                 style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-tertiary);margin-top:2px;">
-                                <span>Short</span>
-                                <span>Medium</span>
-                                <span>Very Long</span>
+                                <span x-text="(locale, t('gen.length.short'))"></span>
+                                <span x-text="(locale, t('gen.length.medium'))"></span>
+                                <span x-text="(locale, t('gen.length.veryLong'))"></span>
                             </div>
                         </label>
 
                         <!-- Quick link to full AI Settings -->
                         <button class="btn btn-secondary" @click="showSceneOptions = false; showAISettings = true"
                             style="width:100%;margin-top:12px;font-size:11px;">
-                            ⚙️ Advanced AI Settings
+                            ⚙️ <span x-text="(locale, t('gen.advancedSettings'))"></span>
                         </button>
                     </div>
                 </div>
@@ -963,12 +926,8 @@
             var(--border);width:900px;max-width:95vw;max-height:600px;overflow-y:auto;">
             <div style="display:flex;flex-direction:column;gap:12px;">
                 <div>
-                    <div style="font-size:14px;font-weight:600;color:var(--text-primary);margin-bottom:4px;">
-                        Scene Context Settings
-                    </div>
-                    <div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;">
-                        Select what context to include in every generation prompt
-                    </div>
+                    <div style="font-size:14px;font-weight:600;color:var(--text-primary);margin-bottom:4px;" x-text="(locale, t('context.sceneSettingsTitle'))"></div>
+                    <div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;" x-text="(locale, t('context.sceneSettingsDesc'))"></div>
                 </div>
 
                 <!-- Two Column Layout -->
@@ -979,14 +938,13 @@
                         <div
                             style="background:var(--bg-secondary);padding:12px;border-radius:6px;border:1px solid var(--border);display:flex;flex-direction:column;height:100%;">
                             <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:8px;">
-                                📚 Compendium Entries
+                                📚 <span x-text="(locale, t('compendium.title'))"></span>
                             </div>
                             <div style="flex:1;overflow-y:auto;">
                                 <template x-if="allCompendiumEntries.length === 0">
                                     <div
-                                        style="font-size:12px;color:var(--text-tertiary);padding:8px;text-align:center;">
-                                        No compendium entries yet
-                                    </div>
+                                        style="font-size:12px;color:var(--text-tertiary);padding:8px;text-align:center;"
+                                        x-text="(locale, t('compendium.noEntries'))"></div>
                                 </template>
                                 <template x-for="category in compendiumCategories" :key="category">
                                     <div x-show="allCompendiumEntries.filter(e => e.category === category).length > 0"
@@ -1039,15 +997,15 @@
                                                     @click="setContextChapter(chapter.id, contextPanel.chapters[chapter.id] === 'full' ? null : 'full')"
                                                     :style="contextPanel.chapters[chapter.id] === 'full' ? 'background:var(--accent);color:white;font-weight:600;' : 'background:var(--bg-primary);color:var(--text-primary);'"
                                                     class="context-chapter-btn"
-                                                    title="Include full text of all scenes (click again to deselect)">
-                                                    📄 Full Text
+                                                    :title="(locale, t('context.includeFullAll'))">
+                                                    📄 <span x-text="(locale, t('context.fullText'))"></span>
                                                 </button>
                                                 <button
                                                     @click="setContextChapter(chapter.id, contextPanel.chapters[chapter.id] === 'summary' ? null : 'summary')"
                                                     :style="contextPanel.chapters[chapter.id] === 'summary' ? 'background:var(--accent);color:white;font-weight:600;' : 'background:var(--bg-primary);color:var(--text-primary);'"
                                                     class="context-chapter-btn"
-                                                    title="Include summaries of all scenes (click again to deselect)">
-                                                    📝 Summary
+                                                    :title="(locale, t('context.includeSummaryAll'))">
+                                                    📝 <span x-text="(locale, t('context.summary'))"></span>
                                                 </button>
                                             </div>
                                         </div>
@@ -1070,21 +1028,21 @@
                                                             @click="setContextScene(scene.id, contextPanel.scenes[scene.id] === 'full' ? null : 'full')"
                                                             :style="contextPanel.scenes[scene.id] === 'full' ? 'background:var(--accent);color:white;font-weight:600;' : 'background:var(--bg-primary);color:var(--text-primary);'"
                                                             class="context-scene-btn"
-                                                            title="Include full text (click again to deselect)">
-                                                            📄 Full
+                                                            :title="(locale, t('context.includeFull'))">
+                                                            📄 <span x-text="(locale, t('context.full'))"></span>
                                                         </button>
                                                         <button
                                                             @click="setContextScene(scene.id, contextPanel.scenes[scene.id] === 'summary' ? null : 'summary')"
                                                             :style="contextPanel.scenes[scene.id] === 'summary' ? 'background:var(--accent);color:white;font-weight:600;' : 'background:var(--bg-primary);color:var(--text-primary);'"
                                                             class="context-scene-btn"
-                                                            title="Include summary (click again to deselect)"
+                                                            :title="(locale, t('context.includeSummary'))"
                                                             :disabled="!scene.summary">
-                                                            📝 Summary
+                                                            📝 <span x-text="(locale, t('context.summary'))"></span>
                                                         </button>
                                                     </div>
                                                     <div style="font-size:10px;color:var(--text-tertiary);padding:2px 6px;"
                                                         x-show="contextPanel.chapters[chapter.id]"
-                                                        x-text="'(via chapter: ' + contextPanel.chapters[chapter.id] + ')'">
+                                                        x-text="(locale, '(' + t('context.viaChapterPrefix') + contextPanel.chapters[chapter.id] + ')')">
                                                     </div>
                                                 </div>
                                             </div>
@@ -1110,7 +1068,7 @@
                                     <button @click="toggleContextTag(tag)"
                                         :style="contextPanel.tags.includes(tag) ? 'background:var(--accent);color:white;border-color:var(--accent);font-weight:600;' : 'background:var(--bg-primary);color:var(--text-primary);border-color:var(--border);'"
                                         class="context-tag-btn"
-                                        :title="contextPanel.tags.includes(tag) ? 'Click to exclude scenes with tag: ' + tag : 'Click to include scenes with tag: ' + tag"
+                                        :title="contextPanel.tags.includes(tag) ? (t('context.tag.excludePrefix') + tag) : (t('context.tag.includePrefix') + tag)"
                                         @mouseenter="if (!contextPanel.tags.includes(tag)) $el.style.borderColor = 'var(--accent)'"
                                         @mouseleave="if (!contextPanel.tags.includes(tag)) $el.style.borderColor = 'var(--border)'"
                                         x-text="tag">
@@ -1128,35 +1086,31 @@
         <div x-show="showRewriteModal" x-cloak class="modal-overlay" @click.self="discardRewrite()">
             <div class="rewrite-modal" @click.stop>
                 <div class="modal-header">
-                    <h3 style="margin:0;">Rewrite Selection</h3>
-                    <button class="btn btn-secondary" @click="discardRewrite()">Close</button>
+                    <h3 style="margin:0;" x-text="(locale, t('rewrite.title'))"></h3>
+                    <button class="btn btn-secondary" @click="discardRewrite()" x-text="(locale, t('common.close'))"></button>
                 </div>
 
                 <div class="modal-body">
                     <div style="margin-bottom:16px;">
-                        <label
-                            style="display:block;margin-bottom:6px;font-size:13px;font-weight:600;color:var(--text-primary);">Original
-                            text</label>
+                        <label style="display:block;margin-bottom:6px;font-size:13px;font-weight:600;color:var(--text-primary);" x-text="(locale, t('rewrite.originalText'))"></label>
                         <textarea readonly :value="rewriteOriginalText"
                             style="width:100%;height:120px;padding:10px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);border-radius:6px;resize:vertical;"></textarea>
                     </div>
 
                     <div style="display:flex;gap:8px;margin-bottom:16px;">
                         <button class="btn btn-secondary" @click="buildRewritePrompt()"
-                            :disabled="rewriteInProgress">Prompt</button>
+                            :disabled="rewriteInProgress" x-text="(locale, t('summary.promptLabel'))"></button>
                         <button class="btn btn-primary" @click="performRewrite()" :disabled="rewriteInProgress">
-                            <span x-show="!rewriteInProgress">Rewrite</span>
-                            <span x-show="rewriteInProgress">Rewriting...</span>
+                            <span x-show="!rewriteInProgress" x-text="(locale, t('rewrite.action'))"></span>
+                            <span x-show="rewriteInProgress" x-text="(locale, t('rewrite.progress'))"></span>
                         </button>
                     </div>
 
                     <div x-show="showRewritePromptList" style="margin-bottom:16px;">
-                        <label
-                            style="display:block;margin-bottom:6px;font-size:13px;font-weight:600;color:var(--text-primary);">Select
-                            rewrite prompt</label>
+                        <label style="display:block;margin-bottom:6px;font-size:13px;font-weight:600;color:var(--text-primary);" x-text="(locale, t('rewrite.selectPrompt'))"></label>
                         <select x-model="selectedRewritePromptId" @change="buildRewritePrompt()"
                             style="width:100%;padding:8px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);border-radius:6px;">
-                            <option value="">Default rewrite prompt</option>
+                            <option value="" x-text="(locale, t('rewrite.defaultPrompt'))"></option>
                             <template x-for="pr in prompts.filter(p => p.category === 'rewrite')" :key="pr.id">
                                 <option :value="pr.id" x-text="pr.title"></option>
                             </template>
@@ -1164,20 +1118,18 @@
                     </div>
 
                     <div style="margin-bottom:16px;">
-                        <label
-                            style="display:block;margin-bottom:6px;font-size:13px;font-weight:600;color:var(--text-primary);">Rewritten
-                            text</label>
+                        <label style="display:block;margin-bottom:6px;font-size:13px;font-weight:600;color:var(--text-primary);" x-text="(locale, t('rewrite.rewrittenText'))"></label>
                         <textarea readonly :value="rewriteOutput"
                             style="width:100%;height:180px;padding:10px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);border-radius:6px;resize:vertical;"
-                            placeholder="Rewritten text will appear here..."></textarea>
+                            :placeholder="(locale, t('place.rewrite.output'))"></textarea>
                     </div>
 
                     <div style="display:flex;gap:8px;justify-content:flex-end;">
                         <button class="btn btn-primary" @click="acceptRewrite()"
-                            x-show="rewriteOutput && !rewriteInProgress">Accept</button>
+                            x-show="rewriteOutput && !rewriteInProgress" x-text="(locale, t('common.accept'))"></button>
                         <button class="btn btn-secondary" @click="retryRewrite()"
-                            x-show="rewriteOutput && !rewriteInProgress">Retry</button>
-                        <button class="btn btn-secondary" @click="discardRewrite()">Discard</button>
+                            x-show="rewriteOutput && !rewriteInProgress" x-text="(locale, t('common.retry'))"></button>
+                        <button class="btn btn-secondary" @click="discardRewrite()" x-text="(locale, t('common.discard'))"></button>
                     </div>
                 </div>
             </div>
@@ -1187,15 +1139,13 @@
         <template x-if="showModelLoading">
             <div class="welcome-screen">
                 <div class="welcome-content">
-                    <h2>Setting Up AI</h2>
+                    <h2 x-text="(locale, t('ai.setup.title'))"></h2>
                     <p x-text="loadingMessage"></p>
                     <div class="loading-bar">
                         <div class="loading-bar-fill" :style="`width: ${loadingProgress}%`"></div>
                     </div>
                     <p style="margin-top: 10px; font-size: 14px;" x-text="`${loadingProgress}%`"></p>
-                    <div class="note" x-show="loadingProgress < 100">
-                        This may take a minute on first run while the AI engine initializes...
-                    </div>
+                    <div class="note" x-show="loadingProgress < 100" x-text="(locale, t('loading.mayTakeLong'))"></div>
                 </div>
             </div>
         </template>
@@ -1206,15 +1156,12 @@
         <template x-if="!currentProject && !showModelLoading">
             <div class="welcome-screen">
                 <div class="welcome-content">
-                    <h2>Welcome to Writingway 2.0</h2>
-                    <p>A free, open-source creative writing tool with AI assistance. Everything runs locally on your
-                        computer.</p>
-                    <button class="btn btn-primary" @click="showNewProjectModal = true">
-                        Create Your First Project
-                    </button>
+                    <h2 x-text="(locale, t('welcome.noProject.title'))"></h2>
+                    <p x-text="(locale, t('welcome.noProject.message'))"></p>
+                    <button class="btn btn-primary" @click="showNewProjectModal = true" x-text="(locale, t('welcome.noProject.cta'))"></button>
                     <div class="note">
-                        <strong>Note:</strong> AI integration is currently being set up. The app will work without AI,
-                        and generation features will use placeholder text until the local model is fully configured.
+                        <strong x-text="(locale, t('welcome.noProject.noteTitle'))"></strong>
+                        <span x-text="(locale, t('welcome.noProject.noteMessage'))"></span>
                     </div>
                 </div>
             </div>
@@ -1224,12 +1171,12 @@
         <template x-if="showNewProjectModal">
             <div class="modal-overlay" @click.self="showNewProjectModal = false">
                 <div class="modal">
-                    <h3>New Project</h3>
-                    <input type="text" x-model="newProjectName" placeholder="Project name (e.g., 'My Novel')"
+                    <h3 x-text="(locale, t('project.new.title'))"></h3>
+                    <input type="text" x-model="newProjectName" :placeholder="(locale, t('place.project.newName'))"
                         @keydown.enter="createProject">
                     <div class="modal-buttons">
-                        <button class="btn btn-secondary" @click="showNewProjectModal = false">Cancel</button>
-                        <button class="btn btn-primary" @click="createProject">Create</button>
+                        <button class="btn btn-secondary" @click="showNewProjectModal = false" x-text="(locale, t('common.cancel'))"></button>
+                        <button class="btn btn-primary" @click="createProject" x-text="(locale, t('common.create'))"></button>
                     </div>
                 </div>
             </div>
@@ -1239,12 +1186,12 @@
         <template x-if="showRenameProjectModal">
             <div class="modal-overlay" @click.self="showRenameProjectModal = false">
                 <div class="modal">
-                    <h3>Rename Project</h3>
-                    <input type="text" x-model="renameProjectName" placeholder="Project name"
+                    <h3 x-text="(locale, t('modal.renameProject.title'))"></h3>
+                    <input type="text" x-model="renameProjectName" :placeholder="(locale, t('modal.renameProject.placeholder'))"
                         @keydown.enter="renameCurrentProject">
                     <div class="modal-buttons">
-                        <button class="btn btn-secondary" @click="showRenameProjectModal = false">Cancel</button>
-                        <button class="btn btn-primary" @click="renameCurrentProject">Rename</button>
+                        <button class="btn btn-secondary" @click="showRenameProjectModal = false" x-text="(locale, t('common.cancel'))"></button>
+                        <button class="btn btn-primary" @click="renameCurrentProject" x-text="(locale, t('common.rename'))"></button>
                     </div>
                 </div>
             </div>
@@ -1254,8 +1201,8 @@
         <template x-if="showExportModal">
             <div class="modal-overlay" @click.self="showExportModal = false">
                 <div class="modal" style="max-width:500px;">
-                    <h3>Export Project</h3>
-                    <p style="margin:0 0 20px 0;color:var(--text-secondary);font-size:14px;">Choose your export format:
+                    <h3 x-text="(locale, t('export.title'))"></h3>
+                    <p style="margin:0 0 20px 0;color:var(--text-secondary);font-size:14px;" x-text="(locale, t('export.chooseFormat'))">
                     </p>
 
                     <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px;">
@@ -1266,9 +1213,8 @@
                             <input type="radio" name="exportFormat" value="zip" x-model="exportFormat"
                                 style="margin-top:2px;">
                             <div style="flex:1;">
-                                <div style="font-weight:600;margin-bottom:4px;">📦 ZIP Archive (TXT)</div>
-                                <div style="font-size:13px;color:var(--text-secondary);">Organized folder structure with
-                                    plain text files. Best for backups and re-importing.</div>
+                                <div style="font-weight:600;margin-bottom:4px;">📦 <span x-text="(locale, t('export.format.zip'))"></span></div>
+                                <div style="font-size:13px;color:var(--text-secondary);" x-text="(locale, t('export.format.zip.description'))"></div>
                             </div>
                         </label>
 
@@ -1279,9 +1225,8 @@
                             <input type="radio" name="exportFormat" value="epub" x-model="exportFormat"
                                 style="margin-top:2px;">
                             <div style="flex:1;">
-                                <div style="font-weight:600;margin-bottom:4px;">📚 EPUB</div>
-                                <div style="font-size:13px;color:var(--text-secondary);">E-book format compatible with
-                                    most e-readers and reading apps.</div>
+                                <div style="font-weight:600;margin-bottom:4px;">📚 <span x-text="(locale, t('export.format.epub'))"></span></div>
+                                <div style="font-size:13px;color:var(--text-secondary);" x-text="(locale, t('export.format.epub.description'))"></div>
                             </div>
                         </label>
 
@@ -1292,9 +1237,8 @@
                             <input type="radio" name="exportFormat" value="html" x-model="exportFormat"
                                 style="margin-top:2px;">
                             <div style="flex:1;">
-                                <div style="font-weight:600;margin-bottom:4px;">🌐 HTML</div>
-                                <div style="font-size:13px;color:var(--text-secondary);">Single web page with styling.
-                                    Can be converted to PDF using browser print.</div>
+                                <div style="font-weight:600;margin-bottom:4px;">🌐 <span x-text="(locale, t('export.format.html'))"></span></div>
+                                <div style="font-size:13px;color:var(--text-secondary);" x-text="(locale, t('export.format.html.description'))"></div>
                             </div>
                         </label>
 
@@ -1305,16 +1249,15 @@
                             <input type="radio" name="exportFormat" value="txt" x-model="exportFormat"
                                 style="margin-top:2px;">
                             <div style="flex:1;">
-                                <div style="font-weight:600;margin-bottom:4px;">📄 Plain Text</div>
-                                <div style="font-size:13px;color:var(--text-secondary);">Single .txt file with all
-                                    content. Simple and universal.</div>
+                                <div style="font-weight:600;margin-bottom:4px;">📄 <span x-text="(locale, t('export.format.txt'))"></span></div>
+                                <div style="font-size:13px;color:var(--text-secondary);" x-text="(locale, t('export.format.txt.description'))"></div>
                             </div>
                         </label>
                     </div>
 
                     <div class="modal-buttons">
-                        <button class="btn btn-secondary" @click="showExportModal = false">Cancel</button>
-                        <button class="btn btn-primary" @click="confirmExport()">Export</button>
+                        <button class="btn btn-secondary" @click="showExportModal = false" x-text="(locale, t('common.cancel'))"></button>
+                        <button class="btn btn-primary" @click="confirmExport()" x-text="(locale, t('export.action'))"></button>
                     </div>
                 </div>
             </div>
@@ -1324,33 +1267,32 @@
         <template x-if="showW1ImportModal">
             <div class="modal-overlay" @click.self="showW1ImportModal = false">
                 <div class="modal" style="max-width:600px;">
-                    <h3>Import from Writingway 1</h3>
+                    <h3 x-text="(locale, t('projects.importW1.title'))"></h3>
                     <div
                         style="background:rgba(255,200,100,0.1);border:1px solid rgba(255,200,100,0.3);border-radius:8px;padding:16px;margin:16px 0;line-height:1.6;">
-                        <p style="margin:0 0 12px 0;font-weight:600;color:#ffcc66;">⚠️ Import Notes:</p>
-                        <p style="margin:0 0 8px 0;font-size:14px;"><strong>What will be imported:</strong></p>
+                        <p style="margin:0 0 12px 0;font-weight:600;color:#ffcc66;" x-text="(locale, t('w1.importNotes.title'))"></p>
+                        <p style="margin:0 0 8px 0;font-size:14px;"><strong x-text="(locale, t('w1.imported.title'))"></strong></p>
                         <ul style="margin:0 0 12px 0;padding-left:24px;font-size:13px;">
-                            <li>Project structure (Acts flattened to Chapters)</li>
-                            <li>Scene content (latest backup used)</li>
-                            <li>Chapter and scene summaries</li>
-                            <li>Basic compendium entries (name + content)</li>
-                            <li>Prompts</li>
+                            <li x-text="(locale, t('w1.imported.structure'))"></li>
+                            <li x-text="(locale, t('w1.imported.sceneContent'))"></li>
+                            <li x-text="(locale, t('w1.imported.summaries'))"></li>
+                            <li x-text="(locale, t('w1.imported.compendium'))"></li>
+                            <li x-text="(locale, t('w1.imported.prompts'))"></li>
                         </ul>
-                        <p style="margin:0 0 8px 0;font-size:14px;"><strong>What will NOT be imported:</strong></p>
+                        <p style="margin:0 0 8px 0;font-size:14px;"><strong x-text="(locale, t('w1.whatNotImportedTitle'))"></strong></p>
                         <ul style="margin:0 0 0 0;padding-left:24px;font-size:13px;">
-                            <li>Compendium relationships, templates, custom fields</li>
-                            <li>Compendium images (must be re-uploaded)</li>
-                            <li>Scene status markers (To Do, In Progress, etc.)</li>
-                            <li>Project cover images (must be re-uploaded)</li>
+                            <li x-text="(locale, t('w1.notImported.relationships'))"></li>
+                            <li x-text="(locale, t('w1.notImported.images'))"></li>
+                            <li x-text="(locale, t('w1.notImported.sceneMarkers'))"></li>
+                            <li x-text="(locale, t('w1.notImported.covers'))"></li>
                         </ul>
                     </div>
-                    <p style="margin:16px 0 8px 0;font-size:14px;color:rgba(255,255,255,0.8);">Select your Writingway 1
-                        project folder:</p>
+                    <p style="margin:16px 0 8px 0;font-size:14px;color:rgba(255,255,255,0.8);" x-text="(locale, t('w1.selectFolder'))"></p>
                     <input type="file" webkitdirectory directory multiple @change="importFromW1($event)"
                         style="margin:8px 0;padding:8px;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:4px;color:inherit;width:100%;">
                     <div class="modal-buttons" style="margin-top:20px;">
                         <button class="btn btn-secondary" @click="showW1ImportModal = false"
-                            :disabled="w1ImportInProgress">Cancel</button>
+                            :disabled="w1ImportInProgress" x-text="(locale, t('common.cancel'))"></button>
                     </div>
                 </div>
             </div>
@@ -1359,9 +1301,9 @@
         <!-- Scene/Chapter Summary Panel -->
         <div class="slide-panel-right summary-panel" :class="{ 'open': showSummaryPanel }" x-cloak aria-hidden="true">
             <div class="slide-panel-header">
-                <h3 style="margin:0;" x-text="summaryTargetChapterId ? 'Chapter Summary' : 'Scene Summary'"></h3>
+                <h3 style="margin:0;" x-text="summaryTargetChapterId ? t('summary.chapter') : t('summary.scene')"></h3>
                 <div>
-                    <button class="btn btn-secondary" @click="showSummaryPanel = false">Close</button>
+                    <button class="btn btn-secondary" @click="showSummaryPanel = false" x-text="(locale, t('common.close'))"></button>
                 </div>
             </div>
             <div class="slide-panel-body">
@@ -1370,16 +1312,14 @@
                         <!-- Tags input (scenes only) -->
                         <div x-show="summaryTargetSceneId" style="margin-bottom:12px;">
                             <label
-                                style="display:block;margin-bottom:6px;font-size:13px;color:var(--text-secondary);font-weight:600;">Tags
-                                (comma-separated)</label>
-                            <input type="text" x-model="sceneTags" placeholder="e.g., chase, action, romance"
+                                style="display:block;margin-bottom:6px;font-size:13px;color:var(--text-secondary);font-weight:600;" x-text="(locale, t('summary.tagsLabel'))"></label>
+                            <input type="text" x-model="sceneTags" :placeholder="(locale, t('summary.tagsPlaceholder'))"
                                 style="width:100%;padding:10px 12px;background:var(--bg-primary);border:1px solid var(--border);color:var(--text-primary);border-radius:6px;font-size:14px;" />
-                            <div style="font-size:12px;color:var(--text-tertiary);margin-top:4px;">Tags help organize
-                                and reference scenes in your context panel</div>
+                            <div style="font-size:12px;color:var(--text-tertiary);margin-top:4px;" x-text="(locale, t('summary.tagsHelp'))"></div>
                         </div>
                         <label
-                            style="display:block;margin-bottom:6px;font-size:13px;color:var(--text-secondary);font-weight:600;"
-                            x-text="summaryTargetChapterId ? 'Chapter Summary' : 'Scene Summary'"></label>
+                                style="display:block;margin-bottom:6px;font-size:13px;color:var(--text-secondary);font-weight:600;"
+                                x-text="summaryTargetChapterId ? t('summary.chapter') : t('summary.scene')"></label>
                         <textarea x-model="summaryText" rows="12"
                             style="width:100%;padding:12px;background:var(--bg-primary);border:1px solid var(--border);color:var(--text-primary);border-radius:6px;resize:vertical;"></textarea>
                     </div>
@@ -1389,15 +1329,13 @@
                         <!-- Prompt Selection Button -->
                         <div style="position:relative;">
                             <button class="btn btn-secondary" @click="showSummaryPromptList = !showSummaryPromptList"
-                                title="Choose a summary prompt">
-                                Prompt
-                            </button>
+                                :title="(locale, t('summary.choosePromptTitle'))" x-text="(locale, t('summary.promptLabel'))"></button>
                             <!-- Prompt Dropdown -->
                             <div x-show="showSummaryPromptList" @click.away="showSummaryPromptList = false" x-cloak
                                 style="position:absolute;bottom:100%;left:0;margin-bottom:8px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:6px;padding:8px;min-width:280px;max-height:300px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,0.4);z-index:1000;">
                                 <div
                                     style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;padding:4px 8px;">
-                                    Select Summary Prompt:
+                                    <span x-text="(locale, t('summary.choosePromptTitle'))"></span>
                                 </div>
                                 <!-- Default option -->
                                 <div @click="selectedSummaryPromptId = null; showSummaryPromptList = false"
@@ -1405,13 +1343,12 @@
                                     style="padding:8px 12px;cursor:pointer;border-radius:4px;margin-bottom:4px;transition:background 0.15s;"
                                     :class="!selectedSummaryPromptId ? '' : 'hover:bg-tertiary'">
                                     <div style="font-weight:600;font-size:13px;">
-                                        Default
+                                        <span x-text="(locale, t('summary.default'))"></span>
                                         <span x-show="prompts.filter(p => p.category === 'summary').length === 0"
-                                            style="font-size:11px;opacity:0.7;">(Heuristic)</span>
+                                            style="font-size:11px;opacity:0.7;" x-text="(locale, t('gen.heuristic'))"></span>
                                     </div>
                                     <div style="font-size:11px;opacity:0.8;">
-                                        <span x-show="prompts.filter(p => p.category === 'summary').length > 0">First
-                                            summary prompt or fallback</span>
+                                        <span x-show="prompts.filter(p => p.category === 'summary').length > 0" x-text="(locale, t('summary.firstOrFallback'))"></span>
                                     </div>
                                 </div>
                                 <!-- Summary category prompts -->
@@ -1430,15 +1367,15 @@
                                 <!-- No prompts message -->
                                 <div x-show="prompts.filter(p => p.category === 'summary').length === 0"
                                     style="padding:12px;text-align:center;color:var(--text-secondary);font-size:12px;">
-                                    No summary prompts yet.<br>
-                                    <span style="font-size:11px;opacity:0.7;">Add one in the Prompts panel</span>
+                                    <span x-text="(locale, t('summary.noPrompts'))"></span><br>
+                                    <span style="font-size:11px;opacity:0.7;" x-text="(locale, t('prompts.addOneHint'))"></span>
                                 </div>
                             </div>
                         </div>
                         <button class="btn btn-secondary"
-                            @click="summaryTargetChapterId ? summarizeChapter() : summarizeScene()">Summarize</button>
+                            @click="summaryTargetChapterId ? summarizeChapter() : summarizeScene()" x-text="(locale, t('summary.run'))"></button>
                         <button class="btn btn-primary"
-                            @click="summaryTargetChapterId ? saveChapterSummary() : saveSceneSummary()">Save</button>
+                            @click="summaryTargetChapterId ? saveChapterSummary() : saveSceneSummary()" x-text="(locale, t('common.save'))"></button>
                     </div>
                 </div>
             </div>
@@ -1448,67 +1385,63 @@
         <div class="slide-panel-right" :class="{ 'open': showAISettings }" x-cloak
             style="width:600px;border-left:1px solid rgba(74,158,255,0.08);box-shadow:-18px 0 40px rgba(0,0,0,0.55);">
             <div class="slide-panel-header">
-                <h3 style="margin:0;">AI Configuration</h3>
-                <button class="btn btn-secondary" @click="showAISettings = false">Close</button>
+                <h3 style="margin:0;" x-text="(locale, t('ai.configuration.title'))"></h3>
+                <button class="btn btn-secondary" @click="showAISettings = false" x-text="(locale, t('common.close'))"></button>
             </div>
             <div class="slide-panel-body" style="overflow-y:auto;">
                 <!-- Mode Selection -->
                 <div style="margin-bottom:20px;">
-                    <label style="display:block;font-weight:600;margin-bottom:8px;color:var(--text-primary);">AI
-                        Mode</label>
+                    <label style="display:block;font-weight:600;margin-bottom:8px;color:var(--text-primary);" x-text="(locale, t('ai.mode.title'))"></label>
                     <div style="display:flex;gap:12px;">
                         <button class="btn" :class="aiMode === 'api' ? 'btn-primary' : 'btn-secondary'"
                             @click="aiMode = 'api'; if (aiProvider === 'openrouter' && !aiModel) aiModel = 'google/gemini-2.0-flash-exp:free';"
                             style="flex:1;display:flex;flex-direction:column;align-items:center;padding:12px;">
                             <div style="font-size:20px;margin-bottom:4px;">☁️</div>
-                            <div style="font-weight:600;">API (Cloud)</div>
-                            <div style="font-size:11px;opacity:0.7;">No setup required</div>
+                            <div style="font-weight:600;" x-text="(locale, t('ai.mode.apiTitle'))"></div
+                            ><div style="font-size:11px;opacity:0.7;" x-text="(locale, t('ai.mode.apiSubtitle'))"></div>
                         </button>
                         <button class="btn" :class="aiMode === 'local' ? 'btn-primary' : 'btn-secondary'"
                             @click="aiMode = 'local'; if (availableLocalModels.length > 0 && !aiModel) aiModel = availableLocalModels[0]; scanLocalModels();"
                             style="flex:1;display:flex;flex-direction:column;align-items:center;padding:12px;">
                             <div style="font-size:20px;margin-bottom:4px;">💻</div>
-                            <div style="font-weight:600;">Local Model</div>
-                            <div style="font-size:11px;opacity:0.7;">Privacy & offline</div>
+                            <div style="font-weight:600;" x-text="(locale, t('ai.mode.localTitle'))"></div
+                            ><div style="font-size:11px;opacity:0.7;" x-text="(locale, t('ai.mode.localSubtitle'))"></div>
                         </button>
                     </div>
                 </div>
 
                 <!-- API Mode Settings -->
                 <div x-show="aiMode === 'api'" style="margin-bottom:20px;">
-                    <h4 style="margin:0 0 12px 0;">API Provider Settings</h4>
+                    <h4 style="margin:0 0 12px 0;" x-text="(locale, t('ai.provider.settings'))"></h4>
 
                     <div style="margin-bottom:16px;">
-                        <label
-                            style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text-primary);">Provider</label>
+                        <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text-primary);" x-text="(locale, t('ai.provider.label'))"></label>
                         <select x-model="aiProvider"
                             @change="aiModel = (providerModels[aiProvider] && providerModels[aiProvider].length > 0) ? providerModels[aiProvider].find(m => m.recommended)?.id || providerModels[aiProvider][0].id : ''; modelsFetched = false;"
                             style="width:100%;padding:8px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);border-radius:6px;">
-                            <option value="openrouter">OpenRouter (Multi-model, has free options)</option>
-                            <option value="anthropic">Anthropic (Claude)</option>
-                            <option value="openai">OpenAI (GPT)</option>
-                            <option value="google">Google AI (Gemini)</option>
-                            <option value="custom">Custom API Endpoint</option>
+                            <option value="openrouter" x-text="(locale, t('ai.provider.openrouter'))"></option>
+                            <option value="anthropic" x-text="(locale, t('ai.provider.anthropic'))"></option>
+                            <option value="openai" x-text="(locale, t('ai.provider.openai'))"></option>
+                            <option value="google" x-text="(locale, t('ai.provider.google'))"></option>
+                            <option value="custom" x-text="(locale, t('ai.provider.custom'))"></option>
                         </select>
                     </div>
 
                     <div style="margin-bottom:16px;">
-                        <label
-                            style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text-primary);">API
-                            Key</label>
-                        <input type="password" x-model="aiApiKey" placeholder="Enter your API key"
+                            <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text-primary);" x-text="(locale, t('ai.apiKey.label'))"></label>
+                        <input type="password" x-model="aiApiKey" :placeholder="(locale, t('place.ai.apiKey'))"
                             style="width:100%;padding:8px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);border-radius:6px;">
                         <p style="font-size:11px;color:var(--text-secondary);margin:4px 0 0 0;">
-                            <template x-if="aiProvider === 'openrouter'">Get a free key at <a
+                            <template x-if="aiProvider === 'openrouter'"><span x-text="(locale, t('ai.key.freePrefix'))"></span><a
                                     href="https://openrouter.ai/keys" target="_blank"
                                     style="color:var(--accent);">openrouter.ai/keys</a></template>
-                            <template x-if="aiProvider === 'anthropic'">Get your key at <a
+                            <template x-if="aiProvider === 'anthropic'"><span x-text="(locale, t('ai.key.getAtPrefix'))"></span><a
                                     href="https://console.anthropic.com/" target="_blank"
                                     style="color:var(--accent);">console.anthropic.com</a></template>
-                            <template x-if="aiProvider === 'openai'">Get your key at <a
+                            <template x-if="aiProvider === 'openai'"><span x-text="(locale, t('ai.key.getAtPrefix'))"></span><a
                                     href="https://platform.openai.com/api-keys" target="_blank"
                                     style="color:var(--accent);">platform.openai.com/api-keys</a></template>
-                            <template x-if="aiProvider === 'google'">Get your key at <a
+                            <template x-if="aiProvider === 'google'"><span x-text="(locale, t('ai.key.getAtPrefix'))"></span><a
                                     href="https://makersuite.google.com/app/apikey" target="_blank"
                                     style="color:var(--accent);">Google AI Studio</a></template>
                         </p>
@@ -1516,18 +1449,17 @@
 
                     <div style="margin-bottom:16px;">
                         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                            <label
-                                style="display:block;font-size:13px;font-weight:600;color:var(--text-primary);">Model</label>
+                            <label style="display:block;font-size:13px;font-weight:600;color:var(--text-primary);" x-text="(locale, t('gen.model.label'))"></label>
                             <button class="btn btn-secondary" @click="fetchProviderModels()"
                                 :disabled="!aiApiKey || fetchingModels" style="font-size:11px;padding:4px 8px;"
-                                title="Refresh available models from provider">
-                                <span x-show="!fetchingModels">🔄 Refresh</span>
-                                <span x-show="fetchingModels">⏳ Loading...</span>
+                                :title="(locale, t('ai.scanModels'))">
+                                <span x-show="!fetchingModels">🔄 <span x-text="(locale, t('common.refresh'))"></span></span>
+                                <span x-show="fetchingModels">⏳ <span x-text="(locale, t('common.loading'))"></span></span>
                             </button>
                         </div>
                         <select x-model="aiModel"
                             style="width:100%;padding:8px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);border-radius:6px;">
-                            <option value="" disabled>Select a model...</option>
+                            <option value="" disabled x-text="(locale, t('ai.model.selectPlaceholder'))"></option>
                             <template x-for="model in providerModels[aiProvider] || []" :key="model.id">
                                 <option :value="model.id" x-text="model.name + (model.recommended ? ' ⭐' : '')">
                                 </option>
@@ -1538,11 +1470,11 @@
                         </select>
                         <p style="font-size:11px;color:var(--text-secondary);margin:4px 0 0 0;"
                             x-show="modelsFetched && aiMode === 'api'">
-                            ✓ Model list updated from provider
+                            <span x-text="(locale, t('ai.modelListUpdated'))"></span>
                         </p>
                         <p style="font-size:11px;color:var(--text-secondary);margin:4px 0 0 0;"
                             x-show="!aiApiKey && aiMode === 'api'">
-                            ℹ️ Enter API key above to see available models
+                            <span x-text="(locale, t('ai.enterKeyToViewModels'))"></span>
                         </p>
                     </div>
 
@@ -1551,52 +1483,44 @@
                         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
                             <input type="checkbox" x-model="forceNonStreaming" @change="saveGenerationParams()"
                                 style="width:16px;height:16px;cursor:pointer;">
-                            <span style="font-size:13px;color:var(--text-primary);">
-                                Force non-streaming mode
-                            </span>
+                            <span style="font-size:13px;color:var(--text-primary);" x-text="(locale, t('ai.forceNonStreaming'))"></span>
                         </label>
                         <p style="font-size:11px;color:var(--text-secondary);margin:4px 0 0 0;padding-left:24px;">
-                            Enable this if your model doesn't support streaming or returns empty responses. Most
-                            thinking models (o1, o3, reasoning models) are auto-detected, but use this for any others
-                            that need it.
+                            <span x-text="(locale, t('ai.streaming.help'))"></span>
                         </p>
                     </div>
 
                     <div x-show="aiProvider === 'custom'" style="margin-bottom:16px;">
                         <label
                             style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text-primary);">Custom
-                            Endpoint URL</label>
+                            <span x-text="(locale, t('ai.api.endpoint'))"></span></label>
                         <input type="text" x-model="aiEndpoint"
-                            placeholder="https://api.example.com/v1/chat/completions"
+                            :placeholder="(locale, t('place.ai.apiUrl'))"
                             style="width:100%;padding:8px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);border-radius:6px;">
                     </div>
                 </div>
 
                 <!-- Local Mode Settings -->
                 <div x-show="aiMode === 'local'" style="margin-bottom:20px;">
-                    <h4 style="margin:0 0 12px 0;">Local Model Settings</h4>
+                    <h4 style="margin:0 0 12px 0;" x-text="(locale, t('ai.local.settingsTitle'))"></h4>
 
                     <div
                         style="background:rgba(74,158,255,0.05);border:1px solid rgba(74,158,255,0.2);border-radius:6px;padding:12px;margin-bottom:16px;">
-                        <p style="font-size:12px;color:var(--text-secondary);margin:0;">📁 Place your GGUF model
-                            files in the <code
-                                style="background:rgba(0,0,0,0.3);padding:2px 6px;border-radius:4px;">/models</code>
-                            folder, then click "Scan for Models" below.</p>
+                        <p style="font-size:12px;color:var(--text-secondary);margin:0;">📁 <span x-text="(locale, t('ai.gguf.place.prefix'))"></span>
+                            <code style="background:rgba(0,0,0,0.3);padding:2px 6px;border-radius:4px;">/models</code>
+                            <span x-text="(locale, t('ai.gguf.place.suffix'))"></span></p>
                     </div>
 
-                    <button class="btn btn-secondary" @click="scanLocalModels()" style="margin-bottom:16px;">🔍 Scan for
-                        Models</button>
+                    <button class="btn btn-secondary" @click="scanLocalModels()" style="margin-bottom:16px;">🔍 <span x-text="(locale, t('ai.scanModels'))"></span></button>
 
                     <div style="margin-bottom:16px;">
                         <label
-                            style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text-primary);">Local
-                            Model Status</label>
+                            style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text-primary);"><span x-text="(locale, t('ai.local.status'))"></span></label>
                         <div
                             style="padding:12px;background:rgba(76,175,80,0.1);border:1px solid rgba(76,175,80,0.3);border-radius:6px;">
                             <p style="font-size:12px;color:var(--text-secondary);margin:0;">
-                                ✓ Model loaded by llama-server (started via start.bat)<br>
-                                <span style="font-size:11px;opacity:0.8;">The actual model file is whichever .gguf file
-                                    start.bat found in your /models folder</span>
+                                <span x-text="(locale, t('ai.local.status.loaded'))"></span><br>
+                                <span style="font-size:11px;opacity:0.8;" x-text="(locale, t('ai.local.status.fileInfo'))"></span>
                             </p>
                         </div>
                     </div>
@@ -1604,62 +1528,59 @@
                     <div
                         style="margin-top:12px;padding:10px;background:rgba(33,150,243,0.1);border:1px solid rgba(33,150,243,0.3);border-radius:6px;">
                         <p style="font-size:11px;color:var(--text-secondary);margin:0;line-height:1.5;">
-                            💡 <strong>Note:</strong> To change models, close Writingway, replace the .gguf file in
-                            /models folder, and run start.bat again
+                            <span x-text="(locale, t('ai.local.changeNote'))"></span>
                         </p>
                     </div>
 
                     <div style="margin-top:16px;">
                         <label
-                            style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text-primary);">Server
-                            URL</label>
+                            style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text-primary);"><span x-text="(locale, t('ai.local.serverUrl'))"></span></label>
                         <input type="text" x-model="aiEndpoint" value="http://localhost:8080"
-                            placeholder="http://localhost:8080"
+                            :placeholder="(locale, t('place.ai.localUrl'))"
                             style="width:100%;padding:8px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);border-radius:6px;">
-                        <p style="font-size:11px;color:var(--text-secondary);margin:4px 0 0 0;">The llama-server
-                            endpoint (usually localhost:8080)</p>
+                        <p style="font-size:11px;color:var(--text-secondary);margin:4px 0 0 0;" x-text="(locale, t('ai.local.endpointTip'))"></p>
                     </div>
                 </div>
 
                 <!-- Save Button -->
                 <div style="display:flex;gap:8px;padding-top:16px;border-top:1px solid var(--border);">
-                    <button class="btn btn-primary" @click="saveAISettings()">💾 Save & Test Connection</button>
-                    <button class="btn btn-secondary" @click="showAISettings = false">Cancel</button>
+                    <button class="btn btn-primary" @click="saveAISettings()">💾 <span x-text="(locale, t('ai.saveAndTest'))"></span></button
+                    <button class="btn btn-secondary" @click="showAISettings = false" x-text="(locale, t('common.cancel'))"></button>
                 </div>
 
                 <!-- TTS Settings Section -->
                 <div style="margin-top:32px;padding-top:24px;border-top:2px solid var(--border);">
-                    <h4 style="margin:0 0 16px 0;color:var(--text-primary);">🔊 Text-to-Speech Settings</h4>
+                    <h4 style="margin:0 0 16px 0;color:var(--text-primary);">🔊 <span x-text="(locale, t('tts.title'))"></span></h4>
 
                     <div style="margin-bottom:16px;">
                         <label
                             style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text-primary);">
-                            Voice
+                            <span x-text="(locale, t('tts.voice'))"></span>
                         </label>
                         <select x-model="ttsVoiceName" @change="saveTTSSettings()"
                             style="width:100%;padding:8px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);border-radius:6px;">
-                            <option value="">Default Voice</option>
+                            <option value="" x-text="(locale, t('tts.defaultVoice'))"></option>
                             <template x-for="voice in availableTTSVoices" :key="voice.name">
                                 <option :value="voice.name" x-text="`${voice.name} (${voice.lang})`"></option>
                             </template>
                         </select>
                         <p style="font-size:11px;color:var(--text-secondary);margin:4px 0 0 0;">
-                            💡 Chrome/Edge on Windows have excellent neural voices
+                            <span x-text="(locale, t('tts.chromeTip'))"></span>
                         </p>
                     </div>
 
                     <div style="margin-bottom:16px;">
                         <label
                             style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text-primary);">
-                            Reading Speed: <span x-text="ttsSpeed.toFixed(1) + 'x'"></span>
+                            <span x-text="(locale, t('tts.readingSpeed'))"></span>: <span x-text="ttsSpeed.toFixed(1) + 'x'"></span>
                         </label>
                         <input type="range" x-model.number="ttsSpeed" @input="saveTTSSettings()" min="0.5" max="2.0"
                             step="0.1" style="width:100%;margin-top:6px;">
                         <div
                             style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-tertiary);margin-top:2px;">
-                            <span>0.5x (Slower)</span>
-                            <span>1.0x (Normal)</span>
-                            <span>2.0x (Faster)</span>
+                            <span x-text="(locale, t('tts.speed.slower'))"></span>
+                            <span x-text="(locale, t('tts.speed.normal'))"></span>
+                            <span x-text="(locale, t('tts.speed.faster'))"></span>
                         </div>
                         <p style="font-size:11px;color:var(--text-secondary);margin:4px 0 0 0;">
                             Higher speeds are useful when editing - you can catch errors faster
@@ -1669,9 +1590,7 @@
                     <div
                         style="background:rgba(74,158,255,0.05);border:1px solid rgba(74,158,255,0.2);border-radius:6px;padding:12px;">
                         <p style="font-size:12px;color:var(--text-secondary);margin:0;line-height:1.5;">
-                            💡 <strong>Editing Tip:</strong> Your eyes go "blind" to typos after reading text 2-3 times.
-                            Listening with TTS helps catch errors you'd otherwise miss. Try 1.2x-1.5x speed for
-                            efficient editing!
+                            <span x-text="(locale, t('tts.editTip'))"></span> <strong></strong> <span x-text="(locale, t('tts.editText'))"></span>!
                         </p>
                     </div>
                 </div>
@@ -1681,74 +1600,70 @@
         <!-- GitHub Backup Settings Panel -->
         <div class="slide-panel-right" :class="{ 'open': showBackupSettings }" x-cloak>
             <div class="slide-panel-header">
-                <h3 style="margin:0;">☁️ Cloud Backup</h3>
-                <button class="btn btn-secondary" @click="closeBackupSettings()">Close</button>
+                <h3 style="margin:0;">☁️ <span x-text="(locale, t('backup.title'))"></span></h3>
+                <button class="btn btn-secondary" @click="closeBackupSettings()" x-text="(locale, t('common.close'))"></button>
             </div>
             <div class="slide-panel-body" style="padding:20px;">
                 <div
                     style="background:rgba(74,158,255,0.1);border:1px solid rgba(74,158,255,0.3);border-radius:8px;padding:16px;margin-bottom:24px;">
-                    <h4 style="margin:0 0 12px 0;color:var(--text-primary);">Setup Instructions</h4>
+                    <h4 style="margin:0 0 12px 0;color:var(--text-primary);" x-text="(locale, t('backup.instructions.title'))"></h4>
                     <ol style="margin:0;padding-left:20px;line-height:1.8;font-size:14px;">
-                        <li>Go to <a href="https://github.com/settings/tokens" target="_blank"
-                                style="color:#4a9eff;">GitHub
-                                Settings → Developer settings → Personal access tokens</a>
+                        <li><span x-text="(locale, t('backup.instructions.goTo'))"></span> <a href="https://github.com/settings/tokens" target="_blank"
+                                style="color:#4a9eff;" x-text="(locale, t('backup.instructions.githubLinkText'))"></a>
                         </li>
-                        <li>Click "Generate new token (classic)"</li>
-                        <li>Give it a name (e.g., "Writingway Backup")</li>
-                        <li>Expiration: Select <strong>"No expiration"</strong> for convenience</li>
-                        <li>Select the <strong>gist</strong> permission (only this one)</li>
-                        <li>Click "Generate token" and copy the token</li>
-                        <li>Paste it below</li>
+                        <li x-text="(locale, t('backup.instructions.generateClassic'))"></li>
+                        <li x-text="(locale, t('backup.instructions.giveName'))"></li>
+                        <li><span x-text="(locale, t('backup.instructions.expiration'))"></span> <strong x-text="(locale, t('backup.instructions.noExpiration'))"></strong></li>
+                        <li><span x-text="(locale, t('backup.instructions.selectPermission'))"></span> <strong>gist</strong> <span x-text="(locale, t('backup.instructions.onlyThis'))"></span></li>
+                        <li x-text="(locale, t('backup.instructions.generateAndCopy'))"></li>
+                        <li x-text="(locale, t('backup.instructions.pasteBelow'))"></li>
                     </ol>
                 </div>
 
                 <div style="margin-bottom:20px;">
-                    <label style="display:block;font-weight:600;margin-bottom:8px;">GitHub Token</label>
-                    <input type="password" x-model="githubToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                    <label style="display:block;font-weight:600;margin-bottom:8px;" x-text="(locale, t('backup.github.token'))"></label>
+                    <input type="password" x-model="githubToken" :placeholder="(locale, t('place.github.token'))"
                         style="width:100%;padding:10px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:monospace;font-size:13px;">
                     <p style="font-size:12px;color:var(--text-secondary);margin-top:8px;">
-                        <span x-show="githubUsername" style="color:#4caf50;">✓ Connected as: <strong
-                                x-text="githubUsername"></strong></span>
+                        <span x-show="githubUsername" style="color:#4caf50;">✓ <span x-text="(locale, t('backup.connectedAs'))"></span> <strong x-text="githubUsername"></strong></span>
                     </p>
                 </div>
 
                 <div style="margin-bottom:20px;">
                     <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
                         <input type="checkbox" x-model="backupEnabled" style="width:18px;height:18px;">
-                        <span style="font-weight:600;">Enable automatic backup (every 5 minutes)</span>
+                        <span style="font-weight:600;" x-text="(locale, t('backup.enableAuto'))"></span>
                     </label>
                 </div>
 
                 <div style="display:flex;gap:12px;margin-bottom:20px;">
-                    <button class="btn btn-primary" @click="saveBackupSettings()" style="flex:1;">
-                        Save Settings
+                    <button class="btn btn-primary" @click="saveBackupSettings()" style="flex:1;" x-text="(locale, t('common.saveSettings'))">
                     </button>
-                    <button class="btn btn-secondary" @click="backupNow()" style="flex:1;">
-                        Backup Now
-                    </button>
+                    <button class="btn btn-secondary" @click="backupNow()" style="flex:1;" x-text="(locale, t('backup.now'))"></button>
                 </div>
 
                 <div x-show="backupStatus"
                     style="padding:12px;background:rgba(74,158,255,0.1);border:1px solid rgba(74,158,255,0.3);border-radius:6px;margin-bottom:20px;">
                     <p style="margin:0;font-size:14px;" x-text="backupStatus"></p>
                     <p x-show="lastBackupTime" style="margin:8px 0 0 0;font-size:12px;color:var(--text-secondary);">
-                        Last backup: <span
-                            x-text="lastBackupTime ? new Date(lastBackupTime).toLocaleString() : 'Never'"></span>
+                        <span x-text="(locale, t('backup.lastBackup'))"></span> <span
+                            x-text="lastBackupTime ? new Date(lastBackupTime).toLocaleString() : t('backup.never')"></span>
                     </p>
                 </div>
 
                 <div style="border-top:1px solid var(--border);padding-top:20px;">
                     <button class="btn btn-secondary" @click="openRestoreModal()"
                         :disabled="!githubToken || !currentProjectGistId" style="width:100%;">
-                        📥 Restore from Backup
+                        📥 <span x-text="(locale, t('backup.restoreFromButton'))"></span>
                     </button>
                 </div>
 
                 <div
                     style="margin-top:20px;padding:16px;background:rgba(255,193,7,0.1);border:1px solid rgba(255,193,7,0.3);border-radius:8px;">
                     <p style="margin:0;font-size:13px;line-height:1.6;">
-                        <strong>Note:</strong> Each project is backed up to its own private GitHub Gist.
-                        Backups include all chapters, scenes, content, compendium entries, and prompts.
+                        <strong x-text="(locale, t('backup.note.title'))"></strong>
+                        <span x-text="(locale, t('backup.note.gist'))"></span>
+                        <span x-text="(locale, t('backup.note.includes'))"></span>
                     </p>
                 </div>
             </div>
@@ -1759,17 +1674,15 @@
             style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:10000;">
             <div class="modal-content"
                 style="background:var(--bg-secondary);padding:24px;border-radius:12px;max-width:700px;width:90%;max-height:80vh;overflow-y:auto;">
-                <h3 style="margin:0 0 20px 0;">Restore from Backup</h3>
+                <h3 style="margin:0 0 20px 0;" x-text="(locale, t('backup.modal.title'))"></h3>
 
                 <div x-show="backupList.length === 0"
                     style="text-align:center;padding:40px;color:var(--text-secondary);">
-                    <p>Loading backups...</p>
+                    <p x-text="(locale, t('backup.loading'))"></p>
                 </div>
 
                 <div x-show="backupList.length > 0">
-                    <p style="color:var(--text-secondary);font-size:14px;margin-bottom:16px;">
-                        Select a backup version to restore. This will replace your current project data.
-                    </p>
+                    <p style="color:var(--text-secondary);font-size:14px;margin-bottom:16px;" x-text="(locale, t('backup.selectVersion'))"></p>
                     <div style="display:flex;flex-direction:column;gap:12px;">
                         <template x-for="backup in backupList" :key="backup.version">
                             <div
@@ -1780,13 +1693,11 @@
                                         <div style="font-weight:600;color:var(--text-primary);"
                                             x-text="new Date(backup.timestamp).toLocaleString()"></div>
                                         <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">
-                                            Version: <span x-text="backup.version.substring(0, 7)"></span>
+                                            <span x-text="(locale, t('backup.versionLabel'))"></span> <span x-text="backup.version.substring(0, 7)"></span>
                                         </div>
                                     </div>
                                     <button class="btn btn-primary" @click="restoreBackup(backup.url)"
-                                        style="padding:8px 16px;font-size:13px;">
-                                        Restore
-                                    </button>
+                                        style="padding:8px 16px;font-size:13px;" x-text="(locale, t('backup.restoreAction'))"></button>
                                 </div>
                             </div>
                         </template>
@@ -1794,7 +1705,7 @@
                 </div>
 
                 <div style="margin-top:24px;display:flex;justify-content:flex-end;">
-                    <button class="btn btn-secondary" @click="closeRestoreModal()">Cancel</button>
+                    <button class="btn btn-secondary" @click="closeRestoreModal()" x-text="(locale, t('common.cancel'))"></button>
                 </div>
             </div>
         </div>
@@ -1802,16 +1713,16 @@
         <!-- Prompts Slide Panel -->
         <div class="slide-panel-right prompts-panel" :class="{ 'open': showPromptsPanel }" x-cloak aria-hidden="true">
             <div class="slide-panel-header">
-                <h3 style="margin:0;">Prompts</h3>
+                <h3 style="margin:0;" x-text="(locale, t('prompts.title'))"></h3>
                 <div>
-                    <button class="btn btn-secondary" @click="showPromptsPanel = false">Close</button>
+                    <button class="btn btn-secondary" @click="showPromptsPanel = false" x-text="(locale, t('common.close'))"></button>
                 </div>
             </div>
             <div class="slide-panel-body">
                 <div style="display:flex;gap:12px;height:100%;">
                     <div style="width:40%;overflow:auto;">
                         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                            <strong style="color:var(--text-primary);">Categories</strong>
+                            <strong style="color:var(--text-primary);" x-text="(locale, t('compendium.categories'))"></strong>
                         </div>
 
                         <template x-for="cat in promptCategories" :key="cat">
@@ -1845,17 +1756,16 @@
                                                 <div class="item-actions" style="margin-left:8px;"
                                                     x-data="{ openMenu:false }">
                                                     <button class="menu-button" @click.stop="openMenu = !openMenu"
-                                                        title="More">⋯</button>
+                                                        :title="(locale, t('common.more'))">⋯</button>
                                                     <div x-show="openMenu" x-cloak @click.away="openMenu = false"
                                                         x-transition class="action-menu">
                                                         <button @click.stop="movePromptUp(pr.id); openMenu=false">Move
                                                             up</button>
-                                                        <button @click.stop="movePromptDown(pr.id); openMenu=false">Move
-                                                            down</button>
+                                                        <button @click.stop="movePromptDown(pr.id); openMenu=false" x-text="(locale, t('common.moveDown'))"></button>
                                                         <button
-                                                            @click.stop="renamePrompt(pr.id); openMenu=false">Rename</button>
+                                                            @click.stop="renamePrompt(pr.id); openMenu=false" x-text="(locale, t('common.rename'))"></button>
                                                         <button
-                                                            @click.stop="deletePrompt(pr.id); openMenu=false">Delete</button>
+                                                            @click.stop="deletePrompt(pr.id); openMenu=false" x-text="(locale, t('common.delete'))"></button>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1874,8 +1784,7 @@
                                 <input type="text" x-model="currentPrompt.title"
                                     style="width:100%;padding:8px;border:1px solid var(--border);background:var(--bg-primary);color:var(--text-primary);border-radius:6px;margin-bottom:6px;">
                                 <div style="margin-bottom:6px;">
-                                    <label
-                                        style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Category</label>
+                                    <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;" x-text="(locale, t('prompts.categoryLabel'))"></label>
                                     <select x-model="currentPrompt.category"
                                         style="width:100%;padding:6px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);border-radius:6px;">
                                         <template x-for="cat in promptCategories" :key="cat">
@@ -1891,9 +1800,9 @@
                                 style="width:100%;height:100%;padding:8px;border:1px solid var(--border);background:var(--bg-primary);color:var(--text-primary);border-radius:6px;"></textarea>
                         </div>
                         <div style="flex:0 0 auto;display:flex;gap:8px;margin-top:8px;">
-                            <button class="btn btn-primary" @click="savePrompt" :disabled="!currentPrompt">Save</button>
+                            <button class="btn btn-primary" @click="savePrompt" :disabled="!currentPrompt" x-text="(locale, t('common.save'))"></button>
                             <button class="btn btn-secondary" @click="deletePrompt(currentPrompt.id)"
-                                x-show="currentPrompt">Delete</button>
+                                x-show="currentPrompt" x-text="(locale, t('common.delete'))"></button>
                         </div>
                     </div>
                 </div>
@@ -1904,16 +1813,16 @@
         <div id="compendium-panel" class="slide-panel-right compendium-panel" :class="{ 'open': showCodexPanel }"
             x-cloak :aria-hidden="!showCodexPanel">
             <div class="slide-panel-header">
-                <h3 style="margin:0;">Compendium</h3>
+                <h3 style="margin:0;" x-text="(locale, t('compendium.title'))"></h3>
                 <div>
-                    <button class="btn btn-secondary" @click="showCodexPanel = false">Close</button>
+                    <button class="btn btn-secondary" @click="showCodexPanel = false" x-text="(locale, t('common.close'))"></button>
                 </div>
             </div>
             <div class="slide-panel-body">
                 <div style="display:flex;gap:12px;height:100%;">
                     <div style="width:40%;overflow:auto;">
                         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                            <strong style="color:var(--text-primary);">Categories</strong>
+                            <strong style="color:var(--text-primary);" x-text="(locale, t('prompts.categoriesTitle'))"></strong>
                         </div>
 
                         <template x-for="cat in compendiumCategories" :key="cat">
@@ -1930,7 +1839,7 @@
                                             x-text="(compendiumCounts[cat] || 0)"></div>
                                         <button class="btn btn-secondary" style="padding:2px 8px;font-size:14px;"
                                             @click.stop="createCompendiumEntry(cat)"
-                                            :title="`New ${cat} entry`">+</button>
+                                            :title="(locale, t('compendium.newEntry'))">+</button>
                                     </div>
                                 </div>
                                 <div x-show="currentCompCategory === cat" x-cloak style="margin-top:6px;">
@@ -1949,17 +1858,16 @@
                                                 <div class="item-actions" style="margin-left:8px;"
                                                     x-data="{ openMenu:false }">
                                                     <button class="menu-button" @click.stop="openMenu = !openMenu"
-                                                        title="More">⋯</button>
+                                                        :title="(locale, t('common.more'))">⋯</button>
                                                     <div x-show="openMenu" x-cloak @click.away="openMenu = false"
                                                         x-transition class="action-menu">
                                                         <div class="menu-row">
                                                             <label
                                                                 style="font-size:12px;color:var(--text-secondary);flex:1;display:flex;gap:6px;align-items:center;">
-                                                                Move to
+                                                                <span x-text="(locale, t('common.moveTo'))"></span>
                                                                 <select class="move-select"
                                                                     @change.stop="moveCompendiumEntryToCategory(e.id, $event.target.value); openMenu=false;">
-                                                                    <option value="" disabled selected>Choose category
-                                                                    </option>
+                                                                    <option value="" disabled selected x-text="(locale, t('common.chooseCategory'))"></option>
                                                                     <template x-for="cat in compendiumCategories"
                                                                         :key="cat">
                                                                         <option :value="cat"
@@ -1970,14 +1878,11 @@
                                                             </label>
                                                         </div>
                                                         <button
-                                                            @click.stop="moveCompendiumEntryUp(e.id); openMenu=false">Move
-                                                            up</button>
+                                                            @click.stop="moveCompendiumEntryUp(e.id); openMenu=false" x-text="(locale, t('common.moveUp'))"></button>
                                                         <button
-                                                            @click.stop="moveCompendiumEntryDown(e.id); openMenu=false">Move
-                                                            down</button>
+                                                            @click.stop="moveCompendiumEntryDown(e.id); openMenu=false" x-text="(locale, t('common.moveDown'))"></button>
                                                         <button
-                                                            @click.stop="deleteCompendiumEntry(e.id); openMenu=false">Delete
-                                                            entry</button>
+                                                            @click.stop="deleteCompendiumEntry(e.id); openMenu=false" x-text="(locale, t('common.deleteEntry'))"></button>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1991,11 +1896,11 @@
                     <div style="flex:1;display:flex;flex-direction:column;">
                         <div style="flex:0 0 auto;margin-bottom:6px;">
                             <template x-if="!currentCompEntry">
-                                <div style="color:var(--text-secondary);">Select an entry or create a new one.</div>
+                                <div style="color:var(--text-secondary);" x-text="(locale, t('compendium.selectOrCreate'))"></div>
                             </template>
                             <template x-if="currentCompEntry">
                                 <div>
-                                    <input type="text" x-model="currentCompEntry.title" placeholder="Entry title"
+                                    <input type="text" x-model="currentCompEntry.title" :placeholder="(locale, t('compendium.entryTitle'))"
                                         style="width:100%;padding:8px;border:1px solid var(--border);background:var(--bg-primary);color:var(--text-primary);border-radius:6px;margin-bottom:6px;">
                                 </div>
                             </template>
@@ -2012,7 +1917,7 @@
                                                 @click.stop="confirmRemoveCompImage()">
                                         </template>
                                         <template x-if="!currentCompEntry.imageUrl">
-                                            <div class="comp-image-placeholder">Drop an image here</div>
+                                            <div class="comp-image-placeholder" x-text="(locale, t('compendium.dropImage'))"></div>
                                         </template>
                                         <input x-ref="compImageInput" type="file" accept="image/*"
                                             @change="setCompImageFromFile($event)" style="display:none">
@@ -2020,7 +1925,7 @@
 
                                     <!-- Body below the image -->
                                     <textarea x-model="currentCompEntry.body"
-                                        placeholder="Write compendium entry body here" class="comp-editor-body"
+                                        :placeholder="(locale, t('compendium.bodyPlaceholder'))" class="comp-editor-body"
                                         style="margin-top:12px;"></textarea>
 
                                     <!-- Tags and image remove button -->
@@ -2030,11 +1935,11 @@
                                             <div class="tag-list">
                                                 <template x-for="(t,ti) in (currentCompEntry.tags || [])" :key="ti">
                                                     <span class="tag-chip" @click.stop="removeCompTag(ti)"
-                                                        title="Remove tag" x-text="t"></span>
+                                                        :title="(locale, t('compendium.removeTag'))" x-text="t"></span>
                                                 </template>
                                             </div>
                                             <input class="tag-input" x-model="newCompTag"
-                                                placeholder="Add tag and press Enter"
+                                                :placeholder="(locale, t('compendium.addTagPlaceholder'))"
                                                 @keydown.enter.prevent="addCompTag()">
                                         </div>
 
@@ -2048,22 +1953,19 @@
                                         style="margin-top:12px;padding:12px;background:rgba(74,158,255,0.05);border:1px solid rgba(74,158,255,0.2);border-radius:6px;">
                                         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
                                             <input type="checkbox" x-model="currentCompEntry.alwaysInContext"
-                                                style="cursor:pointer;">
-                                            <span style="font-size:14px;color:rgba(255,255,255,0.9);">Always include in
-                                                prose prompts</span>
+                                                    style="cursor:pointer;">
+                                                <span style="font-size:14px;color:rgba(255,255,255,0.9);" x-text="(locale, t('compendium.alwaysInclude'))"></span>
                                         </label>
                                         <p
-                                            style="margin:6px 0 0 26px;font-size:12px;color:rgba(255,255,255,0.5);line-height:1.4;">
-                                            When enabled, this entry will be automatically included in all prose
-                                            generation prompts (useful for style guides, world rules, etc.)
-                                        </p>
+                                                style="margin:6px 0 0 26px;font-size:12px;color:rgba(255,255,255,0.5);line-height:1.4;"
+                                                x-text="(locale, t('compendium.alwaysInclude.help'))"></p>
                                     </div>
                                 </div>
                             </template>
                         </div>
                         <div style="flex:0 0 auto;display:flex;gap:8px;margin-top:8px;align-items:center;">
                             <button class="btn btn-primary" @click="saveCompendiumEntry"
-                                :disabled="!currentCompEntry">Save</button>
+                                :disabled="!currentCompEntry" x-text="(locale, t('common.save'))"></button>
                             <span style="margin-left:8px;font-size:13px;color:var(--text-secondary);"
                                 class="compendium-save-status"
                                 :class="{ 'saving': compendiumSaveStatus === 'Saving...' }"
@@ -2078,12 +1980,12 @@
         <template x-if="showNewSceneModal">
             <div class="modal-overlay" @click.self="showNewSceneModal = false">
                 <div class="modal">
-                    <h3>New Scene</h3>
-                    <input type="text" x-model="newSceneName" placeholder="Scene name (e.g., 'Opening')"
+                    <h3 x-text="(locale, t('modal.newScene.title'))"></h3>
+                    <input type="text" x-model="newSceneName" :placeholder="(locale, t('modal.newScene.placeholder'))"
                         @keydown.enter="createScene">
                     <div class="modal-buttons">
-                        <button class="btn btn-secondary" @click="showNewSceneModal = false">Cancel</button>
-                        <button class="btn btn-primary" @click="createScene">Create</button>
+                        <button class="btn btn-secondary" @click="showNewSceneModal = false" x-text="(locale, t('common.cancel'))"></button>
+                        <button class="btn btn-primary" @click="createScene" x-text="(locale, t('common.create'))"></button>
                     </div>
                 </div>
             </div>
@@ -2092,12 +1994,12 @@
         <template x-if="showNewChapterModal">
             <div class="modal-overlay" @click.self="showNewChapterModal = false">
                 <div class="modal">
-                    <h3>New Chapter</h3>
-                    <input type="text" x-model="newChapterName" placeholder="Chapter name (e.g., 'Chapter 1')"
+                    <h3 x-text="(locale, t('modal.newChapter.title'))"></h3>
+                    <input type="text" x-model="newChapterName" :placeholder="(locale, t('modal.newChapter.placeholder'))"
                         @keydown.enter="createChapter">
                     <div class="modal-buttons">
-                        <button class="btn btn-secondary" @click="showNewChapterModal = false">Cancel</button>
-                        <button class="btn btn-primary" @click="createChapter">Create</button>
+                        <button class="btn btn-secondary" @click="showNewChapterModal = false" x-text="(locale, t('common.cancel'))"></button>
+                        <button class="btn btn-primary" @click="createChapter" x-text="(locale, t('common.create'))"></button>
                     </div>
                 </div>
             </div>
@@ -2107,12 +2009,12 @@
         <template x-if="showRenameChapterModal">
             <div class="modal-overlay" @click.self="showRenameChapterModal = false">
                 <div class="modal">
-                    <h3>Rename Chapter</h3>
-                    <input type="text" x-model="renameChapterName" placeholder="Chapter name"
+                    <h3 x-text="(locale, t('modal.renameChapter.title'))"></h3>
+                    <input type="text" x-model="renameChapterName" :placeholder="(locale, t('modal.renameChapter.placeholder'))"
                         @keydown.enter="renameChapter">
                     <div class="modal-buttons">
-                        <button class="btn btn-secondary" @click="showRenameChapterModal = false">Cancel</button>
-                        <button class="btn btn-primary" @click="renameChapter">Rename</button>
+                        <button class="btn btn-secondary" @click="showRenameChapterModal = false" x-text="(locale, t('common.cancel'))"></button>
+                        <button class="btn btn-primary" @click="renameChapter" x-text="(locale, t('common.rename'))"></button>
                     </div>
                 </div>
             </div>
@@ -2122,11 +2024,11 @@
         <template x-if="showRenameSceneModal">
             <div class="modal-overlay" @click.self="showRenameSceneModal = false">
                 <div class="modal">
-                    <h3>Rename Scene</h3>
-                    <input type="text" x-model="renameSceneName" placeholder="Scene name" @keydown.enter="renameScene">
+                    <h3 x-text="(locale, t('modal.renameScene.title'))"></h3>
+                    <input type="text" x-model="renameSceneName" :placeholder="(locale, t('modal.renameScene.placeholder'))" @keydown.enter="renameScene">
                     <div class="modal-buttons">
-                        <button class="btn btn-secondary" @click="showRenameSceneModal = false">Cancel</button>
-                        <button class="btn btn-primary" @click="renameScene">Rename</button>
+                        <button class="btn btn-secondary" @click="showRenameSceneModal = false" x-text="(locale, t('common.cancel'))"></button>
+                        <button class="btn btn-primary" @click="renameScene" x-text="(locale, t('common.rename'))"></button>
                     </div>
                 </div>
             </div>
@@ -2137,15 +2039,13 @@
             <div class="modal-overlay" @click.self="showPromptHistory = false">
                 <div class="modal" style="max-width:900px;max-height:80vh;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-                        <h3 style="margin:0;">Prompt History</h3>
-                        <button class="btn btn-secondary" @click="showPromptHistory = false">Close</button>
+                        <h3 style="margin:0;" x-text="(locale, t('promptHistory.title'))"></h3>
+                        <button class="btn btn-secondary" @click="showPromptHistory = false" x-text="(locale, t('common.close'))"></button>
                     </div>
 
                     <div style="overflow:auto;max-height:calc(80vh - 100px);">
                         <template x-if="promptHistoryList.length === 0">
-                            <div style="color:var(--text-secondary);text-align:center;padding:40px;">
-                                No prompt history yet. Generate scenes to build your history.
-                            </div>
+                                    <div style="color:var(--text-secondary);text-align:center;padding:40px;" x-text="(locale, t('promptHistory.none'))"></div>
                         </template>
 
                         <template x-for="(item, idx) in promptHistoryList" :key="item.id">
@@ -2157,28 +2057,25 @@
                                         <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;">
                                             <span x-text="new Date(item.timestamp).toLocaleString()"></span>
                                             <template x-if="item.sceneId">
-                                                <span> • Scene: <span
-                                                        x-text="scenes.find(s => s.id === item.sceneId)?.title || 'Unknown'"></span></span>
+                                                <span> • <span x-text="(locale, t('promptHistory.sceneLabel'))"></span> <span
+                                                        x-text="scenes.find(s => s.id === item.sceneId)?.title || t('common.unknown')"></span></span>
                                             </template>
                                         </div>
                                         <div style="font-weight:500;margin-bottom:8px;">
-                                            <strong style="color:var(--text-secondary);font-size:11px;">Beat:</strong>
+                                            <strong style="color:var(--text-secondary);font-size:11px;" x-text="(locale, t('promptHistory.beatLabel'))"></strong>
                                             <div style="color:var(--text-primary);font-size:13px;margin-top:2px;"
                                                 x-text="item.beat"></div>
                                         </div>
                                     </div>
                                     <button class="btn btn-primary"
-                                        @click="beatInput = item.beat; showPromptHistory = false"
-                                        style="font-size:11px;padding:4px 8px;">
-                                        Reuse Beat
-                                    </button>
+                                            @click="beatInput = item.beat; showPromptHistory = false"
+                                            style="font-size:11px;padding:4px 8px;" x-text="(locale, t('promptHistory.reuseBeat'))"></button>
                                 </div>
 
                                 <details style="margin-top:8px;">
                                     <summary
-                                        style="cursor:pointer;color:var(--text-secondary);font-size:11px;user-select:none;">
-                                        View Full Prompt
-                                    </summary>
+                                            style="cursor:pointer;color:var(--text-secondary);font-size:11px;user-select:none;"
+                                            x-text="(locale, t('promptHistory.viewFullPrompt'))"></summary>
                                     <pre style="margin-top:8px;padding:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:4px;font-size:11px;overflow:auto;max-height:300px;white-space:pre-wrap;word-wrap:break-word;"
                                         x-text="item.prompt"></pre>
                                 </details>
@@ -2196,25 +2093,21 @@
                     <div class="modal-header">
                         <h3 style="margin:0;display:flex;align-items:center;gap:8px;">
                             <span style="font-size:24px;">🎉</span>
-                            Update Available!
+                            <span x-text="(locale, t('update.available'))"></span>
                         </h3>
-                        <button class="btn-icon" @click="showUpdateDialog = false">×</button>
+                        <button class="btn-icon" @click="showUpdateDialog = false" :aria-label="(locale, t('common.close'))">×</button>
                     </div>
                     <div class="modal-body">
                         <div
                             style="background:linear-gradient(135deg,rgba(74,158,255,0.1),rgba(74,158,255,0.05));border:1px solid rgba(74,158,255,0.3);border-radius:8px;padding:16px;margin-bottom:16px;">
-                            <div style="font-size:18px;font-weight:600;margin-bottom:8px;color:var(--accent);">
-                                New update available!
-                            </div>
+                            <div style="font-size:18px;font-weight:600;margin-bottom:8px;color:var(--accent);" x-text="(locale, t('update.available'))"></div>
                             <div style="font-size:13px;color:var(--text-secondary);">
-                                Latest commit (<span x-text="updateAvailable.version"></span>) from <span
-                                    x-text="updateAvailable.commitDate"></span>
+                                <span x-text="(locale, t('update.latestCommitPrefix'))"></span> (<span x-text="updateAvailable.version"></span>) <span x-text="(locale, t('update.fromPrefix'))"></span> <span x-text="updateAvailable.commitDate"></span>
                             </div>
                         </div>
 
                         <div style="margin-bottom:16px;">
-                            <div style="font-weight:600;margin-bottom:8px;color:var(--text-primary);">Latest Change:
-                            </div>
+                            <div style="font-weight:600;margin-bottom:8px;color:var(--text-primary);" x-text="(locale, t('update.latestChange'))"></div>
                             <div style="background:var(--bg-tertiary);padding:12px;border-radius:6px;">
                                 <div style="margin:0;font-size:13px;line-height:1.6;color:var(--text-secondary);"
                                     x-text="updateAvailable.message"></div>
@@ -2224,22 +2117,21 @@
                         <div
                             style="background:rgba(255,193,7,0.1);border:1px solid rgba(255,193,7,0.3);border-radius:6px;padding:12px;margin-bottom:16px;">
                             <div style="font-size:12px;color:var(--text-secondary);line-height:1.5;">
-                                <strong>⚠️ Note:</strong> Writingway is a local application. To update:
+                                <strong x-text="(locale, t('update.note.title'))"></strong> <span x-text="(locale, t('update.note.body'))"></span>
                                 <ol style="margin:8px 0 0 0;padding-left:20px;">
-                                    <li>Download the new version from GitHub</li>
-                                    <li>Extract to a new folder (don't overwrite current installation)</li>
-                                    <li>Your projects are stored in the browser database and will be available in the
-                                        new version</li>
-                                    <li>Optionally backup your database first (Export projects)</li>
+                                    <li x-text="(locale, t('update.note.download'))"></li>
+                                    <li x-text="(locale, t('update.note.extract'))"></li>
+                                    <li x-text="(locale, t('update.note.projectsStored'))"></li>
+                                    <li x-text="(locale, t('update.note.backup'))"></li>
                                 </ol>
                             </div>
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button class="btn btn-secondary" @click="showUpdateDialog = false">Maybe Later</button>
+                        <button class="btn btn-secondary" @click="showUpdateDialog = false" x-text="(locale, t('update.maybeLater'))"></button>
                         <button class="btn btn-primary"
                             @click="window.open(updateAvailable.url, '_blank'); showUpdateDialog = false;">
-                            👉 View Release on GitHub
+                            👉 <span x-text="(locale, t('update.viewRelease'))"></span>
                         </button>
                     </div>
                 </div>
@@ -2251,12 +2143,12 @@
             <div class="modal-overlay" @click.self="showSceneOptions = false">
                 <div class="modal" style="max-width:400px;max-height:90vh;overflow-y:auto;">
                     <div class="modal-header">
-                        <h3 style="margin:0;">Scene Options</h3>
-                        <button class="btn btn-secondary" @click="showSceneOptions = false">Close</button>
+                        <h3 style="margin:0;" x-text="(locale, t('scene.options.title'))"></h3>
+                        <button class="btn btn-secondary" @click="showSceneOptions = false" x-text="(locale, t('common.close'))"></button>
                     </div>
                     <div class="modal-body" style="display:flex;flex-direction:column;gap:16px;">
-                        <label style="font-size:12px;color:var(--text-secondary);">POV CHARACTER
-                            <input type="text" x-model="povCharacter" placeholder="e.g., Alice" list="character-list"
+                        <label style="font-size:12px;color:var(--text-secondary);"><span x-text="(locale, t('pov.character.label'))"></span>
+                            <input type="text" x-model="povCharacter" :placeholder="(locale, t('place.scene.pov'))" list="character-list"
                                 @blur="saveScene()" @keydown.enter.prevent="saveScene()"
                                 style="width:100%;margin-top:6px;padding:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
                             <datalist id="character-list">
@@ -2267,28 +2159,27 @@
                             </datalist>
                         </label>
 
-                        <label style="font-size:12px;color:var(--text-secondary);">POV
-                            <select x-model="pov" @change="saveScene()"
-                                style="width:100%;margin-top:6px;padding:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
-                                <option>3rd person limited</option>
-                                <option>1st person</option>
-                                <option>omniscient</option>
-                            </select>
-                        </label>
+                        <label style="font-size:12px;color:var(--text-secondary);" x-text="(locale, t('pov.label'))"></label>
+                        <select x-model="pov" @change="saveScene()"
+                            style="width:100%;margin-top:6px;padding:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
+                            <option value="3rd person limited" x-text="(locale, t('pov.option.3rdLimited'))"></option
+                            ><option value="1st person" x-text="(locale, t('pov.option.1stPerson'))"></option
+                            ><option value="omniscient" x-text="(locale, t('pov.option.omniscient'))"></option>
+                        </select>
 
-                        <label style="font-size:12px;color:var(--text-secondary);">TENSE
-                            <select x-model="tense" @change="saveScene()"
-                                style="width:100%;margin-top:6px;padding:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
-                                <option value="past">past tense</option>
-                                <option value="present">present tense</option>
-                            </select>
-                        </label>
+                        <label style="font-size:12px;color:var(--text-secondary);" x-text="(locale, t('tense.label'))"></label>
+                        <select x-model="tense" @change="saveScene()"
+                            style="width:100%;margin-top:6px;padding:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
+                            <option value="past" x-text="(locale, t('tense.option.past'))"></option
+                            ><option value="present" x-text="(locale, t('tense.option.present'))"></option>
+                        </select>
 
-                        <label style="font-size:12px;color:var(--text-secondary);">Prose Prompt
-                            <select x-model="selectedProsePromptId"
-                                @change="saveSelectedProsePrompt(selectedProsePromptId)"
-                                style="width:100%;margin-top:6px;padding:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
-                                <option value="">Use current prompt (fallback)</option>
+                        <label style="font-size:12px;color:var(--text-secondary);">
+                                <span x-text="(locale, t('prose.promptLabel'))"></span>
+                                <select x-model="selectedProsePromptId"
+                                    @change="saveSelectedProsePrompt(selectedProsePromptId)"
+                                    style="width:100%;margin-top:6px;padding:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
+                                    <option value="" x-text="(locale, t('prose.useCurrentPromptFallback'))"></option>
                                 <template x-for="pr in prompts.filter(p => p.category === 'prose')" :key="pr.id">
                                     <option :value="pr.id" x-text="pr.title"></option>
                                 </template>
@@ -2297,14 +2188,12 @@
 
                         <!-- Generation Settings -->
                         <div style="padding-top:16px;border-top:1px solid var(--border);">
-                            <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:12px;">
-                                Generation Settings
-                            </div>
+                            <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:12px;" x-text="(locale, t('gen.settings.title'))"></div>
 
                             <!-- Model Selection -->
                             <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:12px;"
-                                title="The AI model used for generation. Different models have different capabilities and costs.">
-                                MODEL
+                                :title="(locale, t('gen.model.help'))">
+                                <span x-text="(locale, t('gen.model.label'))"></span>
                                 <select x-model="aiModel" @change="saveGenerationParams()"
                                     style="width:100%;margin-top:6px;padding:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
                                     <!-- API mode models -->
@@ -2325,7 +2214,7 @@
                                         :value="aiModel" x-text="aiModel"></option>
                                     <!-- Fallback for local mode with no models -->
                                     <option x-show="aiMode === 'local' && availableLocalModels.length === 0 && !aiModel"
-                                        value="" disabled>Local model (via llama-server)</option>
+                                        value="" disabled x-text="(locale, t('ai.local.model.placeholder'))"></option>
                                 </select>
                             </label>
 
@@ -2334,54 +2223,49 @@
                                 <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
                                     <input type="checkbox" x-model="useProviderDefaults"
                                         @change="saveGenerationParams()" style="width:16px;height:16px;cursor:pointer;">
-                                    <span style="font-size:13px;color:var(--text-primary);">
-                                        Use model's default settings
-                                    </span>
+                                    <span style="font-size:13px;color:var(--text-primary);" x-text="(locale, t('ai.useProviderDefaults'))"></span>
                                 </label>
-                                <p
-                                    style="font-size:11px;color:var(--text-secondary);margin:4px 0 0 0;padding-left:24px;">
-                                    When enabled, temperature and max length won't be sent to the AI provider.
-                                    The model will use its own default settings. Useful for letting providers optimize
-                                    each model.
+                                <p style="font-size:11px;color:var(--text-secondary);margin:4px 0 0 0;padding-left:24px;">
+                                    <span x-text="(locale, t('ai.useProviderDefaults.help'))"></span>
                                 </p>
                             </div>
 
                             <!-- Temperature -->
                             <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:12px;"
-                                title="Controls randomness. Lower (0.3-0.6) = more focused and consistent. Higher (0.8-1.2) = more creative and varied."
+                                :title="(locale, t('gen.temperature.help'))"
                                 :style="useProviderDefaults ? 'opacity:0.5;pointer-events:none;' : ''">
-                                TEMPERATURE: <span x-text="temperature.toFixed(1)"></span>
+                                <span x-text="(locale, t('gen.temperature.label'))"></span>: <span x-text="temperature.toFixed(1)"></span>
                                 <input type="range" x-model.number="temperature" min="0.1" max="1.5" step="0.1"
                                     @input="saveGenerationParams()" style="width:100%;margin-top:6px;"
                                     :disabled="useProviderDefaults">
                                 <div
                                     style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-tertiary);margin-top:2px;">
-                                    <span>Focused</span>
-                                    <span>Balanced</span>
-                                    <span>Creative</span>
+                                    <span x-text="(locale, t('gen.focused'))"></span>
+                                    <span x-text="(locale, t('gen.balanced'))"></span>
+                                    <span x-text="(locale, t('gen.creative'))"></span>
                                 </div>
                             </label>
 
                             <!-- Max Tokens -->
                             <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:12px;"
-                                title="Maximum length of generated text. 100-200 = short paragraph, 300-500 = multiple paragraphs, 800-1500 = longer scenes, 2000-5000 = very long, 10000+ = thinking models with reasoning."
+                                :title="(locale, t('gen.maxLength.help'))"
                                 :style="useProviderDefaults ? 'opacity:0.5;pointer-events:none;' : ''">
-                                MAX LENGTH: <span x-text="maxTokens"></span> tokens
+                                <span x-text="(locale, t('gen.maxLength.label'))"></span>: <span x-text="maxTokens"></span> <span x-text="(locale, t('gen.tokens'))"></span>
                                 <input type="range" x-model.number="maxTokens" min="100" max="20000" step="100"
                                     @input="saveGenerationParams()" style="width:100%;margin-top:6px;"
                                     :disabled="useProviderDefaults">
                                 <div
                                     style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-tertiary);margin-top:2px;">
-                                    <span>Short</span>
-                                    <span>Medium</span>
-                                    <span>Very Long</span>
+                                    <span x-text="(locale, t('gen.length.short'))"></span>
+                                    <span x-text="(locale, t('gen.length.medium'))"></span>
+                                    <span x-text="(locale, t('gen.length.veryLong'))"></span>
                                 </div>
                             </label>
 
                             <!-- Quick link to full AI Settings -->
                             <button class="btn btn-secondary" @click="showSceneOptions = false; showAISettings = true"
                                 style="width:100%;font-size:11px;">
-                                ⚙️ Advanced AI Settings
+                                ⚙️ <span x-text="(locale, t('ai.advancedSettings'))"></span>
                             </button>
                         </div>
                     </div>
@@ -2396,13 +2280,13 @@
                     x-init="allCompendiumEntries = await getAllCompendiumEntries();"
                     style="max-width:1100px;max-height:85vh;overflow:hidden;display:flex;flex-direction:column;">
                     <div class="modal-header">
-                        <h3 style="margin:0;">📚 Context Panel</h3>
-                        <button class="btn btn-secondary" @click="showContextPanel = false">Close</button>
+                        <h3 style="margin:0;">📚 <span x-text="(locale, t('context.panel.title'))"></span></h3>
+                        <button class="btn btn-secondary" @click="showContextPanel = false" x-text="(locale, t('common.close'))"></button>
                     </div>
                     <div class="modal-body" style="overflow-y:auto;flex:1;">
                         <div style="margin-bottom:16px;">
                             <div style="font-size:13px;color:var(--text-secondary);">
-                                Select what context to include in every generation prompt
+                                <span x-text="(locale, t('context.panel.description'))"></span>
                             </div>
                         </div>
 
@@ -2416,7 +2300,7 @@
                                     <div
                                         style="font-size:14px;font-weight:600;color:var(--text-primary);margin-bottom:12px;display:flex;align-items:center;gap:8px;">
                                         <span>📚</span>
-                                        <span>Compendium Entries</span>
+                                        <span x-text="(locale, t('compendium.title'))"></span>
                                     </div>
                                     <div style="max-height:500px;overflow-y:auto;">
                                         <template x-if="allCompendiumEntries.length === 0">
@@ -2458,13 +2342,13 @@
                                     <div
                                         style="font-size:14px;font-weight:600;color:var(--text-primary);margin-bottom:12px;display:flex;align-items:center;gap:8px;">
                                         <span>📄</span>
-                                        <span>Scenes</span>
+                                        <span x-text="(locale, t('compendium.scenes'))"></span>
                                     </div>
                                     <div style="max-height:350px;overflow-y:auto;">
                                         <template x-if="chapters.length === 0">
                                             <div
                                                 style="font-size:12px;color:var(--text-tertiary);padding:20px;text-align:center;">
-                                                No scenes yet
+                                                <span x-text="(locale, t('common.noScenes'))"></span>
                                             </div>
                                         </template>
                                         <template x-for="chapter in chapters" :key="chapter.id">
@@ -2479,14 +2363,14 @@
                                                             @click="setContextChapter(chapter.id, contextPanel.chapters[chapter.id] === 'full' ? null : 'full')"
                                                             :style="contextPanel.chapters[chapter.id] === 'full' ? 'background:var(--accent);color:white;font-weight:600;' : 'background:var(--bg-primary);color:var(--text-primary);'"
                                                             class="context-chapter-btn"
-                                                            title="Include full text of all scenes (click again to deselect)">
+                                                            :title="(locale, t('context.includeFullAll'))">
                                                             📄 Full Text
                                                         </button>
                                                         <button
                                                             @click="setContextChapter(chapter.id, contextPanel.chapters[chapter.id] === 'summary' ? null : 'summary')"
                                                             :style="contextPanel.chapters[chapter.id] === 'summary' ? 'background:var(--accent);color:white;font-weight:600;' : 'background:var(--bg-primary);color:var(--text-primary);'"
                                                             class="context-chapter-btn"
-                                                            title="Include summaries of all scenes (click again to deselect)">
+                                                            :title="(locale, t('context.includeSummaryAll'))">
                                                             📝 Summary
                                                         </button>
                                                     </div>
@@ -2501,22 +2385,22 @@
                                                                 style="font-size:13px;display:flex;align-items:center;gap:8px;flex:1;">
                                                                 <span class="summary-dot"
                                                                     :class="{ 'has-summary': scene.summary, 'summary-stale': scene.summaryStale }"
-                                                                    :title="scene.summary ? (scene.summaryStale ? 'Summary is outdated' : 'Summary available') : 'No summary'"></span>
+                                                                    :title="scene.summary ? (scene.summaryStale ? t('summary.outdated') : t('summary.has')) : t('summary.none')"></span>
                                                                 <span x-text="scene.title"></span>
                                                             </div>
                                                             <div style="display:flex;gap:6px;">
                                                                 <button
                                                                     @click="setContextScene(scene.id, contextPanel.scenes[scene.id] === 'full' ? null : 'full')"
                                                                     :style="contextPanel.scenes[scene.id] === 'full' ? 'background:var(--accent);color:white;font-weight:600;' : 'background:var(--bg-primary);color:var(--text-primary);'"
-                                                                    class="context-scene-btn" title="Include full text">
-                                                                    📄 Full
+                                                                    class="context-scene-btn" :title="(locale, t('context.includeFull'))">
+                                                                📄 <span x-text="(locale, t('context.full'))"></span>
                                                                 </button>
                                                                 <button
                                                                     @click="setContextScene(scene.id, contextPanel.scenes[scene.id] === 'summary' ? null : 'summary')"
                                                                     :style="contextPanel.scenes[scene.id] === 'summary' ? 'background:var(--accent);color:white;font-weight:600;' : 'background:var(--bg-primary);color:var(--text-primary);'"
-                                                                    class="context-scene-btn" title="Include summary"
+                                                                    class="context-scene-btn" :title="(locale, t('context.includeSummary'))"
                                                                     :disabled="!scene.summary">
-                                                                    📝 Summary
+                                                                    📝 <span x-text="(locale, t('context.summary'))"></span>
                                                                 </button>
                                                             </div>
                                                         </div>
@@ -2533,12 +2417,12 @@
                                     <div
                                         style="font-size:14px;font-weight:600;color:var(--text-primary);margin-bottom:12px;display:flex;align-items:center;gap:8px;">
                                         <span>🏷️</span>
-                                        <span>Tags</span>
+                                        <span x-text="(locale, t('summary.tagsLabel'))"></span>
                                     </div>
                                     <template x-if="getAllTags().length === 0">
                                         <div
                                             style="font-size:12px;color:var(--text-tertiary);padding:20px;text-align:center;">
-                                            No tags yet. Add tags to scenes in their summary panel.
+                                            <span x-text="(locale, t('context.noTagsHelp'))"></span>
                                         </div>
                                     </template>
                                     <div x-show="getAllTags().length > 0" style="display:flex;flex-wrap:wrap;gap:10px;">
@@ -2546,7 +2430,7 @@
                                             <button @click="toggleContextTag(tag)"
                                                 :style="contextPanel.tags.includes(tag) ? 'background:var(--accent);color:white;border-color:var(--accent);font-weight:600;' : 'background:var(--bg-primary);color:var(--text-primary);border-color:var(--border);'"
                                                 class="context-tag-btn"
-                                                :title="contextPanel.tags.includes(tag) ? 'Click to exclude scenes with tag: ' + tag : 'Click to include scenes with tag: ' + tag"
+                                                :title="contextPanel.tags.includes(tag) ? (t('context.tag.excludePrefix') + tag) : (t('context.tag.includePrefix') + tag)"
                                                 @mouseenter="if (!contextPanel.tags.includes(tag)) $el.style.borderColor = 'var(--accent)'"
                                                 @mouseleave="if (!contextPanel.tags.includes(tag)) $el.style.borderColor = 'var(--border)'"
                                                 x-text="tag">

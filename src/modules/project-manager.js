@@ -50,7 +50,7 @@
                 chapter = {
                     id: Date.now().toString() + '-c',
                     projectId: app.currentProject.id,
-                    title: 'Chapter 1',
+                    title: t('chapter.defaultTitle'),
                     order: 0,
                     created: new Date(),
                     modified: new Date()
@@ -70,7 +70,7 @@
                 id: Date.now().toString(),
                 projectId: app.currentProject.id,
                 chapterId: chapter.id,
-                title: 'Scene 1',
+                title: t('scene.defaultTitle'),
                 order: nextOrder,
                 // initialize with current POV options
                 povCharacter: app.povCharacter || '',
@@ -277,7 +277,7 @@
             const project = await db.projects.get(projectId);
             if (!project) return;
 
-            const confirmed = confirm(`Are you sure you want to delete "${project.name}"?\n\nThis will permanently delete:\n• All chapters and scenes\n• All compendium entries\n• All prompts\n• Workshop sessions\n\nThis cannot be undone!`);
+            const confirmed = confirm(t('project.deleteConfirmPrefix') + project.name + t('project.deleteConfirmSuffix') + '\n\n' + t('project.deleteConfirmBody'));
             if (!confirmed) return;
 
             try {
@@ -320,10 +320,10 @@
                     localStorage.removeItem('writingway:lastProject');
                 }
 
-                alert(`Project "${project.name}" has been deleted.`);
+                alert(t('project.deletedPrefix') + project.name + t('project.deletedSuffix'));
             } catch (e) {
                 console.error('Failed to delete project:', e);
-                alert('Failed to delete project. See console for details.');
+                alert(t('project.deleteFailed'));
             }
         },
 
@@ -355,7 +355,7 @@
             if (!app.currentProject) return;
             try {
                 if (typeof JSZip === 'undefined') {
-                    alert('ZIP export library is not loaded.');
+                    alert(t('export.zipLibNotLoaded'));
                     return;
                 }
 
@@ -417,7 +417,7 @@
                 URL.revokeObjectURL(url);
             } catch (e) {
                 console.error('Export failed:', e);
-                alert('Export failed: ' + (e && e.message ? e.message : e));
+                alert(t('export.failedPrefix') + (e && e.message ? e.message : e));
             }
         },
 
@@ -474,7 +474,7 @@
                 URL.revokeObjectURL(url);
             } catch (e) {
                 console.error('Export failed:', e);
-                alert('Export failed: ' + (e && e.message ? e.message : e));
+                alert(t('export.failedPrefix') + (e && e.message ? e.message : e));
             }
         },
 
@@ -598,7 +598,7 @@
                 URL.revokeObjectURL(url);
             } catch (e) {
                 console.error('Export failed:', e);
-                alert('Export failed: ' + (e && e.message ? e.message : e));
+                alert(t('export.failedPrefix') + (e && e.message ? e.message : e));
             }
         },
 
@@ -610,7 +610,7 @@
             if (!app.currentProject) return;
             try {
                 if (typeof JSZip === 'undefined') {
-                    alert('ZIP library required for EPUB export is not loaded.');
+                    alert(t('export.epubZipLibNotLoaded'));
                     return;
                 }
 
@@ -800,7 +800,7 @@ p:first-of-type {
                 URL.revokeObjectURL(url);
             } catch (e) {
                 console.error('Export failed:', e);
-                alert('Export failed: ' + (e && e.message ? e.message : e));
+                alert(t('export.failedPrefix') + (e && e.message ? e.message : e));
             }
         },
 
@@ -842,7 +842,7 @@ p:first-of-type {
         async importProject(app, e) {
             try {
                 if (typeof JSZip === 'undefined') {
-                    alert('ZIP import library is not loaded.');
+                    alert(t('import.zipLibNotLoaded'));
                     return;
                 }
 
@@ -855,12 +855,12 @@ p:first-of-type {
                 }
 
                 if (!file) {
-                    alert('No file selected.');
+                    alert(t('import.noFileSelected'));
                     return;
                 }
 
                 if (!file.name.endsWith('.zip')) {
-                    alert('Please select a .zip file exported from Writingway.');
+                    alert(t('import.selectZipFromWritingway'));
                     return;
                 }
 
@@ -871,7 +871,7 @@ p:first-of-type {
                 // Read metadata
                 const metadataFile = zip.file('metadata.json');
                 if (!metadataFile) {
-                    alert('Invalid export file: missing metadata.json');
+                    alert(t('import.invalidMissingMetadata'));
                     return;
                 }
 
@@ -879,7 +879,7 @@ p:first-of-type {
                 const metadata = JSON.parse(metadataText);
 
                 if (!metadata.project) {
-                    alert('Invalid export file: missing project data');
+                    alert(t('import.invalidMissingData'));
                     return;
                 }
 
@@ -974,11 +974,11 @@ p:first-of-type {
                 await this.loadProjects(app);
                 await this.selectProject(app, newProjectId);
 
-                alert(`✓ Project imported successfully!\n\n"${newProject.name}"\n\nChapters: ${metadata.chapters.length}\nScenes: ${metadata.chapters.reduce((sum, ch) => sum + ch.scenes.length, 0)}`);
+                alert(t('import.successPrefix') + '\n\n"' + newProject.name + '"\n\n' + t('import.successChapters') + ' ' + metadata.chapters.length + '\n' + t('import.successScenes') + ' ' + metadata.chapters.reduce((sum, ch) => sum + ch.scenes.length, 0));
 
             } catch (e) {
                 console.error('Import failed:', e);
-                alert('Import failed: ' + (e && e.message ? e.message : e));
+                alert(t('import.failedPrefix') + (e && e.message ? e.message : e));
             }
         }
     };

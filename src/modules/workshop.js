@@ -71,7 +71,7 @@ const Workshop = {
     renameWorkshopSession(app, index) {
         const session = app.workshopSessions[index];
         if (!session) return;
-        const newName = prompt('Rename conversation:', session.name);
+        const newName = prompt(t('workshop.renamePrompt'), session.name);
         if (newName && newName.trim()) {
             session.name = newName.trim();
             app.workshopSessions = [...app.workshopSessions];
@@ -81,7 +81,7 @@ const Workshop = {
     async clearWorkshopSession(app, index) {
         const session = app.workshopSessions[index];
         if (!session) return;
-        if (confirm('Clear all messages in this conversation? The conversation will be kept but all messages will be deleted.')) {
+        if (confirm(t('workshop.clearConfirm'))) {
             session.messages = [];
             await Workshop.saveWorkshopSessions(app);
         }
@@ -89,7 +89,7 @@ const Workshop = {
     exportWorkshopSession(app, index) {
         const session = app.workshopSessions[index];
         if (!session || !session.messages || session.messages.length === 0) {
-            alert('No messages to export.');
+            alert(t('workshop.noMessagesToExport'));
             return;
         }
         let markdown = `# ${session.name}\n\n`;
@@ -113,10 +113,10 @@ const Workshop = {
     },
     async deleteWorkshopSession(app, index) {
         if (app.workshopSessions.length <= 1) {
-            alert('You must have at least one chat session.');
+            alert(t('workshop.mustHaveOneSession'));
             return;
         }
-        if (confirm('Delete this chat session? This cannot be undone.')) {
+        if (confirm(t('workshop.deleteSessionConfirm'))) {
             app.workshopSessions.splice(index, 1);
             if (app.currentWorkshopSessionIndex >= app.workshopSessions.length) {
                 app.currentWorkshopSessionIndex = app.workshopSessions.length - 1;

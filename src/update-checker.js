@@ -75,11 +75,11 @@
                 if (updateInfo) {
                     this.showUpdateDialog(app, updateInfo);
                 } else if (!silent) {
-                    alert('✓ You are running the latest version of Writingway!');
+                    alert(t('update.latest'));
                 }
             } catch (error) {
                 if (!silent) {
-                    alert('Could not check for updates. Please check your internet connection.');
+                    alert(t('update.checkFailed'));
                 }
             } finally {
                 app.checkingForUpdates = false;

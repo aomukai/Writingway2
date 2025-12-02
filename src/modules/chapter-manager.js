@@ -86,7 +86,7 @@
          * @param {string} chapterId - ID of chapter to delete
          */
         async deleteChapter(app, chapterId) {
-            if (!confirm('Delete this chapter? Scenes inside will be moved to another chapter or deleted. Continue?')) return;
+            if (!confirm(t('chapter.deleteConfirm'))) return;
             const idx = app.chapters.findIndex(c => c.id === chapterId);
             if (idx === -1) return;
 

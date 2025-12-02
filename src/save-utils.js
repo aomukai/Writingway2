@@ -17,7 +17,7 @@
 
             const scene = app.currentScene;
             if (!scene) {
-                app.saveStatus = 'No scene';
+                app.saveStatus = t('save.noScene');
                 app.isSaving = false;
                 return false;
             }
@@ -26,13 +26,10 @@
             if (scene.loadedUpdatedAt) {
                 const dbScene = await db.scenes.get(scene.id);
                 if (dbScene && dbScene.updatedAt && dbScene.updatedAt > scene.loadedUpdatedAt) {
-                    const shouldOverwrite = confirm(
-                        `Warning: This scene was modified in another tab since you loaded it.\n\n` +
-                        `Click OK to overwrite with your changes, or Cancel to reload the latest version.`
-                    );
+                    const shouldOverwrite = confirm(t('save.overwriteSceneConfirm'));
                     if (!shouldOverwrite) {
                         app.isSaving = false;
-                        app.saveStatus = 'Cancelled';
+                        app.saveStatus = t('save.cancelled');
                         // Reload the scene with latest version
                         await app.loadScene?.(scene.id);
                         return false;
@@ -44,13 +41,10 @@
             if (scene.contentLoadedUpdatedAt) {
                 const dbContent = await db.content.get(scene.id);
                 if (dbContent && dbContent.updatedAt && dbContent.updatedAt > scene.contentLoadedUpdatedAt) {
-                    const shouldOverwrite = confirm(
-                        `Warning: This scene's content was modified in another tab since you loaded it.\n\n` +
-                        `Click OK to overwrite with your changes, or Cancel to reload the latest version.`
-                    );
+                    const shouldOverwrite = confirm(t('save.overwriteContentConfirm'));
                     if (!shouldOverwrite) {
                         app.isSaving = false;
-                        app.saveStatus = 'Cancelled';
+                        app.saveStatus = t('save.cancelled');
                         await app.loadScene?.(scene.id);
                         return false;
                     }

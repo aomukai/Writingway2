@@ -5,8 +5,8 @@
     <!-- Left: Sessions List -->
     <div class="workshop-sessions">
         <div class="workshop-sessions-header">
-            <h4 style="margin:0;font-size:14px;">Conversations</h4>
-            <button class="btn btn-secondary btn-sm" @click="createWorkshopSession" title="New Chat">+</button>
+            <h4 style="margin:0;font-size:14px;" x-text="(locale, t('workshop.conversations'))"></h4>
+            <button class="btn btn-secondary btn-sm" @click="createWorkshopSession" :title="(locale, t('workshop.newChatTitle'))">+</button>
         </div>
         <div class="workshop-sessions-list">
             <template x-for="(session, idx) in workshopSessions" :key="session.id">
@@ -15,14 +15,14 @@
                     <span x-text="session.name"
                         style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
                     <div style="position:relative;">
-                        <button class="btn-icon-sm" @click.stop="menuOpen = !menuOpen" title="Options">⋯</button>
+                        <button class="btn-icon-sm" @click.stop="menuOpen = !menuOpen" :title="(locale, t('workshop.optionsTitle'))">⋯</button>
                         <div x-show="menuOpen" @click.away="menuOpen = false" x-cloak class="action-menu"
                             style="right:0;top:100%;margin-top:4px;">
-                            <button @click.stop="renameWorkshopSession(idx); menuOpen=false">Rename</button>
-                            <button @click.stop="clearWorkshopSession(idx); menuOpen=false">Clear Messages</button>
-                            <button @click.stop="exportWorkshopSession(idx); menuOpen=false">Export as Markdown</button>
+                            <button @click.stop="renameWorkshopSession(idx); menuOpen=false" x-text="(locale, t('workshop.renameAction'))"></button>
+                            <button @click.stop="clearWorkshopSession(idx); menuOpen=false" x-text="(locale, t('workshop.clearMessagesAction'))"></button>
+                            <button @click.stop="exportWorkshopSession(idx); menuOpen=false" x-text="(locale, t('workshop.exportMarkdownAction'))"></button>
                             <button @click.stop="deleteWorkshopSession(idx); menuOpen=false"
-                                style="color:var(--danger,#ef4444);">Delete</button>
+                                style="color:var(--danger,#ef4444);" x-text="(locale, t('common.delete'))"></button>
                         </div>
                     </div>
                 </div>
@@ -35,9 +35,9 @@
         <!-- Header -->
         <div class="workshop-chat-header">
             <div style="display:flex;align-items:center;gap:12px;flex:1;flex-wrap:wrap;">
-                <h3 style="margin:0;font-size:18px;" x-show="workshopMode !== 'embedded'">Workshop Chat</h3>
+                <h3 style="margin:0;font-size:18px;" x-show="workshopMode !== 'embedded'" x-text="(locale, t('workshop.title'))"></h3>
                 <select x-model="aiModel" @change="saveGenerationParams()" class="workshop-select"
-                    title="AI Model for this chat" x-show="aiMode === 'api' || availableLocalModels.length > 0">
+                    :title="t('workshop.aiModelTitle')" x-show="aiMode === 'api' || availableLocalModels.length > 0">
                     <template x-for="model in (aiMode === 'api' ? (providerModels[aiProvider] || []) : [])"
                         :key="model.id">
                         <option :value="model.id" x-text="model.name + (model.recommended ? ' ⭐' : '')">
@@ -52,30 +52,30 @@
                         :value="aiModel" x-text="aiModel"></option>
                 </select>
                 <span x-show="aiMode === 'local' && availableLocalModels.length === 0"
-                    style="padding:4px 12px;background:rgba(76,175,80,0.1);border:1px solid rgba(76,175,80,0.3);border-radius:6px;font-size:12px;">
-                    ✓ Local Model Active
+                    style="padding:4px 12px;background:rgba(76,175,80,0.1);border:1px solid rgba(76,175,80,0.3);border-radius:6px;font-size:12px;"
+                    x-text="(locale, t('workshop.localModelActive'))">
                 </span>
                 <select x-model="selectedWorkshopPromptId" @change="saveSelectedWorkshopPrompt" class="workshop-select">
-                    <option value="">Default Workshop Prompt</option>
+                    <option value="" x-text="(locale, t('workshop.defaultPromptOption'))"></option>
                     <template x-for="p in prompts.filter(p => p.category === 'workshop')" :key="p.id">
                         <option :value="p.id" x-text="p.title"></option>
                     </template>
                 </select>
                 <select x-model="workshopFidelityMode" class="workshop-select">
-                    <option value="high">High Fidelity</option>
-                    <option value="balanced">Balanced</option>
-                    <option value="compressed">Compressed</option>
+                    <option value="high" x-text="(locale, t('workshop.fidelity.high'))"></option>
+                    <option value="balanced" x-text="(locale, t('workshop.fidelity.balanced'))"></option>
+                    <option value="compressed" x-text="(locale, t('workshop.fidelity.compressed'))"></option>
                 </select>
                 <button class="btn btn-secondary" @click="useWorkshopContextPanel = !useWorkshopContextPanel"
                     :style="useWorkshopContextPanel ? 'background: rgba(76,175,80,0.2); border-color: rgba(76,175,80,0.5);' : ''"
-                    title="Use context from Context Panel">
+                    :title="t('workshop.useContextTitle')">
                     📚
                 </button>
             </div>
-            <button class="btn btn-secondary" @click="showWorkshopChat = false"
-                x-show="workshopMode !== 'embedded'">Close</button>
-            <button class="btn btn-secondary" @click="showEmbeddedWorkshop = false"
-                x-show="workshopMode === 'embedded'">Close</button>
+                <button class="btn btn-secondary" @click="showWorkshopChat = false"
+                x-show="workshopMode !== 'embedded'" x-text="(locale, t('common.close'))"></button>
+                <button class="btn btn-secondary" @click="showEmbeddedWorkshop = false"
+                x-show="workshopMode === 'embedded'" x-text="(locale, t('common.close'))"></button>
         </div>
 
         <!-- Messages -->
@@ -83,11 +83,8 @@
             <template
                 x-if="workshopSessions[currentWorkshopSessionIndex] && workshopSessions[currentWorkshopSessionIndex].messages.length === 0">
                 <div class="workshop-empty-state">
-                    <p style="color:var(--text-secondary);margin:0;">Start a conversation with the AI!</p>
-                    <p style="color:var(--text-secondary);font-size:13px;margin:8px 0 0 0;">
-                        Use <code>@name</code> to reference compendium entries or <code>#scene</code>
-                        to reference scenes.
-                    </p>
+                    <p style="color:var(--text-secondary);margin:0;" x-text="(locale, t('workshop.emptyStart'))"></p>
+                    <p style="color:var(--text-secondary);font-size:13px;margin:8px 0 0 0;" x-text="(locale, t('workshop.emptyHint'))"></p>
                 </div>
             </template>
             <template x-if="workshopSessions[currentWorkshopSessionIndex]">
@@ -101,7 +98,7 @@
                                 <span x-show="msg.isError">⚠️</span>
                             </div>
                             <div class="workshop-message-role"
-                                x-text="msg.role === 'user' ? 'You' : (msg.isError ? 'Error' : 'Assistant')">
+                                x-text="msg.role === 'user' ? t('workshop.role.you') : (msg.isError ? t('workshop.role.error') : t('workshop.role.assistant'))">
                             </div>
                         </div>
                         <div class="workshop-message-content">
@@ -125,7 +122,7 @@
                                         if (!$event.shiftKey && workshopInput.trim() && !showWorkshopQuickSearch && !showWorkshopSceneSearch) {
                                             window.workshopChat.sendMessage($data, workshopInput);
                                         }
-                                    " placeholder="Type your message... (Use @name for compendium, #scene for scenes)"
+                                    " :placeholder="(locale, t('workshop.input.placeholder'))"
                     rows="3" class="workshop-textarea" :disabled="workshopIsGenerating"></textarea>
 
                 <!-- Compendium Quick Search Dropdown -->
@@ -164,26 +161,22 @@
                 <button class="btn btn-primary" @click="window.workshopChat.sendMessage($data, workshopInput)"
                     :disabled="!workshopInput.trim() || workshopIsGenerating"
                     style="align-self:flex-end;margin-top:8px;">
-                    <span x-show="!workshopIsGenerating">Send</span>
-                    <span x-show="workshopIsGenerating">Sending...</span>
+                    <span x-show="!workshopIsGenerating" x-text="(locale, t('workshop.send'))"></span>
+                    <span x-show="workshopIsGenerating" x-text="(locale, t('workshop.sending'))"></span>
                 </button>
             </div>
-            <div style="font-size:12px;color:var(--text-secondary);margin-top:6px;">
-                Press Enter to send, Shift+Enter for new line. Type @ for compendium, # for scenes.
-            </div>
+            <div style="font-size:12px;color:var(--text-secondary);margin-top:6px;" x-text="(locale, t('workshop.input.hint'))"></div>
         </div>
     </div>
 
     <!-- Right: Context Panel (Optional - can be toggled) -->
     <div class="workshop-context" x-show="showWorkshopContext" x-cloak>
         <div class="workshop-context-header">
-            <h4 style="margin:0;font-size:14px;">Quick Reference</h4>
+            <h4 style="margin:0;font-size:14px;" x-text="(locale, t('context.panel.title'))"></h4>
             <button class="btn-icon-sm" @click="showWorkshopContext = false">×</button>
         </div>
         <div class="workshop-context-content">
-            <p style="font-size:13px;color:var(--text-secondary);">
-                Mentioned items will appear here for quick reference.
-            </p>
+            <p style="font-size:13px;color:var(--text-secondary);" x-text="(locale, t('context.panel.desc'))"></p>
         </div>
     </div>
 </div>

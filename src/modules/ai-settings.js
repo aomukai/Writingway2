@@ -89,18 +89,10 @@
                 // Note: Browser can't actually scan filesystem
                 // The model name here is just for display - the actual model is whatever
                 // llama-server.exe loaded from the models folder when you ran start.bat
-                alert('ℹ️ Local Model Info:\n\n' +
-                    'The browser cannot scan your models folder directly.\n\n' +
-                    'The model shown here is just for display.\n\n' +
-                    '✓ Your ACTUAL model is whatever start.bat loaded into llama-server\n' +
-                    '✓ Connection URL: http://localhost:8080\n\n' +
-                    'To change models:\n' +
-                    '1. Close all Writingway windows\n' +
-                    '2. Put a different .gguf file in the models folder\n' +
-                    '3. Run start.bat again (it will use the first .gguf file it finds)');
+                alert(t('ai.localInfo'));
             } catch (e) {
                 console.error('Failed to scan models:', e);
-                alert('Could not scan models folder');
+                alert(t('ai.scanFailed'));
             }
         },
 
@@ -149,7 +141,7 @@
 
                 // Test connection
                 app.showModelLoading = true;
-                app.loadingMessage = 'Testing connection...';
+                app.loadingMessage = t('ai.testingConnection');
                 app.loadingProgress = 50;
 
                 if (app.aiMode === 'local') {
@@ -160,7 +152,7 @@
                     let attempt = 0;
                     let connected = false;
 
-                    app.loadingMessage = 'Connecting to local server... (model may be loading, this can take a while for large models)';
+                    app.loadingMessage = t('ai.connectingLocal');
 
                     while (attempt < maxRetries && !connected) {
                         try {
@@ -169,7 +161,7 @@
                             app.loadingProgress = Math.floor(progress);
 
                             const elapsed = Math.floor((attempt * retryDelay) / 1000);
-                            app.loadingMessage = `Testing connection... (${elapsed}s elapsed, attempt ${attempt}/${maxRetries})`;
+                            app.loadingMessage = `${t('ai.testingConnection')} (${elapsed}s elapsed, attempt ${attempt}/${maxRetries})`;
 
                             const controller = new AbortController();
                             const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout per request
@@ -182,11 +174,11 @@
                             if (response.ok) {
                                 connected = true;
                                 app.aiStatus = 'ready';
-                                app.aiStatusText = 'AI Ready (Local)';
+                                app.aiStatusText = t('ai.readyLocal');
                                 app.loadingProgress = 100;
-                                app.loadingMessage = 'Connected!';
+                                app.loadingMessage = t('ai.connected');
                                 setTimeout(() => { app.showModelLoading = false; }, 500);
-                                alert(`✓ Connected to local server successfully! (took ${elapsed}s)`);
+                                alert(t('ai.connectedLocalPrefix') + elapsed + t('ai.connectedLocalSuffix'));
                                 break;
                             }
                         } catch (err) {
@@ -199,15 +191,15 @@
 
                     if (!connected) {
                         const elapsed = Math.floor((attempt * retryDelay) / 1000);
-                        throw new Error(`Could not connect to local server after ${elapsed}s. Make sure llama.cpp server is running and the model is loaded. Large models can take several minutes to load - you may need to wait and try again.`);
+                        throw new Error(t('ai.couldNotConnectPrefix') + elapsed + t('ai.couldNotConnectSuffix'));
                     }
                 } else {
                     // Test API connection (basic validation)
                     if (!app.aiApiKey) {
-                        throw new Error('API key is required');
+                        throw new Error(t('ai.apiKeyRequired'));
                     }
                     if (!app.aiModel) {
-                        throw new Error('Model name is required');
+                        throw new Error(t('ai.modelRequired'));
                     }
 
                     // Get the display name for the model
@@ -220,19 +212,19 @@
                     }
 
                     app.aiStatus = 'ready';
-                    app.aiStatusText = `AI Ready (${modelDisplayName})`;
+                    app.aiStatusText = t('ai.readyApiPrefix') + modelDisplayName + t('ai.readyApiSuffix');
                     app.loadingProgress = 100;
                     setTimeout(() => { app.showModelLoading = false; }, 500);
-                    alert('✓ API settings saved! Ready to generate.');
+                    alert(t('ai.apiSavedReady'));
                 }
 
                 app.showAISettings = false;
             } catch (e) {
                 console.error('AI settings save/test failed:', e);
                 app.aiStatus = 'error';
-                app.aiStatusText = 'Connection failed';
+                app.aiStatusText = t('ai.connectionFailed');
                 app.showModelLoading = false;
-                alert('Connection failed: ' + (e.message || e));
+                alert(t('ai.connectionFailedPrefix') + (e.message || e));
             }
         },
 

@@ -66,7 +66,7 @@
 
     async function deletePrompt(app, id) {
         if (!id) return;
-        if (!confirm('Delete this prompt?')) return;
+        if (!confirm(t('prompt.deleteConfirm'))) return;
         try {
             await db.prompts.delete(id);
             if (app.currentPrompt && app.currentPrompt.id === id) app.currentPrompt = null;
@@ -89,7 +89,7 @@
             let title = newTitle;
             if (!title) {
                 const p = await db.prompts.get(id);
-                title = prompt('Rename prompt:', p && p.title ? p.title : '');
+                title = prompt(t('prompt.renamePrompt'), p && p.title ? p.title : '');
             }
             if (title === null || title === undefined) return; // user cancelled
             title = String(title).trim();

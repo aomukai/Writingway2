@@ -24,7 +24,7 @@
                 const chap = {
                     id: Date.now().toString() + '-c',
                     projectId: app.currentProject.id,
-                    title: 'Chapter 1',
+                    title: t('chapter.defaultTitle'),
                     order: 0,
                     created: new Date(),
                     modified: new Date()
@@ -201,7 +201,7 @@
          * @param {string} sceneId - ID of scene to delete
          */
         async deleteScene(app, sceneId) {
-            if (!confirm('Delete this scene? This cannot be undone.')) return;
+            if (!confirm(t('scene.deleteConfirm'))) return;
             try {
                 const scene = await db.scenes.get(sceneId);
                 await db.scenes.delete(sceneId);

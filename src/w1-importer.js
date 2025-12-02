@@ -9,7 +9,7 @@
          */
         async importProject(app, files) {
             if (!files || files.length === 0) {
-                alert('No files selected. Please select a Writingway 1 project folder.');
+                alert(t('w1.noFilesSelected'));
                 return;
             }
 
@@ -26,7 +26,7 @@
                 // Find structure.json file
                 const structureFile = Object.keys(fileMap).find(p => p.endsWith('_structure.json'));
                 if (!structureFile) {
-                    throw new Error('Could not find project structure file (*_structure.json)');
+                    throw new Error(t('w1.structureMissing'));
                 }
 
                 // Extract project name from structure file name
@@ -109,14 +109,14 @@
                 app.showW1ImportModal = false;
                 app.w1ImportInProgress = false;
 
-                alert(`✓ Successfully imported "${projectName}"!\n\n${chapterOrder} chapters and ${totalScenes} scenes imported.\n\nCheck console for details if scenes have no content.`);
+                alert(t('w1.importSuccessPrefix') + projectName + t('w1.importSuccessSuffix') + chapterOrder + t('w1.importSuccessChaptersSuffix') + totalScenes + t('w1.importSuccessScenesSuffix'));
 
                 // Open the imported project
                 await app.openProject(projectId);
 
             } catch (e) {
                 console.error('Failed to import Writingway 1 project:', e);
-                alert(`Failed to import project:\n\n${e.message}\n\nSee console for details.`);
+                alert(t('w1.importFailedPrefix') + (e.message || e) + t('w1.importFailedSuffix'));
                 app.w1ImportInProgress = false;
             }
         },

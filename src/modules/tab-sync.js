@@ -202,10 +202,7 @@
                         } else {
                             // Scene was modified in another tab and user has no unsaved changes
                             console.warn('⚠️ Showing conflict dialog');
-                            const shouldReload = confirm(
-                                `This scene was modified in another tab.\n\n` +
-                                `Click OK to reload the latest version, or Cancel to keep your current changes.`
-                            );
+                            const shouldReload = confirm(t('tab.sceneModifiedConfirm'));
                             if (shouldReload) {
                                 await app.loadScene?.(data.id);
                             } else {
@@ -223,7 +220,7 @@
                 }
                 break; case MSG_TYPES.PROJECT_DELETED:
                 if (app.currentProject?.id === data.id) {
-                    alert('This project was deleted in another tab.');
+                    alert(t('tab.projectDeletedOtherTab'));
                     app.currentProject = null;
                     await app.loadProjects?.();
                 } else {
@@ -239,7 +236,7 @@
 
             case MSG_TYPES.SCENE_DELETED:
                 if (app.currentScene?.id === data.id) {
-                    alert('This scene was deleted in another tab.');
+                    alert(t('tab.sceneDeletedOtherTab'));
                     app.currentScene = null;
                     await app.loadChapters?.();
                 } else if (app.currentProject?.id === data.projectId) {
@@ -338,15 +335,15 @@
                 editor.style.backgroundColor = 'var(--bg-secondary)';
                 editor.style.cursor = 'not-allowed';
                 editor.style.opacity = '0.7';
-                editor.title = 'Read-only: Open in the first tab to edit';
+                editor.title = t('tab.readOnlyTooltip');
 
                 // Add a prominent banner to the editor header
                 addReadOnlyBanner();
 
                 // Show notification
                 if (app.currentScene) {
-                    alert('⚠️ Editor is READ-ONLY\n\nOnly the first tab can edit scenes to prevent conflicts.\n\nYou can still use other features like Settings, Workshop, etc.');
-                }
+                        alert(t('tab.readOnlyAlert'));
+                    }
             } else {
                 editor.style.backgroundColor = '';
                 editor.style.cursor = '';
@@ -390,7 +387,7 @@
 
         banner.innerHTML = `
             <span style="font-size: 20px;">🔒</span>
-            <span>READ-ONLY MODE: This is not the primary tab. Close other tabs or use the first tab to edit.</span>
+            <span>${t('tab.readOnlyBanner')}</span>
         `;
 
         editorHeader.insertAdjacentElement('afterend', banner);
@@ -398,7 +395,7 @@
         // Update document title
         const originalTitle = document.title;
         if (!originalTitle.startsWith('🔒')) {
-            document.title = '🔒 READ-ONLY | ' + originalTitle;
+            document.title = '🔒 ' + t('tab.readOnlyTitlePrefix') + ' | ' + originalTitle;
         }
     }
 
@@ -409,8 +406,8 @@
         }
 
         // Restore document title
-        if (document.title.startsWith('🔒 READ-ONLY | ')) {
-            document.title = document.title.replace('🔒 READ-ONLY | ', '');
+        if (document.title.startsWith('🔒 ')) {
+            document.title = document.title.replace(/^🔒 .*? \| /, '');
         }
     }
 

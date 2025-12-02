@@ -88,6 +88,7 @@ function createAppState() {
         // ========== App Initialization State ==========
         appReady: false,
         initProgress: 0,
+        locale: (window.i18n && window.i18n.locale) || 'zh-CN',
 
         // ========== Scene Editing State ==========
         currentScene: null,
@@ -148,6 +149,7 @@ function createAppState() {
             scenes: {}, // { sceneId: 'full' | 'summary' | null }
             tags: [] // Array of tag strings
         },
+        allCompendiumEntries: [],
 
         // ========== Prompts / Codex State ==========
         prompts: [],
