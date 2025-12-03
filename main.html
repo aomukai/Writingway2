@@ -6,8 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title x-text="(locale, t('app.title'))"></title>
     <!-- Note: This file should be named main.html and opened via start.bat -->
-    <script src="https://cdn.jsdelivr.net/npm/dexie@3.2.4/dist/dexie.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="src/lib/dexie.min.js"></script>
+    <script src="src/lib/jszip.min.js"></script>
     <!-- Phase 1 Refactoring: Database and test helpers extracted -->
     <script defer src="src/db.js"></script>
     <script defer src="src/test-helpers.js"></script>
@@ -104,12 +104,12 @@
                             <template x-if="projects.length > 1">
                                 <div>
                                     <button
-                                        @click="currentProjectCarouselIndex = (currentProjectCarouselIndex - 1 + projects.length) % projects.length"
+                                        @click="currentProjectId = projects[(projects.findIndex(p=>p.id===currentProjectId) - 1 + projects.length) % projects.length]?.id || projects[0]?.id"
                                         class="btn btn-secondary"
                                         style="position:absolute;left:-60px;top:50%;transform:translateY(-50%);padding:12px 16px;font-size:20px;z-index:10;"
                                         :title="(locale, t('nav.prevProject'))">‹</button>
                                     <button
-                                        @click="currentProjectCarouselIndex = (currentProjectCarouselIndex + 1) % projects.length"
+                                        @click="currentProjectId = projects[(projects.findIndex(p=>p.id===currentProjectId) + 1) % projects.length]?.id || projects[0]?.id"
                                         class="btn btn-secondary"
                                         style="position:absolute;right:-60px;top:50%;transform:translateY(-50%);padding:12px 16px;font-size:20px;z-index:10;"
                                         :title="(locale, t('nav.nextProject'))">›</button>
@@ -118,7 +118,7 @@
 
                             <!-- Project Card -->
                             <template x-for="(project, index) in projects" :key="project.id">
-                                <div x-show="index === currentProjectCarouselIndex"
+                                <div x-show="project.id === currentProjectId"
                                     x-transition:enter="transition ease-out duration-300"
                                     x-transition:enter-start="opacity-0 transform scale-95"
                                     x-transition:enter-end="opacity-100 transform scale-100"
@@ -181,7 +181,7 @@
                             <template x-if="projects.length > 1">
                                 <div
                                     style="text-align:center;margin-top:24px;color:rgba(255,255,255,0.5);font-size:14px;">
-                                    <span x-text="(currentProjectCarouselIndex + 1) + ' / ' + projects.length"></span>
+                                    <span x-text="(projects.findIndex(p => p.id === currentProjectId) + 1) + ' / ' + projects.length"></span>
                                 </div>
                             </template>
                         </div>
@@ -1581,7 +1581,7 @@
                             <span x-text="(locale, t('tts.speed.faster'))"></span>
                         </div>
                         <p style="font-size:11px;color:var(--text-secondary);margin:4px 0 0 0;">
-                            Higher speeds are useful when editing - you can catch errors faster
+                            <span x-text="(locale, t('tts.speedTip'))"></span>
                         </p>
                     </div>
 

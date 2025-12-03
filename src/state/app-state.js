@@ -38,6 +38,7 @@ function createAppState() {
         // ========== Projects Carousel View ==========
         showProjectsView: false,
         currentProjectCarouselIndex: 0,
+        currentProjectId: null,  // 当前轮播项目 ID（取代索引，避免数组重排序问题）
 
         // ========== Writingway 1 Import ==========
         showW1ImportModal: false,

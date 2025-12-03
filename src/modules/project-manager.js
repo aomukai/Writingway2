@@ -37,6 +37,9 @@
             await this.loadProjects(app);
             await this.selectProject(app, project.id);
             await this.createDefaultScene(app);
+            
+            // 设置轮播当前项目 ID（ID 匹配轮播，永不乱序）
+            app.currentProjectId = project.id;
         },
 
         /**
@@ -97,7 +100,12 @@
          * @param {Object} app - Alpine app instance
          */
         async loadProjects(app) {
-            app.projects = await db.projects.orderBy('created').reverse().toArray();
+            app.projects = await db.projects.orderBy('created').toArray();  // 最早创建在前，新项目在末尾
+            
+            // 加载项目后同步轮播 ID（如果无当前则选第一个，避免空显示）
+            if (!app.currentProjectId && app.projects.length > 0) {
+                app.currentProjectId = app.projects[0].id;
+            }
         },
 
         /**
@@ -303,8 +311,22 @@
                     });
                 }
 
+                // 记录删除前当前轮播位置
+                const oldIdx = app.projects.findIndex(p => p.id === app.currentProjectId);
+
                 // Reload projects list
                 await this.loadProjects(app);
+
+                // 智能保持相对位置：删当前或位置超范围 → 调整到前一个/最后一个
+                let newIdx = oldIdx;
+                if (newIdx < 0 || newIdx >= app.projects.length) {
+                    newIdx = app.projects.length - 1;  // 超范围 → 最后一个 (3/3删→2/2)
+                }
+                if (app.projects.length > 0) {
+                    app.currentProjectId = app.projects[newIdx].id;
+                } else {
+                    app.currentProjectId = null;
+                }
 
                 // If we deleted the current project, clear it
                 if (app.currentProject && app.currentProject.id === projectId) {
