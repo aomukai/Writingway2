@@ -154,7 +154,7 @@ function createAppState() {
 
         // ========== Prompts / Codex State ==========
         prompts: [],
-        promptCategories: ['prose', 'rewrite', 'summary', 'workshop'],
+        promptCategories: [t('prompts.prose'), t('prompts.rewrite'), t('prompts.summary'), t('prompts.workshop')],
         promptCollapsed: {},
         currentPrompt: {},
         promptEditorContent: '',
@@ -162,7 +162,7 @@ function createAppState() {
         selectedProsePromptId: null, // Selected prose prompt for generation
 
         // ========== Compendium State ==========
-        compendiumCategories: ['characters', 'places', 'items', 'lore', 'notes'],
+        compendiumCategories: [t('compendium.characters'), t('compendium.places'), t('compendium.items'), t('compendium.lore'), t('compendium.notes')],
         compendiumCounts: {},
         currentCompCategory: 'lore',
         compendiumList: [],

@@ -627,8 +627,8 @@
                                 <template
                                     x-if="workshopSessions[currentWorkshopSessionIndex] && workshopSessions[currentWorkshopSessionIndex].messages.length === 0">
                                     <div
-                                        style="text-align:center;color:var(--text-secondary);font-size:13px;padding:20px;">
-                                        Start a conversation with the AI to brainstorm ideas...
+                                        style="text-align:center;color:var(--text-secondary);font-size:13px;padding:20px;"
+                                        x-text="(locale, t('workshop.emptyStart'))">
                                     </div>
                                 </template>
                                 <template x-if="workshopSessions[currentWorkshopSessionIndex]">
@@ -749,8 +749,9 @@
                                         <button @click="insertSpecialChar('\u2002')" class="special-char-btn" x-text="(locale, t('special.enSpace'))"></button>
                                         <button @click="insertSpecialChar('\u2009')" class="special-char-btn" x-text="(locale, t('special.thinSpace'))"></button>
                                         <div
-                                            style="font-size:10px;color:var(--text-secondary);margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
-                                            Tip: Type -- for em dash (—)</div>
+                                            style="font-size:10px;color:var(--text-secondary);margin-top:8px;padding-top:8px;border-top:1px solid var(--border);"
+                                            x-text="(locale, t('format.emDashTip'))">
+                                        </div>
                                     </div>
                                 </div>
 
@@ -973,14 +974,14 @@
                         <!-- Scenes Section -->
                         <div
                             style="background:var(--bg-secondary);padding:12px;border-radius:6px;border:1px solid var(--border);">
-                            <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:8px;">
-                                📄 Scenes
+                            <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:8px;"
+                                x-text="(locale, t('context.scenesTitle'))">
                             </div>
                             <div style="max-height:300px;overflow-y:auto;">
                                 <template x-if="chapters.length === 0">
                                     <div
-                                        style="font-size:12px;color:var(--text-tertiary);padding:8px;text-align:center;">
-                                        No scenes yet
+                                        style="font-size:12px;color:var(--text-tertiary);padding:8px;text-align:center;"
+                                        x-text="(locale, t('common.noScenes'))">
                                     </div>
                                 </template>
                                 <template x-for="chapter in chapters" :key="chapter.id">
@@ -1053,12 +1054,12 @@
                         <!-- Tags Section -->
                         <div
                             style="background:var(--bg-secondary);padding:12px;border-radius:6px;border:1px solid var(--border);">
-                            <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:8px;">
-                                🏷️ Tags
+                            <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:8px;"
+                                x-text="(locale, t('context.tagsTitle'))">
                             </div>
                             <template x-if="getAllTags().length === 0">
-                                <div style="font-size:12px;color:var(--text-tertiary);padding:8px;text-align:center;">
-                                    No tags yet. Add tags to scenes in their summary panel.
+                                <div style="font-size:12px;color:var(--text-tertiary);padding:8px;text-align:center;"
+                                    x-text="(locale, t('context.noTagsHelp'))">
                                 </div>
                             </template>
                             <div x-show="getAllTags().length > 0" style="display:flex;flex-wrap:wrap;gap:10px;">
@@ -1757,8 +1758,7 @@
                                                         :title="(locale, t('common.more'))">⋯</button>
                                                     <div x-show="openMenu" x-cloak @click.away="openMenu = false"
                                                         x-transition class="action-menu">
-                                                        <button @click.stop="movePromptUp(pr.id); openMenu=false">Move
-                                                            up</button>
+                                                        <button @click.stop="movePromptUp(pr.id); openMenu=false" x-text="(locale, t('prompts.moveUp'))"></button>
                                                         <button @click.stop="movePromptDown(pr.id); openMenu=false" x-text="(locale, t('common.moveDown'))"></button>
                                                         <button
                                                             @click.stop="renamePrompt(pr.id); openMenu=false" x-text="(locale, t('common.rename'))"></button>
@@ -1776,8 +1776,7 @@
 
                     <div style="flex:1;display:flex;flex-direction:column;">
                         <div style="flex:0 0 auto;margin-bottom:6px;">
-                            <div x-show="!currentPrompt" style="color:var(--text-secondary);">Select a prompt or create
-                                a new one.</div>
+                            <div x-show="!currentPrompt" style="color:var(--text-secondary);" x-text="(locale, t('prompts.selectOrCreate'))"></div>
                             <div x-show="currentPrompt">
                                 <input type="text" x-model="currentPrompt.title"
                                     style="width:100%;padding:8px;border:1px solid var(--border);background:var(--bg-primary);color:var(--text-primary);border-radius:6px;margin-bottom:6px;">
@@ -2304,7 +2303,7 @@
                                         <template x-if="allCompendiumEntries.length === 0">
                                             <div
                                                 style="font-size:12px;color:var(--text-tertiary);padding:20px;text-align:center;">
-                                                No compendium entries yet
+                                                x-text=(locale, "t('compendium.noEntries')")
                                             </div>
                                         </template>
                                         <template x-for="category in compendiumCategories" :key="category">
@@ -2362,14 +2361,14 @@
                                                             :style="contextPanel.chapters[chapter.id] === 'full' ? 'background:var(--accent);color:white;font-weight:600;' : 'background:var(--bg-primary);color:var(--text-primary);'"
                                                             class="context-chapter-btn"
                                                             :title="(locale, t('context.includeFullAll'))">
-                                                            📄 Full Text
+                                                            📄 <span x-text="(locale, t('context.fullText'))"></span>
                                                         </button>
                                                         <button
                                                             @click="setContextChapter(chapter.id, contextPanel.chapters[chapter.id] === 'summary' ? null : 'summary')"
                                                             :style="contextPanel.chapters[chapter.id] === 'summary' ? 'background:var(--accent);color:white;font-weight:600;' : 'background:var(--bg-primary);color:var(--text-primary);'"
                                                             class="context-chapter-btn"
                                                             :title="(locale, t('context.includeSummaryAll'))">
-                                                            📝 Summary
+                                                            📝 <span x-text="(locale, t('context.summary'))"></span>
                                                         </button>
                                                     </div>
                                                 </div>
