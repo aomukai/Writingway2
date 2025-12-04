@@ -61,43 +61,32 @@ document.addEventListener('alpine:init', () => {
 
             // Initialize
             async init() {
-                this.updateLoadingScreen(10, 'Initializing...', 'Checking startup method...');
+                this.updateLoadingScreen(10, t('loading.initializing'), t('loading.checkStartup'));
 
                 // Detect if opened via file:// protocol and warn user
                 if (window.location.protocol === 'file:') {
-                    const useFileDirect = confirm(
-                        '⚠️ IMPORTANT: Data Storage Location\n\n' +
-                        'You opened Writingway directly (file://) instead of using start.bat\n\n' +
-                        'This means:\n' +
-                        '• Your projects are stored in a DIFFERENT database than start.bat\n' +
-                        '• Local AI server will NOT be running\n' +
-                        '• You cannot use local models without start.bat\n\n' +
-                        'RECOMMENDATION: Close this and run start.bat instead.\n\n' +
-                        'Click OK to continue anyway (different database)\n' +
-                        'Click Cancel to see instructions'
-                    );
+                    const useFileDirect = confirm(t('fileDirect.confirm'));
 
                     if (!useFileDirect) {
                         document.body.innerHTML = `
                         <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#1a1a1a;color:#e0e0e0;font-family:system-ui,-apple-system,sans-serif;padding:20px;">
                             <div style="max-width:600px;background:#2a2a2a;border:2px solid #4a9eff;border-radius:12px;padding:32px;">
-                                <h1 style="margin:0 0 16px 0;color:#4a9eff;font-size:24px;">🚀 How to Start Writingway</h1>
+                                <h1 style="margin:0 0 16px 0;color:#4a9eff;font-size:24px;">${t('instructions.title')}</h1>
                                 <ol style="line-height:1.8;padding-left:24px;margin:16px 0;">
-                                    <li>Close this browser tab</li>
-                                    <li>Navigate to your Writingway folder: <code style="background:#1a1a1a;padding:2px 6px;border-radius:4px;">E:\\Writingway2</code></li>
-                                    <li>Double-click <code style="background:#1a1a1a;padding:2px 6px;border-radius:4px;color:#4a9eff;font-weight:600;">start.bat</code></li>
+                                    <li>${t('instructions.closeTab')}</li>
+                                    <li>${t('instructions.navigateFolder')} <code style="background:#1a1a1a;padding:2px 6px;border-radius:4px;">E:\\Writingway2</code></li>
+                                    <li>${t('instructions.doubleClickStartBat')}</li>
                                 </ol>
                                 <div style="background:rgba(74,158,255,0.1);border:1px solid rgba(74,158,255,0.3);border-radius:8px;padding:16px;margin-top:20px;">
-                                    <p style="margin:0;font-size:14px;"><strong>Why?</strong></p>
+                                    <p style="margin:0;font-size:14px;"><strong>${t('instructions.whyTitle')}</strong></p>
                                     <p style="margin:8px 0 0 0;font-size:13px;line-height:1.6;">
-                                        start.bat ensures:<br>
-                                        • Unified project database (http://localhost:8000)<br>
-                                        • Local AI server running with GPU support<br>
-                                        • Fast model loading (2-3 seconds vs minutes)<br>
-                                        • Proper CORS and security settings
+                                        ${t('instructions.ensures.unifiedDb')}<br>
+                                        ${t('instructions.ensures.localServer')}<br>
+                                        ${t('instructions.ensures.fastLoading')}<br>
+                                        ${t('instructions.ensures.cors')}
                                     </p>
                                 </div>
-                                <button onclick="window.close()" style="margin-top:20px;padding:10px 20px;background:#4a9eff;color:white;border:none;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600;">Close This Tab</button>
+                                <button onclick="window.close()" style="margin-top:20px;padding:10px 20px;background:#4a9eff;color:white;border:none;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600;">${t('instructions.closeButton')}</button>
                             </div>
                         </div>
                     `;
@@ -105,7 +94,7 @@ document.addEventListener('alpine:init', () => {
                     }
                 }
 
-                this.updateLoadingScreen(20, 'Loading projects...', 'Accessing local database...');
+                this.updateLoadingScreen(20, t('loading.loadingProjects'), t('loading.accessingDb'));
 
                 // Load projects and show projects view instead of auto-loading
                 try {
@@ -118,12 +107,12 @@ document.addEventListener('alpine:init', () => {
                     console.error('Failed to load projects:', e);
                 }
 
-                this.updateLoadingScreen(40, 'Loading AI settings...', 'Configuring generation parameters...');
+                this.updateLoadingScreen(40, t('loading.loadingAISettings'), t('loading.configuringParams'));
 
                 // Load AI settings from localStorage
                 await this.loadAISettings();
 
-                this.updateLoadingScreen(50, 'Initializing AI...', 'This may take 2-3 minutes on first run...');
+                this.updateLoadingScreen(50, t('loading.initializingAI'), t('loading.AILoadMayTakeLong'));
 
                 // Initialize tab sync for multi-tab coordination
                 if (window.TabSync && typeof window.TabSync.init === 'function') {
@@ -142,13 +131,13 @@ document.addEventListener('alpine:init', () => {
                     } catch (e) {
                         console.error('AI init failed:', e);
                         this.aiStatus = 'error';
-                        this.aiStatusText = 'AI init failed';
+                        this.aiStatusText = t('ai.initFailedStatus');
                         this.showModelLoading = false;
                     }
                 } else {
                     // Fallback if ai.js is not loaded
                     this.aiStatus = 'error';
-                    this.aiStatusText = 'AI module missing';
+                    this.aiStatusText = t('ai.moduleMissingStatus');
                     this.showModelLoading = false;
                 }
 
@@ -214,7 +203,7 @@ document.addEventListener('alpine:init', () => {
                     } catch (e) { /* ignore */ }
                 }, true);
 
-                this.updateLoadingScreen(70, 'Loading features...', 'Setting up text-to-speech and updates...');
+                this.updateLoadingScreen(70, t('loading.loadingFeatures'), t('loading.setupTTSUpdates'));
 
                 // Check for updates on startup (silent mode)
                 if (window.UpdateChecker) {
@@ -237,7 +226,7 @@ document.addEventListener('alpine:init', () => {
                     }, 500);
                 }
 
-                this.updateLoadingScreen(85, 'Almost ready...', 'Finalizing setup...');
+                this.updateLoadingScreen(85, t('loading.almostReady'), t('loading.finalizingSetup'));
 
                 // Selection change handler: show Rewrite button when text is selected
                 const self = this;
@@ -310,7 +299,7 @@ document.addEventListener('alpine:init', () => {
                 }
 
                 // Final step: hide loading screen
-                this.updateLoadingScreen(100, 'Ready!', 'Welcome to Writingway');
+                this.updateLoadingScreen(100, t('loading.ready'), t('loading.welcome'));
                 setTimeout(() => {
                     this.hideLoadingScreen();
                     // Now that initialization is complete, enable watchers
@@ -375,7 +364,7 @@ document.addEventListener('alpine:init', () => {
             // TTS: Toggle reading current scene aloud
             toggleTTS() {
                 if (!window.TTS) {
-                    alert('Text-to-Speech not available');
+                    alert(t('tts.notAvailable'));
                     return;
                 }
 
@@ -386,12 +375,12 @@ document.addEventListener('alpine:init', () => {
                 } else {
                     // Start reading current scene (only works in preview mode)
                     if (!this.currentScene) {
-                        alert('No scene selected to read');
+                        alert(t('tts.noSceneSelected'));
                         return;
                     }
 
                     if (!this.showMarkdownPreview) {
-                        alert('Switch to Preview mode to use Read Aloud');
+                        alert(t('tts.switchToPreview'));
                         return;
                     }
 
@@ -400,7 +389,7 @@ document.addEventListener('alpine:init', () => {
                     const text = preview ? preview.innerText.trim() : '';
 
                     if (!text || text.length === 0) {
-                        alert('Scene is empty - nothing to read');
+                        alert(t('tts.emptyScene'));
                         return;
                     }
 
@@ -946,21 +935,21 @@ document.addEventListener('alpine:init', () => {
             // Rename a project from carousel
             async renameProject(project) {
                 if (!project) return;
-                const newName = prompt('Enter new project name:', project.name);
+                const newName = prompt(t('project.renamePrompt'), project.name);
                 if (!newName || newName === project.name) return;
                 try {
                     await db.projects.update(project.id, { name: newName, modified: new Date() });
                     await this.loadProjects();
                 } catch (e) {
                     console.error('Failed to rename project:', e);
-                    alert('Failed to rename project.');
+                    alert(t('project.renameFailed'));
                 }
             },
 
             // Update project cover image
             async updateProjectCover(projectId, file) {
                 if (!file || !file.type.startsWith('image/')) {
-                    alert('Please select an image file.');
+                    alert(t('project.selectImageFile'));
                     return;
                 }
 
@@ -996,7 +985,7 @@ document.addEventListener('alpine:init', () => {
                         img.src = e.target.result;
                     } catch (err) {
                         console.error('Failed to process cover image:', err);
-                        alert('Failed to process image.');
+                        alert(t('project.processImageFailed'));
                     }
                 };
                 reader.readAsDataURL(file);
@@ -1016,7 +1005,7 @@ document.addEventListener('alpine:init', () => {
             // Import project from Writingway 1
             async importFromW1(event) {
                 if (!window.W1Importer) {
-                    alert('W1 Importer module not loaded');
+                    alert(t('w1.importerNotLoaded'));
                     return;
                 }
                 await window.W1Importer.importProject(this, event.target.files);
@@ -1077,7 +1066,7 @@ document.addEventListener('alpine:init', () => {
                     }
                 } catch (e) {
                     console.error('Export error:', e);
-                    alert('Export failed: ' + (e.message || e));
+                    alert(t('export.failedPrefix') + (e.message || e));
                 }
             },
 
@@ -1331,7 +1320,7 @@ document.addEventListener('alpine:init', () => {
                     const chapter = {
                         id: Date.now().toString() + '-c',
                         projectId: this.currentProject.id,
-                        title: 'Chapter 1',
+                        title: t('chapter.defaultTitle'),
                         order: 0,
                         created: new Date(),
                         modified: new Date()
@@ -1429,7 +1418,7 @@ document.addEventListener('alpine:init', () => {
                     this.renameChapterName = '';
                 } catch (e) {
                     console.error('Failed to rename chapter:', e);
-                    alert('Failed to rename chapter');
+                    alert(t('chapter.renameFailed'));
                 }
             },
 
@@ -1455,13 +1444,17 @@ document.addEventListener('alpine:init', () => {
                     this.renameSceneName = '';
                 } catch (e) {
                     console.error('Failed to rename scene:', e);
-                    alert('Failed to rename scene');
+                    alert(t('scene.renameFailed'));
                 }
             },
 
             // Editor
             onEditorChange(e) {
-                // Content automatically updated via x-model
+                if (this.currentScene) {
+                    this.currentScene.content = e.target && e.target.value !== undefined ? e.target.value : '';
+                } else {
+                    return;
+                }
                 this.saveStatus = 'Unsaved';
                 clearTimeout(this.saveTimeout);
                 this.saveTimeout = setTimeout(() => {
@@ -1604,7 +1597,7 @@ document.addEventListener('alpine:init', () => {
             // This honors POV, tense, selected prose prompt, and includes scene context.
             async previewPrompt() {
                 if (!this.beatInput) {
-                    alert('No beat provided to preview.');
+                    alert(t('preview.noBeat'));
                     return;
                 }
 
@@ -1723,7 +1716,7 @@ document.addEventListener('alpine:init', () => {
 
                 } catch (e) {
                     console.error('previewPrompt error', e);
-                    alert('Failed to build preview prompt: ' + (e && e.message ? e.message : e));
+                    alert(t('preview.buildFailedPrefix') + (e && e.message ? e.message : e));
                 }
             },
 
@@ -1990,12 +1983,12 @@ document.addEventListener('alpine:init', () => {
             async saveBackupSettings() {
                 // Validate token first
                 if (this.githubToken) {
-                    this.backupStatus = 'Validating token...';
+                    this.backupStatus = t('backup.validatingToken');
                     const result = await window.GitHubBackup.validateToken(this.githubToken);
 
                     if (!result.valid) {
-                        alert('Invalid GitHub token: ' + result.error);
-                        this.backupStatus = 'Token invalid';
+                        alert(t('backup.invalidTokenPrefix') + result.error);
+                        this.backupStatus = t('backup.tokenInvalid');
                         return;
                     }
 
@@ -2008,10 +2001,10 @@ document.addEventListener('alpine:init', () => {
                 // Start or stop auto-backup based on enabled state
                 if (this.backupEnabled && this.githubToken) {
                     window.GitHubBackup.startAutoBackup(this);
-                    this.backupStatus = 'Auto-backup enabled';
+                    this.backupStatus = t('backup.autoEnabled');
                 } else {
                     window.GitHubBackup.stopAutoBackup();
-                    this.backupStatus = 'Auto-backup disabled';
+                    this.backupStatus = t('backup.autoDisabled');
                 }
 
                 this.showBackupSettings = false;
@@ -2019,34 +2012,34 @@ document.addEventListener('alpine:init', () => {
 
             async backupNow() {
                 if (!this.githubToken || !this.currentProject) {
-                    alert('Please configure GitHub token and select a project first.');
+                    alert(t('backup.configureFirst'));
                     return;
                 }
 
-                this.backupStatus = 'Backing up...';
+                this.backupStatus = t('backup.backingUp');
                 const result = await window.GitHubBackup.backupToGist(this);
 
                 if (result.success) {
                     this.lastBackupTime = new Date();
-                    this.backupStatus = 'Backed up';
+                    this.backupStatus = t('backup.backedUp');
                     if (result.gistId) {
                         this.currentProjectGistId = result.gistId;
                         window.GitHubBackup.saveBackupSettings(this);
                     }
-                    alert('Backup successful!');
+                    alert(t('backup.success'));
                 } else {
-                    this.backupStatus = 'Backup failed';
-                    alert('Backup failed: ' + result.error);
+                    this.backupStatus = t('backup.failedStatus');
+                    alert(t('backup.failedPrefix') + result.error);
                 }
             },
 
             async openRestoreModal() {
                 if (!this.githubToken || !this.currentProjectGistId) {
-                    alert('No backup configured for this project.');
+                    alert(t('backup.noConfig'));
                     return;
                 }
 
-                this.backupStatus = 'Loading backups...';
+                this.backupStatus = t('backup.loading');
                 const result = await window.GitHubBackup.listBackups(this);
 
                 if (result.success) {
@@ -2054,8 +2047,8 @@ document.addEventListener('alpine:init', () => {
                     this.showRestoreModal = true;
                     this.backupStatus = '';
                 } else {
-                    alert('Failed to load backups: ' + result.error);
-                    this.backupStatus = 'Failed to load';
+                    alert(t('backup.failedLoadPrefix') + result.error);
+                    this.backupStatus = t('backup.failedLoadStatus');
                 }
             },
 
@@ -2065,21 +2058,21 @@ document.addEventListener('alpine:init', () => {
             },
 
             async restoreBackup(versionUrl) {
-                if (!confirm('This will replace your current project with the backup. Continue?')) {
+                if (!confirm(t('backup.restoreConfirm'))) {
                     return;
                 }
 
-                this.backupStatus = 'Restoring...';
+                this.backupStatus = t('backup.restoring');
                 const result = await window.GitHubBackup.restoreFromBackup(this, versionUrl);
 
                 if (result.success) {
-                    this.backupStatus = 'Restored';
-                    alert('Backup restored successfully!');
+                    this.backupStatus = t('backup.restoredStatus');
+                    alert(t('backup.restoredSuccess'));
                     this.showRestoreModal = false;
                     this.backupList = [];
                 } else {
-                    this.backupStatus = 'Restore failed';
-                    alert('Restore failed: ' + result.error);
+                    this.backupStatus = t('backup.restoreFailedStatus');
+                    alert(t('backup.restoreFailedPrefix') + result.error);
                 }
             }
         }; // End of app state + methods

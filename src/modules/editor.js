@@ -204,12 +204,12 @@
                 // Notify user if response was truncated
                 if (result?.finishReason === 'length' || result?.finishReason === 'MAX_TOKENS') {
                     console.warn('⚠️ Rewrite hit token limit');
-                    alert('⚠️ The generation reached the token limit and may be incomplete.\n\nTip: Increase "Max Length" in AI Settings (⚙️) for longer responses.');
+                    alert(t('generation.tokenLimitTip'));
                 }
             } catch (e) {
                 console.error('performRewrite error', e);
                 app.rewriteInProgress = false;
-                alert('Rewrite failed: ' + (e && e.message ? e.message : e));
+                alert(t('rewrite.failedPrefix') + (e && e.message ? e.message : e));
             }
         },
 

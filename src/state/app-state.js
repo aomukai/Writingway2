@@ -38,6 +38,7 @@ function createAppState() {
         // ========== Projects Carousel View ==========
         showProjectsView: false,
         currentProjectCarouselIndex: 0,
+        currentProjectId: null,  // 当前轮播项目 ID（取代索引，避免数组重排序问题）
 
         // ========== Writingway 1 Import ==========
         showW1ImportModal: false,
@@ -88,6 +89,7 @@ function createAppState() {
         // ========== App Initialization State ==========
         appReady: false,
         initProgress: 0,
+        locale: (window.i18n && window.i18n.locale) || 'zh-CN',
 
         // ========== Scene Editing State ==========
         currentScene: null,
@@ -148,10 +150,11 @@ function createAppState() {
             scenes: {}, // { sceneId: 'full' | 'summary' | null }
             tags: [] // Array of tag strings
         },
+        allCompendiumEntries: [],
 
         // ========== Prompts / Codex State ==========
         prompts: [],
-        promptCategories: ['prose', 'rewrite', 'summary', 'workshop'],
+        promptCategories: [t('prompts.prose'), t('prompts.rewrite'), t('prompts.summary'), t('prompts.workshop')],
         promptCollapsed: {},
         currentPrompt: {},
         promptEditorContent: '',
@@ -159,7 +162,7 @@ function createAppState() {
         selectedProsePromptId: null, // Selected prose prompt for generation
 
         // ========== Compendium State ==========
-        compendiumCategories: ['characters', 'places', 'items', 'lore', 'notes'],
+        compendiumCategories: [t('compendium.characters'), t('compendium.places'), t('compendium.items'), t('compendium.lore'), t('compendium.notes')],
         compendiumCounts: {},
         currentCompCategory: 'lore',
         compendiumList: [],

@@ -186,7 +186,7 @@
          */
         confirmRemoveCompImage(app) {
             if (!app.currentCompEntry || !app.currentCompEntry.imageUrl) return;
-            if (confirm('Remove this image from the entry?')) {
+            if (confirm(t('compendium.removeImageConfirm'))) {
                 app.currentCompEntry.imageUrl = null;
             }
         },
@@ -198,7 +198,7 @@
          */
         async deleteCompendiumEntry(app, id) {
             if (!id) return;
-            if (!confirm('Delete this compendium entry?')) return;
+            if (!confirm(t('compendium.deleteEntryConfirm'))) return;
             try {
                 await window.Compendium.deleteEntry(id);
                 app.currentCompEntry = null;

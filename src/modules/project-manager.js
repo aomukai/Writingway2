@@ -37,6 +37,9 @@
             await this.loadProjects(app);
             await this.selectProject(app, project.id);
             await this.createDefaultScene(app);
+            
+            // 设置轮播当前项目 ID（ID 匹配轮播，永不乱序）
+            app.currentProjectId = project.id;
         },
 
         /**
@@ -50,7 +53,7 @@
                 chapter = {
                     id: Date.now().toString() + '-c',
                     projectId: app.currentProject.id,
-                    title: 'Chapter 1',
+                    title: t('chapter.defaultTitle'),
                     order: 0,
                     created: new Date(),
                     modified: new Date()
@@ -70,7 +73,7 @@
                 id: Date.now().toString(),
                 projectId: app.currentProject.id,
                 chapterId: chapter.id,
-                title: 'Scene 1',
+                title: t('scene.defaultTitle'),
                 order: nextOrder,
                 // initialize with current POV options
                 povCharacter: app.povCharacter || '',
@@ -97,7 +100,12 @@
          * @param {Object} app - Alpine app instance
          */
         async loadProjects(app) {
-            app.projects = await db.projects.orderBy('created').reverse().toArray();
+            app.projects = await db.projects.orderBy('created').toArray();  // 最早创建在前，新项目在末尾
+            
+            // 加载项目后同步轮播 ID（如果无当前则选第一个，避免空显示）
+            if (!app.currentProjectId && app.projects.length > 0) {
+                app.currentProjectId = app.projects[0].id;
+            }
         },
 
         /**
@@ -277,7 +285,7 @@
             const project = await db.projects.get(projectId);
             if (!project) return;
 
-            const confirmed = confirm(`Are you sure you want to delete "${project.name}"?\n\nThis will permanently delete:\n• All chapters and scenes\n• All compendium entries\n• All prompts\n• Workshop sessions\n\nThis cannot be undone!`);
+            const confirmed = confirm(t('project.deleteConfirmPrefix') + project.name + t('project.deleteConfirmSuffix') + '\n\n' + t('project.deleteConfirmBody'));
             if (!confirmed) return;
 
             try {
@@ -303,8 +311,22 @@
                     });
                 }
 
+                // 记录删除前当前轮播位置
+                const oldIdx = app.projects.findIndex(p => p.id === app.currentProjectId);
+
                 // Reload projects list
                 await this.loadProjects(app);
+
+                // 智能保持相对位置：删当前或位置超范围 → 调整到前一个/最后一个
+                let newIdx = oldIdx;
+                if (newIdx < 0 || newIdx >= app.projects.length) {
+                    newIdx = app.projects.length - 1;  // 超范围 → 最后一个 (3/3删→2/2)
+                }
+                if (app.projects.length > 0) {
+                    app.currentProjectId = app.projects[newIdx].id;
+                } else {
+                    app.currentProjectId = null;
+                }
 
                 // If we deleted the current project, clear it
                 if (app.currentProject && app.currentProject.id === projectId) {
@@ -320,10 +342,10 @@
                     localStorage.removeItem('writingway:lastProject');
                 }
 
-                alert(`Project "${project.name}" has been deleted.`);
+                alert(t('project.deletedPrefix') + project.name + t('project.deletedSuffix'));
             } catch (e) {
                 console.error('Failed to delete project:', e);
-                alert('Failed to delete project. See console for details.');
+                alert(t('project.deleteFailed'));
             }
         },
 
@@ -355,7 +377,7 @@
             if (!app.currentProject) return;
             try {
                 if (typeof JSZip === 'undefined') {
-                    alert('ZIP export library is not loaded.');
+                    alert(t('export.zipLibNotLoaded'));
                     return;
                 }
 
@@ -417,7 +439,7 @@
                 URL.revokeObjectURL(url);
             } catch (e) {
                 console.error('Export failed:', e);
-                alert('Export failed: ' + (e && e.message ? e.message : e));
+                alert(t('export.failedPrefix') + (e && e.message ? e.message : e));
             }
         },
 
@@ -474,7 +496,7 @@
                 URL.revokeObjectURL(url);
             } catch (e) {
                 console.error('Export failed:', e);
-                alert('Export failed: ' + (e && e.message ? e.message : e));
+                alert(t('export.failedPrefix') + (e && e.message ? e.message : e));
             }
         },
 
@@ -598,7 +620,7 @@
                 URL.revokeObjectURL(url);
             } catch (e) {
                 console.error('Export failed:', e);
-                alert('Export failed: ' + (e && e.message ? e.message : e));
+                alert(t('export.failedPrefix') + (e && e.message ? e.message : e));
             }
         },
 
@@ -610,7 +632,7 @@
             if (!app.currentProject) return;
             try {
                 if (typeof JSZip === 'undefined') {
-                    alert('ZIP library required for EPUB export is not loaded.');
+                    alert(t('export.epubZipLibNotLoaded'));
                     return;
                 }
 
@@ -800,7 +822,7 @@ p:first-of-type {
                 URL.revokeObjectURL(url);
             } catch (e) {
                 console.error('Export failed:', e);
-                alert('Export failed: ' + (e && e.message ? e.message : e));
+                alert(t('export.failedPrefix') + (e && e.message ? e.message : e));
             }
         },
 
@@ -842,7 +864,7 @@ p:first-of-type {
         async importProject(app, e) {
             try {
                 if (typeof JSZip === 'undefined') {
-                    alert('ZIP import library is not loaded.');
+                    alert(t('import.zipLibNotLoaded'));
                     return;
                 }
 
@@ -855,12 +877,12 @@ p:first-of-type {
                 }
 
                 if (!file) {
-                    alert('No file selected.');
+                    alert(t('import.noFileSelected'));
                     return;
                 }
 
                 if (!file.name.endsWith('.zip')) {
-                    alert('Please select a .zip file exported from Writingway.');
+                    alert(t('import.selectZipFromWritingway'));
                     return;
                 }
 
@@ -871,7 +893,7 @@ p:first-of-type {
                 // Read metadata
                 const metadataFile = zip.file('metadata.json');
                 if (!metadataFile) {
-                    alert('Invalid export file: missing metadata.json');
+                    alert(t('import.invalidMissingMetadata'));
                     return;
                 }
 
@@ -879,7 +901,7 @@ p:first-of-type {
                 const metadata = JSON.parse(metadataText);
 
                 if (!metadata.project) {
-                    alert('Invalid export file: missing project data');
+                    alert(t('import.invalidMissingData'));
                     return;
                 }
 
@@ -974,11 +996,11 @@ p:first-of-type {
                 await this.loadProjects(app);
                 await this.selectProject(app, newProjectId);
 
-                alert(`✓ Project imported successfully!\n\n"${newProject.name}"\n\nChapters: ${metadata.chapters.length}\nScenes: ${metadata.chapters.reduce((sum, ch) => sum + ch.scenes.length, 0)}`);
+                alert(t('import.successPrefix') + '\n\n"' + newProject.name + '"\n\n' + t('import.successChapters') + ' ' + metadata.chapters.length + '\n' + t('import.successScenes') + ' ' + metadata.chapters.reduce((sum, ch) => sum + ch.scenes.length, 0));
 
             } catch (e) {
                 console.error('Import failed:', e);
-                alert('Import failed: ' + (e && e.message ? e.message : e));
+                alert(t('import.failedPrefix') + (e && e.message ? e.message : e));
             }
         }
     };

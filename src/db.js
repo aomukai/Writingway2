@@ -28,7 +28,7 @@ db.version(2).stores({
             await tx.table('chapters').add({
                 id: chapId,
                 projectId: p.id,
-                title: 'Chapter 1',
+                title: t('chapter.defaultTitle'),
                 order: 0,
                 created: new Date(),
                 modified: new Date()

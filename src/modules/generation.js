@@ -143,7 +143,7 @@ Generation.generateFromBeat = async function (app) {
         await app.saveScene();
     } catch (error) {
         console.error('Generation error:', error);
-        alert('Failed to generate text. Make sure llama-server is running.\n\nError: ' + (error && error.message ? error.message : error));
+        alert(t('generate.failedPrefix') + (error && error.message ? error.message : error));
     } finally {
         app.isGenerating = false;
     }

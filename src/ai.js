@@ -23,7 +23,7 @@
                     }
                 }
 
-                app.aiStatusText = modelDisplayName ? `AI Ready (${modelDisplayName})` : `AI Ready (${app.aiProvider || 'API'})`;
+                app.aiStatusText = modelDisplayName ? t('ai.readyApiPrefix') + modelDisplayName + t('ai.readyApiSuffix') : t('ai.readyApiPrefix') + app.aiProvider || 'API' + t('ai.readyApiSuffix');
                 console.log('✓ AI configured with API provider');
                 return;
             }
@@ -53,7 +53,7 @@
                     await new Promise(resolve => setTimeout(resolve, 500));
 
                     app.aiStatus = 'ready';
-                    app.aiStatusText = 'AI Ready (Local Server)';
+                    app.aiStatusText = t('ai.readyLocal');
                     app.showModelLoading = false;
 
                     console.log('✓ Connected to llama-server successfully');

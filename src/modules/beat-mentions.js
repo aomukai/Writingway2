@@ -258,13 +258,13 @@
 
                 // Validate summary status
                 if (!hasSummary) {
-                    alert(`⚠️ Scene "${scene.title}" has no summary.\n\nPlease create a summary first by:\n1. Opening the scene's menu (...)\n2. Selecting "Summary"\n3. Clicking "Summarize" then "Save"`);
+                    alert(t('beat.noSummaryPrefix') + scene.title + t('beat.noSummarySuffix'));
                     app.showSceneSearch = false;
                     return;
                 }
 
                 if (isStale) {
-                    const proceed = confirm(`⚠️ Scene "${scene.title}" has an outdated summary.\n\nThe summary may not reflect recent changes.\n\nDo you want to use it anyway?\n\n(Tip: Update the summary first for better results)`);
+                    const proceed = confirm(t('beat.outdatedPrefix') + scene.title + t('beat.outdatedSuffix'));
                     if (!proceed) {
                         app.showSceneSearch = false;
                         return;
