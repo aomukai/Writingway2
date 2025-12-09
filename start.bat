@@ -95,7 +95,8 @@ echo [*] Using model: !MODEL_PATH!
 echo.
 
 REM Start llama.cpp server in background (keep window open with /k)
-start "Writingway AI Server" cmd /k "llama-server.exe -m "!MODEL_PATH!" -c 4096 -ngl 999 --port 8080 --host 127.0.0.1"
+REM Using -c 0 to automatically use the model's maximum context size
+start "Writingway AI Server" cmd /k "llama-server.exe -m "!MODEL_PATH!" -c 0 -ngl 999 --port 8080 --host 127.0.0.1"
 
 echo [*] AI server starting on port 8080...
 echo [*] Waiting for AI server to initialize...

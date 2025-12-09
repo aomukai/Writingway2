@@ -99,7 +99,8 @@ if [ $SKIP_MODEL -eq 0 ]; then
     # Start llama-server in background
     # For Mac: Use Metal GPU acceleration (-ngl 999)
     # For Linux: Use CUDA if available, otherwise CPU
-    ./llama-server -m "$MODEL_PATH" -c 4096 -ngl 999 --port 8080 --host 127.0.0.1 > llama-server.log 2>&1 &
+    # Using -c 0 to automatically use the model's maximum context size
+    ./llama-server -m "$MODEL_PATH" -c 0 -ngl 999 --port 8080 --host 127.0.0.1 > llama-server.log 2>&1 &
     LLAMA_PID=$!
     
     echo "[*] AI server starting on port 8080 (PID: $LLAMA_PID)..."
