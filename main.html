@@ -802,7 +802,7 @@
                             @blur="saveScene()" @keydown.enter.prevent="saveScene()"
                             style="width:100%;margin-top:6px;padding:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
                         <datalist id="character-list">
-                            <template x-for="char in compendiumList.filter(c => c.category === 'characters')"
+                            <template x-for="char in (compendiumLists['characters'] || [])"
                                 :key="char.id">
                                 <option :value="char.title"></option>
                             </template>
@@ -1903,7 +1903,7 @@
 
                         <template x-for="cat in compendiumCategories" :key="cat">
                             <div style="margin-bottom:12px;">
-                                <div class="comp-category" :class="{ 'active': currentCompCategory === cat }"
+                                <div class="comp-category" :class="{ 'active': openCompCategories.includes(cat) }"
                                     tabindex="0" role="button" @click="loadCompendiumCategory(cat)"
                                     @keydown.enter="loadCompendiumCategory(cat)">
                                     <div class="comp-category-label"
@@ -1918,8 +1918,8 @@
                                             :title="`New ${cat} entry`">+</button>
                                     </div>
                                 </div>
-                                <div x-show="currentCompCategory === cat || compendiumSearchQuery" x-cloak style="margin-top:6px;">
-                                    <template x-for="e in compendiumList.filter(entry => !compendiumSearchQuery || entry.title.toLowerCase().includes(compendiumSearchQuery.toLowerCase()) || (entry.body && entry.body.toLowerCase().includes(compendiumSearchQuery.toLowerCase())))" :key="e.id">
+                                <div x-show="openCompCategories.includes(cat) || compendiumSearchQuery" x-cloak style="margin-top:6px;">
+                                    <template x-for="e in (compendiumLists[cat] || []).filter(entry => !compendiumSearchQuery || entry.title.toLowerCase().includes(compendiumSearchQuery.toLowerCase()) || (entry.body && entry.body.toLowerCase().includes(compendiumSearchQuery.toLowerCase())))" :key="e.id">
                                         <div class="comp-entry"
                                             :class="{ 'active': currentCompEntry && currentCompEntry.id === e.id }"
                                             tabindex="0">
@@ -2358,7 +2358,7 @@
                                 @blur="saveScene()" @keydown.enter.prevent="saveScene()"
                                 style="width:100%;margin-top:6px;padding:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
                             <datalist id="character-list">
-                                <template x-for="char in compendiumList.filter(c => c.category === 'characters')"
+                                <template x-for="char in (compendiumLists['characters'] || [])"
                                     :key="char.id">
                                     <option :value="char.title"></option>
                                 </template>

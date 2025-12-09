@@ -172,8 +172,8 @@ function createAppState() {
         // ========== Compendium State ==========
         compendiumCategories: ['characters', 'places', 'items', 'lore', 'notes'],
         compendiumCounts: {},
-        currentCompCategory: 'lore',
-        compendiumList: [],
+        openCompCategories: [], // Array of open category names (supports multiple)
+        compendiumLists: {}, // Object mapping category -> entries array
         currentCompEntry: null,
         compendiumSaveStatus: '',
         newCompTag: '',

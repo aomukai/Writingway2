@@ -13,9 +13,12 @@
                 return;
             }
             app.showCodexPanel = true;
-            // load counts and default category
+            // load counts
             await this.loadCompendiumCounts(app);
-            await this.loadCompendiumCategory(app, app.currentCompCategory);
+            // Load entries for any already-open categories
+            for (const cat of app.openCompCategories) {
+                await this.refreshCategoryList(app, cat);
+            }
         },
 
         /**
@@ -37,35 +40,48 @@
         },
 
         /**
-         * Load entries for a specific category
+         * Toggle a category open/closed (supports multiple open categories)
          * @param {Object} app - Alpine app instance
-         * @param {string} category - Category to load
+         * @param {string} category - Category to toggle
          */
         async loadCompendiumCategory(app, category) {
             if (!app.currentProject) return;
 
-            // Toggle behavior: if the same category is clicked again, close it
-            if (app.currentCompCategory === category) {
-                app.currentCompCategory = null;
-                app.compendiumList = [];
-                app.currentCompEntry = null;
-                // refresh counts for UI consistency
+            const idx = app.openCompCategories.indexOf(category);
+            if (idx !== -1) {
+                // Category is open, close it
+                app.openCompCategories.splice(idx, 1);
+                delete app.compendiumLists[category];
+                // Clear selection if the selected entry was in this category
+                if (app.currentCompEntry && app.currentCompEntry.category === category) {
+                    app.currentCompEntry = null;
+                }
                 try { await this.loadCompendiumCounts(app); } catch (e) { /* ignore */ }
                 return;
             }
 
-            app.currentCompCategory = category;
+            // Open the category
+            app.openCompCategories.push(category);
+            await this.refreshCategoryList(app, category);
+            await this.loadCompendiumCounts(app);
+        },
+
+        /**
+         * Refresh entries for a specific category without toggling
+         * @param {Object} app - Alpine app instance
+         * @param {string} category - Category to refresh
+         */
+        async refreshCategoryList(app, category) {
+            if (!app.currentProject || !category) return;
             try {
                 if (window.Compendium && typeof window.Compendium.listByCategory === 'function') {
-                    app.compendiumList = await window.Compendium.listByCategory(app.currentProject.id, category) || [];
+                    app.compendiumLists[category] = await window.Compendium.listByCategory(app.currentProject.id, category) || [];
                 } else {
-                    app.compendiumList = [];
+                    app.compendiumLists[category] = [];
                 }
-                // clear current entry selection
-                app.currentCompEntry = null;
-                await this.loadCompendiumCounts(app);
             } catch (e) {
-                console.error('Failed to load compendium category:', e);
+                console.error('Failed to refresh compendium category:', e);
+                app.compendiumLists[category] = [];
             }
         },
 
@@ -76,10 +92,15 @@
          */
         async createCompendiumEntry(app, category) {
             if (!app.currentProject) return;
-            const cat = category || app.currentCompCategory || app.compendiumCategories[0];
+            const cat = category || app.compendiumCategories[0];
             try {
                 const entry = await window.Compendium.createEntry(app.currentProject.id, { category: cat, title: 'New Entry', body: '' });
-                await this.loadCompendiumCategory(app, cat);
+                // Ensure category is open
+                if (!app.openCompCategories.includes(cat)) {
+                    app.openCompCategories.push(cat);
+                }
+                await this.refreshCategoryList(app, cat);
+                await this.loadCompendiumCounts(app);
                 await this.selectCompendiumEntry(app, entry.id);
             } catch (e) {
                 console.error('Failed to create compendium entry:', e);
@@ -108,6 +129,7 @@
             if (!app.currentCompEntry || !app.currentCompEntry.id) return;
             try {
                 app.compendiumSaveStatus = 'Saving...';
+                const entryCategory = app.currentCompEntry.category;
                 const updates = {
                     title: app.currentCompEntry.title || '',
                     body: app.currentCompEntry.body || '',
@@ -116,7 +138,8 @@
                     alwaysInContext: app.currentCompEntry.alwaysInContext || false
                 };
                 await window.Compendium.updateEntry(app.currentCompEntry.id, updates);
-                await this.loadCompendiumCategory(app, app.currentCompCategory);
+                // Refresh only the entry's category without toggling
+                await this.refreshCategoryList(app, entryCategory);
                 await this.loadCompendiumCounts(app);
                 app.compendiumSaveStatus = 'Saved';
                 setTimeout(() => { app.compendiumSaveStatus = ''; }, 2000);
@@ -200,9 +223,15 @@
             if (!id) return;
             if (!confirm('Delete this compendium entry?')) return;
             try {
+                // Get the entry's category before deleting
+                const entry = await window.Compendium.getEntry(id);
+                const entryCategory = entry ? entry.category : null;
                 await window.Compendium.deleteEntry(id);
                 app.currentCompEntry = null;
-                await this.loadCompendiumCategory(app, app.currentCompCategory);
+                // Refresh only the entry's category without toggling
+                if (entryCategory) {
+                    await this.refreshCategoryList(app, entryCategory);
+                }
                 await this.loadCompendiumCounts(app);
             } catch (e) {
                 console.error('Failed to delete compendium entry:', e);
@@ -215,9 +244,13 @@
          * @param {string} id - Entry ID to move
          */
         async moveCompendiumEntryUp(app, id) {
-            if (!app.currentCompCategory || !id) return;
+            if (!id) return;
             try {
-                const list = await window.Compendium.listByCategory(app.currentProject.id, app.currentCompCategory) || [];
+                // Get entry to find its category
+                const entry = await window.Compendium.getEntry(id);
+                if (!entry) return;
+                const category = entry.category;
+                const list = await window.Compendium.listByCategory(app.currentProject.id, category) || [];
                 const idx = list.findIndex(x => x.id === id);
                 if (idx <= 0) return; // already at top
                 const above = list[idx - 1];
@@ -226,7 +259,7 @@
                 const iOrder = (item.order || 0);
                 await window.Compendium.updateEntry(above.id, { order: iOrder });
                 await window.Compendium.updateEntry(item.id, { order: aOrder });
-                await this.loadCompendiumCategory(app, app.currentCompCategory);
+                await this.refreshCategoryList(app, category);
             } catch (e) {
                 console.error('Failed to move compendium entry up:', e);
             }
@@ -238,9 +271,13 @@
          * @param {string} id - Entry ID to move
          */
         async moveCompendiumEntryDown(app, id) {
-            if (!app.currentCompCategory || !id) return;
+            if (!id) return;
             try {
-                const list = await window.Compendium.listByCategory(app.currentProject.id, app.currentCompCategory) || [];
+                // Get entry to find its category
+                const entry = await window.Compendium.getEntry(id);
+                if (!entry) return;
+                const category = entry.category;
+                const list = await window.Compendium.listByCategory(app.currentProject.id, category) || [];
                 const idx = list.findIndex(x => x.id === id);
                 if (idx === -1 || idx >= list.length - 1) return; // already at bottom
                 const below = list[idx + 1];
@@ -249,7 +286,7 @@
                 const iOrder = (item.order || 0);
                 await window.Compendium.updateEntry(below.id, { order: iOrder });
                 await window.Compendium.updateEntry(item.id, { order: bOrder });
-                await this.loadCompendiumCategory(app, app.currentCompCategory);
+                await this.refreshCategoryList(app, category);
             } catch (e) {
                 console.error('Failed to move compendium entry down:', e);
             }
@@ -264,13 +301,24 @@
         async moveCompendiumEntryToCategory(app, id, newCategory) {
             if (!id || !newCategory) return;
             try {
+                // Get entry's old category before moving
+                const entry = await window.Compendium.getEntry(id);
+                const oldCategory = entry ? entry.category : null;
+                
                 // find current max order in target category and append
                 const items = await window.Compendium.listByCategory(app.currentProject.id, newCategory) || [];
                 const maxOrder = items.length ? Math.max(...items.map(it => (it.order || 0))) : -1;
                 await window.Compendium.updateEntry(id, { category: newCategory, order: maxOrder + 1 });
-                // if moved out of the currently-viewed category, refresh that list; else reload same category
-                await this.loadCompendiumCategory(app, app.currentCompCategory);
+                
+                // Refresh both old and new categories if they're open
+                if (oldCategory && app.openCompCategories.includes(oldCategory)) {
+                    await this.refreshCategoryList(app, oldCategory);
+                }
+                if (app.openCompCategories.includes(newCategory)) {
+                    await this.refreshCategoryList(app, newCategory);
+                }
                 await this.loadCompendiumCounts(app);
+                
                 // clear selection if we moved the selected entry away
                 if (app.currentCompEntry && app.currentCompEntry.id === id) app.currentCompEntry = null;
             } catch (e) {
