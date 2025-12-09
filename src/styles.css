@@ -568,20 +568,20 @@ body {
 
 /* Make the Compendium slide visually pop: subtle accent border, header accent, and shadow */
 .slide-panel-right.compendium-panel {
-    border-left: 1px solid rgba(74, 158, 255, 0.08);
-    box-shadow: -18px 0 40px rgba(0, 0, 0, 0.55);
-    background: linear-gradient(180deg, var(--bg-secondary), rgba(74, 158, 255, 0.02));
+    border-left: 1px solid rgba(74, 158, 255, 0.12);
+    box-shadow: -18px 0 40px rgba(0, 0, 0, 0.65);
+    background: linear-gradient(180deg, var(--bg-secondary), rgba(42, 42, 42, 0.97));
     /* make compendium wider to accommodate longer names and richer content */
-    width: 560px;
+    width: 640px;
 }
 
 .slide-panel-right.compendium-panel .slide-panel-header {
-    border-bottom: 1px solid rgba(74, 158, 255, 0.06);
-    background: linear-gradient(90deg, rgba(74, 158, 255, 0.02), transparent);
+    border-bottom: 1px solid rgba(74, 158, 255, 0.10);
+    background: linear-gradient(90deg, rgba(74, 158, 255, 0.05), rgba(42, 42, 42, 0.98));
 }
 
 .slide-panel-right.compendium-panel .slide-panel-body {
-    background: linear-gradient(180deg, var(--bg-primary), rgba(74, 158, 255, 0.01));
+    background: linear-gradient(180deg, var(--bg-primary), rgba(26, 26, 26, 0.98));
 }
 
 /* Slight left accent for the compendium to improve discoverability */

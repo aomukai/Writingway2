@@ -29,6 +29,8 @@ function createAppState() {
         showRenameSceneModal: false,
         showSceneActionsModal: false,
         sceneActionsTarget: null,
+        showChapterActionsModal: false,
+        chapterActionsTarget: null,
         newChapterName: '',
         newProjectName: '',
         newSceneName: '',

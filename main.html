@@ -332,8 +332,7 @@
                     <div class="scene-list">
                         <template x-for="chapter in chapters.filter(ch => !sceneSearchQuery || ch.title.toLowerCase().includes(sceneSearchQuery.toLowerCase()) || (ch.scenes && ch.scenes.some(s => s.title.toLowerCase().includes(sceneSearchQuery.toLowerCase()))))" :key="chapter.id">
                             <div class="chapter-item">
-                                <div class="chapter-header" style="align-items:center;gap:8px;"
-                                    x-data="{ openMenu:false }">
+                                <div class="chapter-header" style="align-items:center;gap:8px;">
                                     <div
                                         style="flex:1;display:flex;justify-content:space-between;align-items:center;position:relative;">
                                         <div style="flex:1;display:flex;align-items:center;gap:8px;">
@@ -349,27 +348,11 @@
                                         </div>
 
                                         <div class="item-actions" style="margin-left:8px;">
-                                            <button class="menu-button" @click.stop="openMenu = !openMenu" title="More">
+                                            <button class="menu-button" 
+                                                @click.stop="chapterActionsTarget = chapter; showChapterActionsModal = true"
+                                                title="Chapter actions">
                                                 ⋯
                                             </button>
-
-                                            <div x-show="openMenu" x-cloak @click.away="openMenu = false" x-transition
-                                                class="action-menu">
-                                                <button
-                                                    @click.stop="chapter.expanded = !chapter.expanded; openMenu=false"
-                                                    x-text="chapter.expanded ? 'Collapse' : 'Expand'"></button>
-                                                <button
-                                                    @click.stop="openRenameChapterModal(chapter.id); openMenu=false">Rename
-                                                    chapter</button>
-                                                <button
-                                                    @click.stop="openChapterSummary(chapter.id); openMenu=false">Summary</button>
-                                                <button @click.stop="moveChapterUp(chapter.id); openMenu=false">Move
-                                                    chapter up</button>
-                                                <button @click.stop="moveChapterDown(chapter.id); openMenu=false">Move
-                                                    chapter down</button>
-                                                <button @click.stop="deleteChapter(chapter.id); openMenu=false">Delete
-                                                    chapter</button>
-                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -2189,6 +2172,57 @@
                     <!-- Close Button -->
                     <div style="margin-top:16px;text-align:center;">
                         <button class="btn btn-secondary" @click="showSceneActionsModal = false">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <!-- Chapter Actions Modal -->
+        <template x-if="showChapterActionsModal && chapterActionsTarget">
+            <div class="modal-overlay" @click.self="showChapterActionsModal = false" @keydown.escape.window="showChapterActionsModal = false">
+                <div class="modal" style="max-width:360px;">
+                    <h3 style="margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+                        <span style="font-size:20px;">📁</span>
+                        <span x-text="chapterActionsTarget.title"></span>
+                    </h3>
+
+                    <!-- Action Buttons Grid -->
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+                        <button class="btn btn-secondary" style="display:flex;align-items:center;justify-content:center;gap:6px;"
+                            @click="chapterActionsTarget.expanded = !chapterActionsTarget.expanded; showChapterActionsModal = false"
+                            x-text="chapterActionsTarget.expanded ? '📂 Collapse' : '📂 Expand'">
+                        </button>
+                        <button class="btn btn-secondary" style="display:flex;align-items:center;justify-content:center;gap:6px;"
+                            @click="openRenameChapterModal(chapterActionsTarget.id); showChapterActionsModal = false">
+                            ✏️ Rename
+                        </button>
+                        <button class="btn btn-secondary" style="display:flex;align-items:center;justify-content:center;gap:6px;"
+                            @click="moveChapterUp(chapterActionsTarget.id); showChapterActionsModal = false">
+                            ⬆️ Move up
+                        </button>
+                        <button class="btn btn-secondary" style="display:flex;align-items:center;justify-content:center;gap:6px;"
+                            @click="moveChapterDown(chapterActionsTarget.id); showChapterActionsModal = false">
+                            ⬇️ Move down
+                        </button>
+                    </div>
+
+                    <!-- Summary Button (full width) -->
+                    <button class="btn btn-secondary" style="width:100%;display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:16px;"
+                        @click="openChapterSummary(chapterActionsTarget.id); showChapterActionsModal = false">
+                        📝 Summary
+                    </button>
+
+                    <!-- Delete Button (separate, styled as danger) -->
+                    <button class="btn" style="width:100%;background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.3);"
+                        @click="deleteChapter(chapterActionsTarget.id); showChapterActionsModal = false">
+                        🗑️ Delete chapter
+                    </button>
+
+                    <!-- Close Button -->
+                    <div style="margin-top:16px;text-align:center;">
+                        <button class="btn btn-secondary" @click="showChapterActionsModal = false">
                             Cancel
                         </button>
                     </div>
