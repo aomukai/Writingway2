@@ -9,8 +9,8 @@ echo "  Starting Writingway 2.0..."
 echo "================================"
 echo ""
 
-# Check if llama-server exists
-if [ ! -f "./llama-server" ]; then
+# Check if llama-server exists (in llama subfolder)
+if [ ! -f "./llama/llama-server" ]; then
     echo "[!] llama-server not found!"
     echo ""
     echo "Please download llama.cpp for your system:"
@@ -18,16 +18,16 @@ if [ ! -f "./llama-server" ]; then
     echo "2. For Mac: Download llama-XXX-bin-macos-arm64.zip (Apple Silicon)"
     echo "            or llama-XXX-bin-macos-x64.zip (Intel Mac)"
     echo "   For Linux: Download llama-XXX-bin-ubuntu-x64.zip"
-    echo "3. Extract llama-server to this folder"
+    echo "3. Create a 'llama' folder and extract all files there"
     echo ""
-    echo "Expected location: $(pwd)/llama-server"
+    echo "Expected location: $(pwd)/llama/llama-server"
     echo ""
     read -p "Press Enter to exit..."
     exit 1
 fi
 
 # Make llama-server executable
-chmod +x ./llama-server
+chmod +x ./llama/llama-server
 
 # Check if models folder exists
 if [ ! -d "models" ]; then
@@ -100,7 +100,7 @@ if [ $SKIP_MODEL -eq 0 ]; then
     # For Mac: Use Metal GPU acceleration (-ngl 999)
     # For Linux: Use CUDA if available, otherwise CPU
     # Using -c 0 to automatically use the model's maximum context size
-    ./llama-server -m "$MODEL_PATH" -c 0 -ngl 999 --port 8080 --host 127.0.0.1 > llama-server.log 2>&1 &
+    ./llama/llama-server -m "$MODEL_PATH" -c 0 -ngl 999 --port 8080 --host 127.0.0.1 > llama-server.log 2>&1 &
     LLAMA_PID=$!
     
     echo "[*] AI server starting on port 8080 (PID: $LLAMA_PID)..."

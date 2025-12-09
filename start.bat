@@ -9,17 +9,17 @@ echo   Starting Writingway 2.0...
 echo ================================
 echo.
 
-REM Check if llama.cpp server exists
-if not exist "llama-server.exe" (
+REM Check if llama.cpp server exists (in llama subfolder)
+if not exist "llama\llama-server.exe" (
     echo [!] llama-server.exe not found!
     echo.
     echo Please download llama.cpp for Windows:
     echo 1. Go to: https://github.com/ggerganov/llama.cpp/releases
     echo 2. Download: llama-XXX-bin-win-cuda-cu12.2.0-x64.zip
     echo    ^(or the non-CUDA version if you don't have NVIDIA GPU^)
-    echo 3. Extract llama-server.exe to this folder
+    echo 3. Create a "llama" folder and extract all files there
     echo.
-    echo Expected location: %CD%\llama-server.exe
+    echo Expected location: %CD%\llama\llama-server.exe
     echo.
     pause
     exit /b 1
@@ -96,7 +96,7 @@ echo.
 
 REM Start llama.cpp server in background (keep window open with /k)
 REM Using -c 0 to automatically use the model's maximum context size
-start "Writingway AI Server" cmd /k "llama-server.exe -m "!MODEL_PATH!" -c 0 -ngl 999 --port 8080 --host 127.0.0.1"
+start "Writingway AI Server" cmd /k "llama\llama-server.exe -m "!MODEL_PATH!" -c 0 -ngl 999 --port 8080 --host 127.0.0.1"
 
 echo [*] AI server starting on port 8080...
 echo [*] Waiting for AI server to initialize...
