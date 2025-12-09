@@ -8,20 +8,62 @@
             <h4 style="margin:0;font-size:14px;">Conversations</h4>
             <button class="btn btn-secondary btn-sm" @click="createWorkshopSession" title="New Chat">+</button>
         </div>
+
+        <!-- Session Search/Select Dropdown -->
+        <div style="padding:8px;border-bottom:1px solid var(--border);position:relative;">
+            <input type="text" 
+                x-model="workshopSessionSearchQuery" 
+                @focus="workshopSessionDropdownOpen = true"
+                @input="workshopSessionDropdownOpen = true"
+                @keydown.escape="workshopSessionDropdownOpen = false; workshopSessionSearchQuery = ''"
+                @keydown.arrow-down.prevent="workshopSessionDropdownOpen = true"
+                @keydown.enter.prevent="
+                    const matches = workshopSessions.filter((s, i) => !workshopSessionSearchQuery || s.name.toLowerCase().includes(workshopSessionSearchQuery.toLowerCase()));
+                    if (matches.length > 0) {
+                        const idx = workshopSessions.indexOf(matches[0]);
+                        if (idx >= 0) { currentWorkshopSessionIndex = idx; workshopSessionSearchQuery = ''; workshopSessionDropdownOpen = false; }
+                    }
+                "
+                placeholder="🔍 Search or select chat..."
+                style="width:100%;padding:8px 10px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:12px;">
+            
+            <!-- Dropdown List -->
+            <div x-show="workshopSessionDropdownOpen" 
+                x-cloak
+                @click.away="workshopSessionDropdownOpen = false"
+                style="position:absolute;left:8px;right:8px;top:100%;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;max-height:200px;overflow-y:auto;z-index:100;box-shadow:0 4px 12px rgba(0,0,0,0.3);">
+                <template x-for="(session, idx) in workshopSessions.filter((s) => !workshopSessionSearchQuery || s.name.toLowerCase().includes(workshopSessionSearchQuery.toLowerCase()))" :key="session.id">
+                    <div @click="currentWorkshopSessionIndex = workshopSessions.indexOf(session); workshopSessionSearchQuery = ''; workshopSessionDropdownOpen = false"
+                        :class="{ 'active': workshopSessions.indexOf(session) === currentWorkshopSessionIndex }"
+                        style="padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;"
+                        :style="workshopSessions.indexOf(session) === currentWorkshopSessionIndex ? 'background:rgba(74,158,255,0.15);' : ''"
+                        @mouseenter="$el.style.background = workshopSessions.indexOf(session) === currentWorkshopSessionIndex ? 'rgba(74,158,255,0.2)' : 'rgba(255,255,255,0.05)'"
+                        @mouseleave="$el.style.background = workshopSessions.indexOf(session) === currentWorkshopSessionIndex ? 'rgba(74,158,255,0.15)' : 'transparent'">
+                        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" x-text="session.name"></span>
+                        <span style="font-size:10px;color:var(--text-secondary);" x-text="session.messages ? session.messages.length + ' msgs' : '0 msgs'"></span>
+                    </div>
+                </template>
+                <div x-show="workshopSessions.filter((s) => !workshopSessionSearchQuery || s.name.toLowerCase().includes(workshopSessionSearchQuery.toLowerCase())).length === 0"
+                    style="padding:12px;text-align:center;color:var(--text-secondary);font-size:12px;">
+                    No matching chats
+                </div>
+            </div>
+        </div>
+
         <div class="workshop-sessions-list">
-            <template x-for="(session, idx) in workshopSessions" :key="session.id">
-                <div class="workshop-session-item" :class="{ 'active': idx === currentWorkshopSessionIndex }"
-                    @click="currentWorkshopSessionIndex = idx" x-data="{ menuOpen: false }">
+            <template x-for="(session, idx) in workshopSessions.filter((s) => !workshopSessionSearchQuery || s.name.toLowerCase().includes(workshopSessionSearchQuery.toLowerCase()))" :key="session.id">
+                <div class="workshop-session-item" :class="{ 'active': workshopSessions.indexOf(session) === currentWorkshopSessionIndex }"
+                    @click="currentWorkshopSessionIndex = workshopSessions.indexOf(session)" x-data="{ menuOpen: false }">
                     <span x-text="session.name"
                         style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
                     <div style="position:relative;">
                         <button class="btn-icon-sm" @click.stop="menuOpen = !menuOpen" title="Options">⋯</button>
                         <div x-show="menuOpen" @click.away="menuOpen = false" x-cloak class="action-menu"
                             style="right:0;top:100%;margin-top:4px;">
-                            <button @click.stop="renameWorkshopSession(idx); menuOpen=false">Rename</button>
-                            <button @click.stop="clearWorkshopSession(idx); menuOpen=false">Clear Messages</button>
-                            <button @click.stop="exportWorkshopSession(idx); menuOpen=false">Export as Markdown</button>
-                            <button @click.stop="deleteWorkshopSession(idx); menuOpen=false"
+                            <button @click.stop="renameWorkshopSession(workshopSessions.indexOf(session)); menuOpen=false">Rename</button>
+                            <button @click.stop="clearWorkshopSession(workshopSessions.indexOf(session)); menuOpen=false">Clear Messages</button>
+                            <button @click.stop="exportWorkshopSession(workshopSessions.indexOf(session)); menuOpen=false">Export as Markdown</button>
+                            <button @click.stop="deleteWorkshopSession(workshopSessions.indexOf(session)); menuOpen=false"
                                 style="color:var(--danger,#ef4444);">Delete</button>
                         </div>
                     </div>
@@ -78,10 +120,17 @@
                 x-show="workshopMode === 'embedded'">Close</button>
         </div>
 
+        <!-- Search Messages -->
+        <div style="padding:8px 12px;border-bottom:1px solid var(--border);">
+            <input type="text" x-model="workshopSearchQuery" placeholder="🔍 Search messages..."
+                style="width:100%;padding:8px 12px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:13px;"
+                @keydown.escape="workshopSearchQuery = ''">
+        </div>
+
         <!-- Messages -->
         <div class="workshop-messages" id="workshopMessages">
             <template
-                x-if="workshopSessions[currentWorkshopSessionIndex] && workshopSessions[currentWorkshopSessionIndex].messages.length === 0">
+                x-if="workshopSessions[currentWorkshopSessionIndex] && workshopSessions[currentWorkshopSessionIndex].messages.length === 0 && !workshopSearchQuery">
                 <div class="workshop-empty-state">
                     <p style="color:var(--text-secondary);margin:0;">Start a conversation with the AI!</p>
                     <p style="color:var(--text-secondary);font-size:13px;margin:8px 0 0 0;">
@@ -90,8 +139,14 @@
                     </p>
                 </div>
             </template>
+            <template
+                x-if="workshopSearchQuery && workshopSessions[currentWorkshopSessionIndex] && workshopSessions[currentWorkshopSessionIndex].messages.filter(m => m.content && m.content.toLowerCase().includes(workshopSearchQuery.toLowerCase())).length === 0">
+                <div class="workshop-empty-state">
+                    <p style="color:var(--text-secondary);margin:0;">No messages match your search.</p>
+                </div>
+            </template>
             <template x-if="workshopSessions[currentWorkshopSessionIndex]">
-                <template x-for="(msg, idx) in workshopSessions[currentWorkshopSessionIndex].messages" :key="idx">
+                <template x-for="(msg, idx) in workshopSessions[currentWorkshopSessionIndex].messages.filter(m => !workshopSearchQuery || (m.content && m.content.toLowerCase().includes(workshopSearchQuery.toLowerCase())))" :key="idx">
                     <div class="workshop-message"
                         :class="`workshop-message-${msg.role}` + (msg.isError ? ' workshop-message-error' : '')">
                         <div class="workshop-message-header">

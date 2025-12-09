@@ -322,8 +322,15 @@
                         <div class="word-count" x-text="`${totalWords} words`" style="margin-top:6px;"></div>
                     </div>
 
+                    <!-- Scene Search -->
+                    <div style="padding:8px 12px;border-bottom:1px solid var(--border);">
+                        <input type="text" x-model="sceneSearchQuery" placeholder="🔍 Search scenes..."
+                            style="width:100%;padding:8px 12px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:13px;"
+                            @keydown.escape="sceneSearchQuery = ''">
+                    </div>
+
                     <div class="scene-list">
-                        <template x-for="chapter in chapters" :key="chapter.id">
+                        <template x-for="chapter in chapters.filter(ch => !sceneSearchQuery || ch.title.toLowerCase().includes(sceneSearchQuery.toLowerCase()) || (ch.scenes && ch.scenes.some(s => s.title.toLowerCase().includes(sceneSearchQuery.toLowerCase()))))" :key="chapter.id">
                             <div class="chapter-item">
                                 <div class="chapter-header" style="align-items:center;gap:8px;"
                                     x-data="{ openMenu:false }">
@@ -367,8 +374,8 @@
                                     </div>
                                 </div>
 
-                                <div class="chapter-scenes" x-show="chapter.expanded">
-                                    <template x-for="scene in chapter.scenes" :key="scene.id">
+                                <div class="chapter-scenes" x-show="chapter.expanded || sceneSearchQuery">
+                                    <template x-for="scene in (chapter.scenes || []).filter(s => !sceneSearchQuery || s.title.toLowerCase().includes(sceneSearchQuery.toLowerCase()))" :key="scene.id">
                                         <div class="scene-item"
                                             :class="{ 'active': currentScene && currentScene.id === scene.id }"
                                             @click="loadScene(scene.id)"
@@ -1946,6 +1953,13 @@
                             <strong style="color:var(--text-primary);">Categories</strong>
                         </div>
 
+                        <!-- Compendium Search -->
+                        <div style="margin-bottom:12px;">
+                            <input type="text" x-model="compendiumSearchQuery" placeholder="🔍 Search entries..."
+                                style="width:100%;padding:8px 12px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:13px;"
+                                @keydown.escape="compendiumSearchQuery = ''">
+                        </div>
+
                         <template x-for="cat in compendiumCategories" :key="cat">
                             <div style="margin-bottom:12px;">
                                 <div class="comp-category" :class="{ 'active': currentCompCategory === cat }"
@@ -1963,8 +1977,8 @@
                                             :title="`New ${cat} entry`">+</button>
                                     </div>
                                 </div>
-                                <div x-show="currentCompCategory === cat" x-cloak style="margin-top:6px;">
-                                    <template x-for="e in compendiumList" :key="e.id">
+                                <div x-show="currentCompCategory === cat || compendiumSearchQuery" x-cloak style="margin-top:6px;">
+                                    <template x-for="e in compendiumList.filter(entry => !compendiumSearchQuery || entry.title.toLowerCase().includes(compendiumSearchQuery.toLowerCase()) || (entry.body && entry.body.toLowerCase().includes(compendiumSearchQuery.toLowerCase())))" :key="e.id">
                                         <div class="comp-entry"
                                             :class="{ 'active': currentCompEntry && currentCompEntry.id === e.id }"
                                             tabindex="0">

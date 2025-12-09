@@ -141,6 +141,13 @@ function createAppState() {
         // ========== Scene Tags ==========
         sceneTags: '', // Comma-separated tags for current scene
 
+        // ========== Search Fields ==========
+        sceneSearchQuery: '', // Search filter for scenes in sidebar
+        compendiumSearchQuery: '', // Search filter for compendium entries
+        workshopSearchQuery: '', // Search filter for workshop chat messages
+        workshopSessionSearchQuery: '', // Search/select for workshop sessions
+        workshopSessionDropdownOpen: false, // Dropdown visibility state
+
         // ========== Context Panel (Persistent Generation Context) ==========
         contextPanel: {
             compendiumIds: [], // Array of compendium entry IDs
