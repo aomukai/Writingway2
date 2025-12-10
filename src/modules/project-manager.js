@@ -182,13 +182,15 @@
         async loadSelectedProsePrompt(app) {
             try {
                 if (!app.currentProject || !app.currentProject.id) {
-                    app.selectedProsePromptId = null;
+                    // Use empty string to match the fallback <option value="">
+                    app.selectedProsePromptId = '';
                     return;
                 }
                 const key = `writingway:proj:${app.currentProject.id}:prosePrompt`;
                 const raw = localStorage.getItem(key);
                 if (!raw) {
-                    app.selectedProsePromptId = null;
+                    // Use empty string to match the fallback <option value="">
+                    app.selectedProsePromptId = '';
                     return;
                 }
                 // Ensure the stored id actually exists in the DB
@@ -209,9 +211,11 @@
 
                 // Fallback: check in-memory prompts list
                 const exists = (app.prompts || []).some(p => p.id === raw && p.category === 'prose');
-                app.selectedProsePromptId = exists ? raw : null;
+                // Use empty string instead of null to match the fallback <option value="">
+                app.selectedProsePromptId = exists ? raw : '';
             } catch (e) {
-                app.selectedProsePromptId = null;
+                // Use empty string to match the fallback <option value="">
+                app.selectedProsePromptId = '';
             }
         },
 
@@ -226,7 +230,8 @@
                 const key = `writingway:proj:${app.currentProject.id}:prosePrompt`;
                 if (!id) {
                     localStorage.removeItem(key);
-                    app.selectedProsePromptId = null;
+                    // Use empty string to match the fallback <option value="">
+                    app.selectedProsePromptId = '';
                 } else {
                     localStorage.setItem(key, id);
                     app.selectedProsePromptId = id;

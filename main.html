@@ -646,7 +646,21 @@
                         @mousedown="beatSplitterDragging = true; $event.preventDefault();"></div>
                     <div class="beat-panel"
                         :style="`height: ${beatPanelHeight}px; min-height: ${beatPanelHeight}px; max-height: ${beatPanelHeight}px;`">
-                        <h3>Generate from Beat</h3>
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;">
+                            <h3 style="margin:0;">Generate from Beat</h3>
+                            <div style="display:flex;align-items:center;gap:6px;">
+                                <span style="font-size:11px;color:var(--text-secondary);white-space:nowrap;">Prompt:</span>
+                                <select x-model="selectedProsePromptId"
+                                    @change="saveSelectedProsePrompt(selectedProsePromptId)"
+                                    style="padding:4px 8px;font-size:12px;background:var(--bg-primary);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);max-width:180px;"
+                                    title="Select prose prompt for generation">
+                                    <option value="">Default (fallback)</option>
+                                    <template x-for="pr in prompts.filter(p => p.category === 'prose')" :key="pr.id">
+                                        <option :value="pr.id" x-text="pr.title"></option>
+                                    </template>
+                                </select>
+                            </div>
+                        </div>
                         <div class="beat-input-group" style="position:relative;">
                             <textarea class="beat-input" x-model="beatInput" @input="onBeatInput($event)"
                                 @keydown="onBeatKey($event)"
@@ -823,16 +837,6 @@
                             style="width:100%;margin-top:6px;padding:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
                             <option value="past">past tense</option>
                             <option value="present">present tense</option>
-                        </select>
-                    </label>
-
-                    <label style="font-size:12px;color:var(--text-secondary);">Prose Prompt
-                        <select x-model="selectedProsePromptId" @change="saveSelectedProsePrompt(selectedProsePromptId)"
-                            style="width:100%;margin-top:6px;padding:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
-                            <option value="">Use current prompt (fallback)</option>
-                            <template x-for="pr in prompts.filter(p => p.category === 'prose')" :key="pr.id">
-                                <option :value="pr.id" x-text="pr.title"></option>
-                            </template>
                         </select>
                     </label>
 
@@ -2404,17 +2408,6 @@
                                 style="width:100%;margin-top:6px;padding:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
                                 <option value="past">past tense</option>
                                 <option value="present">present tense</option>
-                            </select>
-                        </label>
-
-                        <label style="font-size:12px;color:var(--text-secondary);">Prose Prompt
-                            <select x-model="selectedProsePromptId"
-                                @change="saveSelectedProsePrompt(selectedProsePromptId)"
-                                style="width:100%;margin-top:6px;padding:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
-                                <option value="">Use current prompt (fallback)</option>
-                                <template x-for="pr in prompts.filter(p => p.category === 'prose')" :key="pr.id">
-                                    <option :value="pr.id" x-text="pr.title"></option>
-                                </template>
                             </select>
                         </label>
 

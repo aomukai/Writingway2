@@ -168,7 +168,7 @@ function createAppState() {
         currentPrompt: {},
         promptEditorContent: '',
         newPromptTitle: '',
-        selectedProsePromptId: null, // Selected prose prompt for generation
+        selectedProsePromptId: '', // Selected prose prompt for generation (empty string = fallback)
 
         // ========== Compendium State ==========
         compendiumCategories: ['characters', 'places', 'items', 'lore', 'notes'],
