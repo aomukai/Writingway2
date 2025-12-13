@@ -1332,7 +1332,17 @@ document.addEventListener('alpine:init', () => {
                 }
             },
 
+            async exportPrompts() {
+                if (window.Prompts && typeof window.Prompts.exportPrompts === 'function') {
+                    await window.Prompts.exportPrompts(this);
+                }
+            },
 
+            async importPrompts(fileInput) {
+                if (window.Prompts && typeof window.Prompts.importPrompts === 'function') {
+                    await window.Prompts.importPrompts(this, fileInput);
+                }
+            },
 
             // Scene & Chapter Management
             async loadChapters() {

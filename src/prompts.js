@@ -146,6 +146,107 @@
         }
     }
 
+    // Export all prompts for the current project as JSON
+    async function exportPrompts(app) {
+        if (!app.currentProject) {
+            alert('No project selected.');
+            return;
+        }
+        try {
+            const prompts = await db.prompts.where('projectId').equals(app.currentProject.id).toArray();
+            if (!prompts || prompts.length === 0) {
+                alert('No prompts to export.');
+                return;
+            }
+            
+            // Prepare export data (strip projectId as it will be reassigned on import)
+            const exportData = {
+                version: '1.0',
+                type: 'prompts',
+                exportedAt: new Date().toISOString(),
+                projectName: app.currentProject.name,
+                prompts: prompts.map(p => ({
+                    category: p.category,
+                    title: p.title,
+                    content: p.content || '',
+                    systemContent: p.systemContent || '',
+                    created: p.created,
+                    modified: p.modified
+                }))
+            };
+            
+            // Create and download JSON file
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${app.currentProject.name.replace(/[^a-z0-9]/gi, '_')}_prompts.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } catch (e) {
+            console.error('Failed to export prompts:', e);
+            alert('Failed to export prompts: ' + e.message);
+        }
+    }
+
+    // Import prompts from a JSON file
+    async function importPrompts(app, fileInput) {
+        if (!app.currentProject) {
+            alert('No project selected.');
+            return;
+        }
+        
+        const file = fileInput.files && fileInput.files[0];
+        if (!file) {
+            return;
+        }
+        
+        try {
+            const text = await file.text();
+            const data = JSON.parse(text);
+            
+            // Validate format
+            if (!data.type || data.type !== 'prompts' || !Array.isArray(data.prompts)) {
+                alert('Invalid prompts file format.');
+                return;
+            }
+            
+            const count = data.prompts.length;
+            if (!confirm(`Import ${count} prompt(s) into the current project?`)) {
+                return;
+            }
+            
+            // Import each prompt with new IDs
+            const now = new Date();
+            for (const p of data.prompts) {
+                const id = Date.now().toString() + '-' + Math.random().toString(36).slice(2, 7);
+                await db.prompts.add({
+                    id,
+                    projectId: app.currentProject.id,
+                    category: p.category || 'prose',
+                    title: p.title || 'Imported Prompt',
+                    content: p.content || '',
+                    systemContent: p.systemContent || '',
+                    created: now,
+                    modified: now
+                });
+                // Small delay to ensure unique IDs
+                await new Promise(r => setTimeout(r, 1));
+            }
+            
+            await loadPrompts(app);
+            alert(`Successfully imported ${count} prompt(s).`);
+        } catch (e) {
+            console.error('Failed to import prompts:', e);
+            alert('Failed to import prompts: ' + e.message);
+        } finally {
+            // Reset file input
+            fileInput.value = '';
+        }
+    }
+
     window.Prompts = {
         loadPrompts,
         createPrompt,
@@ -154,6 +255,8 @@
         deletePrompt,
         movePromptUp,
         movePromptDown,
-        renamePrompt
+        renamePrompt,
+        exportPrompts,
+        importPrompts
     };
 })();

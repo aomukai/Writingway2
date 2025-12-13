@@ -1867,7 +1867,12 @@
             </div>
             <div class="slide-panel-header">
                 <h3 style="margin:0;">Prompts</h3>
-                <div>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <button class="btn btn-secondary" @click="exportPrompts()" title="Export prompts to JSON">Export</button>
+                    <label class="btn btn-secondary" style="margin:0;cursor:pointer;" title="Import prompts from JSON">
+                        Import
+                        <input type="file" accept=".json" @change="importPrompts($event.target)" style="display:none;">
+                    </label>
                     <button class="btn btn-secondary" @click="showPromptsPanel = false">Close</button>
                 </div>
             </div>
