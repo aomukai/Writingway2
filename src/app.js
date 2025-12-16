@@ -14,6 +14,26 @@ document.addEventListener('alpine:init', () => {
         return {
             ...state,
 
+            // Re-define computed getters that were lost during object spread
+            // (spreading an object evaluates getters and copies static values, not the getter itself)
+            get currentSceneWords() {
+                if (!this.currentScene || !this.currentScene.content) return 0;
+                return this.countWords(this.currentScene.content);
+            },
+
+            get totalWords() {
+                // Sum word counts by unique scene id to avoid double-counting duplicates
+                const seen = new Set();
+                let total = 0;
+                for (const s of (this.scenes || [])) {
+                    if (!s || !s.id) continue;
+                    if (seen.has(s.id)) continue;
+                    seen.add(s.id);
+                    total += (s.wordCount || 0);
+                }
+                return total;
+            },
+
             // Alpine lifecycle - setup watchers and initialize
             init() {
                 // Setup reactive watchers (Phase 2 refactoring)
