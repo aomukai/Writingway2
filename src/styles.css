@@ -182,6 +182,33 @@ html.light-mode .beat-panel h3 {
     text-shadow: none;
 }
 
+/* Light mode - beat input field */
+html.light-mode .beat-input,
+.light-mode .beat-input {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: rgba(37, 99, 235, 0.3);
+    color: #212529;
+}
+
+html.light-mode .beat-input:focus,
+.light-mode .beat-input:focus {
+    background: #ffffff;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+html.light-mode .beat-input::placeholder,
+.light-mode .beat-input::placeholder {
+    color: #6c757d;
+}
+
+/* Light mode - beat panel background */
+html.light-mode .beat-panel,
+.light-mode .beat-panel {
+    background: linear-gradient(180deg, var(--bg-secondary) 0%, rgba(248, 249, 250, 0.95) 100%);
+    border-top-color: rgba(37, 99, 235, 0.15);
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     background: var(--bg-primary);
