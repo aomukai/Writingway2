@@ -230,7 +230,7 @@
                         app.currentScene.content = before + app.rewriteOutput + after;
 
                         // Save the scene
-                        await app.saveCurrentScene();
+                        await app.saveScene();
                     }
                 } else if (app.rewriteSelectionRange) {
                     // Fallback for contenteditable (if ever used)
