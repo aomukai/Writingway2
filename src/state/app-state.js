@@ -184,6 +184,11 @@ function createAppState() {
         currentCompEntry: null,
         compendiumSaveStatus: '',
         newCompTag: '',
+        // Unsaved changes guard
+        compendiumDirty: false, // True when current entry has unsaved changes
+        compendiumOriginalEntry: null, // Snapshot of entry when loaded for comparison
+        showCompendiumUnsavedModal: false, // Show the unsaved changes confirmation modal
+        pendingCompendiumAction: null, // { type: 'select', id } | { type: 'close' } | { type: 'category', category }
 
         // ========== AI Worker State ==========
         aiWorker: null,

@@ -2063,8 +2063,9 @@
             x-cloak :aria-hidden="!showCodexPanel">
             <div class="slide-panel-header">
                 <h3 style="margin:0;">Compendium</h3>
-                <div>
-                    <button class="btn btn-secondary" @click="showCodexPanel = false">Close</button>
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <span x-show="compendiumDirty" x-cloak style="font-size:12px;color:var(--warning);">Unsaved changes</span>
+                    <button class="btn btn-secondary" @click="closeCompendium()">Close</button>
                 </div>
             </div>
             <div class="slide-panel-body">
@@ -2161,6 +2162,7 @@
                             <template x-if="currentCompEntry">
                                 <div>
                                     <input type="text" x-model="currentCompEntry.title" placeholder="Entry title"
+                                        @input="updateCompendiumDirtyFlag()"
                                         style="width:100%;padding:8px;border:1px solid var(--border);background:var(--bg-primary);color:var(--text-primary);border-radius:6px;margin-bottom:6px;">
                                 </div>
                             </template>
@@ -2186,6 +2188,7 @@
                                     <!-- Body below the image -->
                                     <textarea x-model="currentCompEntry.body"
                                         placeholder="Write compendium entry body here" class="comp-editor-body"
+                                        @input="updateCompendiumDirtyFlag()"
                                         style="margin-top:12px;"></textarea>
 
                                     <!-- Tags and image remove button -->
@@ -2213,6 +2216,7 @@
                                         style="margin-top:12px;padding:12px;background:rgba(74,158,255,0.05);border:1px solid rgba(74,158,255,0.2);border-radius:6px;">
                                         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
                                             <input type="checkbox" x-model="currentCompEntry.alwaysInContext"
+                                                @change="updateCompendiumDirtyFlag()"
                                                 style="cursor:pointer;">
                                             <span style="font-size:14px;color:rgba(255,255,255,0.9);">Always include in
                                                 prose prompts</span>
@@ -2228,7 +2232,7 @@
                         </div>
                         <div style="flex:0 0 auto;display:flex;gap:8px;margin-top:8px;align-items:center;">
                             <button class="btn btn-primary" @click="saveCompendiumEntry"
-                                :disabled="!currentCompEntry">Save</button>
+                                :disabled="!currentCompEntry || !compendiumDirty">Save</button>
                             <span style="margin-left:8px;font-size:13px;color:var(--text-secondary);"
                                 class="compendium-save-status"
                                 :class="{ 'saving': compendiumSaveStatus === 'Saving...' }"
@@ -2238,6 +2242,21 @@
                 </div>
             </div>
         </div>
+
+        <!-- Compendium Unsaved Changes Modal -->
+        <template x-if="showCompendiumUnsavedModal">
+            <div class="modal-overlay" @click.self="cancelCompendiumAction()">
+                <div class="modal" style="max-width: 400px;">
+                    <h3 style="margin-top:0;">Leave this entry?</h3>
+                    <p style="color:var(--text-secondary);margin-bottom:20px;">Unsaved changes will be lost.</p>
+                    <div class="modal-buttons" style="display:flex;gap:8px;justify-content:flex-end;">
+                        <button class="btn btn-secondary" @click="cancelCompendiumAction()">Cancel</button>
+                        <button class="btn btn-danger" @click="discardAndProceedCompendium()">Leave without saving</button>
+                        <button class="btn btn-primary" @click="saveAndProceedCompendium()">Save &amp; leave</button>
+                    </div>
+                </div>
+            </div>
+        </template>
 
         <!-- New Scene Modal -->
         <template x-if="showNewSceneModal">

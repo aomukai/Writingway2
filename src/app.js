@@ -1283,6 +1283,22 @@ document.addEventListener('alpine:init', () => {
             async moveCompendiumEntryToCategory(id, newCategory) {
                 await window.CompendiumManager.moveCompendiumEntryToCategory(this, id, newCategory);
             },
+            // Compendium unsaved changes guard methods
+            closeCompendium() {
+                window.CompendiumManager.closeCompendium(this);
+            },
+            async saveAndProceedCompendium() {
+                await window.CompendiumManager.saveAndProceedCompendium(this);
+            },
+            async discardAndProceedCompendium() {
+                await window.CompendiumManager.discardAndProceedCompendium(this);
+            },
+            cancelCompendiumAction() {
+                window.CompendiumManager.cancelCompendiumAction(this);
+            },
+            updateCompendiumDirtyFlag() {
+                window.CompendiumManager.updateCompendiumDirtyFlag(this);
+            },
 
             // Workshop Chat methods (delegated to src/modules/workshop.js)
             async loadWorkshopSessions() { return window.Workshop.loadWorkshopSessions(this); },

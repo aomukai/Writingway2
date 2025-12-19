@@ -1398,6 +1398,15 @@ html.light-mode .backup-warning-banner,
     background: var(--bg-primary);
 }
 
+.btn-danger {
+    background: #dc3545;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #c82333;
+}
+
 .loading-bar {
     width: 100%;
     height: 4px;
