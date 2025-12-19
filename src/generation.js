@@ -336,6 +336,25 @@
                     maxOutputTokens: maxTok
                 };
             }
+        } else if (provider === 'nanogpt') {
+            // NanoGPT uses OpenAI-compatible API
+            // Normalize endpoint: strip trailing slashes
+            let endpoint = (customEndpoint || 'https://nano-gpt.com/api').replace(/\/+$/, '');
+            url = `${endpoint}/chat/completions`;
+            headers = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            };
+            body = {
+                model: model,
+                messages: messages,
+                stream: !shouldDisableStreaming
+            };
+            // Only include temperature/max_tokens if not using provider defaults
+            if (!useProviderDefaults) {
+                body.temperature = temp;
+                body.max_tokens = maxTok;
+            }
         } else if (provider === 'lmstudio') {
             // LM Studio uses OpenAI-compatible API
             // Normalize endpoint: strip trailing slashes and any /v1/* paths
@@ -407,7 +426,7 @@
             // Extract content and finish_reason from non-streaming response
             let content = null;
             let finishReason = null;
-            if (provider === 'openrouter' || provider === 'openai' || provider === 'lmstudio' || provider === 'custom') {
+            if (provider === 'openrouter' || provider === 'openai' || provider === 'nanogpt' || provider === 'lmstudio' || provider === 'custom') {
                 content = data.choices?.[0]?.message?.content;
                 finishReason = data.choices?.[0]?.finish_reason;
 
@@ -483,7 +502,7 @@
 
                     // Extract token based on provider format
                     let token = null;
-                    if (provider === 'openrouter' || provider === 'openai' || provider === 'lmstudio' || provider === 'custom') {
+                    if (provider === 'openrouter' || provider === 'openai' || provider === 'nanogpt' || provider === 'lmstudio' || provider === 'custom') {
                         // Capture finish_reason if present
                         if (data.choices?.[0]?.finish_reason) {
                             finishReason = data.choices[0].finish_reason;

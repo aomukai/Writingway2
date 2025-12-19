@@ -72,6 +72,10 @@
                     // Google AI doesn't have a public models list API for free tier
                     // Keep hardcoded list
                     app.modelsFetched = true;
+                } else if (app.aiProvider === 'nanogpt') {
+                    // NanoGPT doesn't have a public models list API
+                    // User enters model name manually
+                    app.modelsFetched = true;
                 } else if (app.aiProvider === 'lmstudio') {
                     // LM Studio uses OpenAI-compatible API at /v1/models
                     // Normalize endpoint: strip trailing slashes and any /v1/* paths

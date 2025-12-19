@@ -1491,12 +1491,13 @@
                         <label
                             style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text-primary);">Provider</label>
                         <select x-model="aiProvider"
-                            @change="aiModel = (providerModels[aiProvider] && providerModels[aiProvider].length > 0) ? providerModels[aiProvider].find(m => m.recommended)?.id || providerModels[aiProvider][0].id : ''; modelsFetched = false; if (aiProvider === 'lmstudio') { aiEndpoint = aiEndpoint || 'http://localhost:1234'; fetchProviderModels(); }"
+                            @change="aiModel = (providerModels[aiProvider] && providerModels[aiProvider].length > 0) ? providerModels[aiProvider].find(m => m.recommended)?.id || providerModels[aiProvider][0].id : ''; modelsFetched = false; if (aiProvider === 'lmstudio') { aiEndpoint = aiEndpoint || 'http://localhost:1234'; fetchProviderModels(); } if (aiProvider === 'nanogpt') { aiEndpoint = aiEndpoint || 'https://nano-gpt.com/api'; }"
                             style="width:100%;padding:8px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);border-radius:6px;">
                             <option value="openrouter">OpenRouter (Multi-model, has free options)</option>
                             <option value="anthropic">Anthropic (Claude)</option>
                             <option value="openai">OpenAI (GPT)</option>
                             <option value="google">Google AI (Gemini)</option>
+                            <option value="nanogpt">NanoGPT (nano-gpt.com)</option>
                             <option value="lmstudio">LM Studio (Local Server)</option>
                             <option value="custom">Custom API Endpoint</option>
                         </select>
@@ -1521,6 +1522,9 @@
                             <template x-if="aiProvider === 'google'">Get your key at <a
                                     href="https://makersuite.google.com/app/apikey" target="_blank"
                                     style="color:var(--accent);">Google AI Studio</a></template>
+                            <template x-if="aiProvider === 'nanogpt'">Get your key at <a
+                                    href="https://nano-gpt.com/api" target="_blank"
+                                    style="color:var(--accent);">nano-gpt.com/api</a></template>
                         </p>
                     </div>
 
@@ -1542,13 +1546,16 @@
                             <label
                                 style="display:block;font-size:13px;font-weight:600;color:var(--text-primary);">Model</label>
                             <button class="btn btn-secondary" @click="fetchProviderModels()"
+                                x-show="aiProvider !== 'nanogpt' && aiProvider !== 'custom'"
                                 :disabled="(aiProvider !== 'lmstudio' && !aiApiKey) || fetchingModels" style="font-size:11px;padding:4px 8px;"
                                 title="Refresh available models from provider">
                                 <span x-show="!fetchingModels">🔄 Refresh</span>
                                 <span x-show="fetchingModels">⏳ Loading...</span>
                             </button>
                         </div>
+                        <!-- Model dropdown for providers with auto-discovery -->
                         <select x-model="aiModel"
+                            x-show="aiProvider !== 'nanogpt' && aiProvider !== 'custom'"
                             style="width:100%;padding:8px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);border-radius:6px;">
                             <option value="" disabled>Select a model...</option>
                             <template x-for="model in providerModels[aiProvider] || []" :key="model.id">
@@ -1559,17 +1566,26 @@
                             <option x-show="aiModel && !(providerModels[aiProvider] || []).find(m => m.id === aiModel)"
                                 :value="aiModel" x-text="aiModel"></option>
                         </select>
+                        <!-- Text input for NanoGPT and custom providers -->
+                        <input type="text" x-model="aiModel"
+                            x-show="aiProvider === 'nanogpt' || aiProvider === 'custom'"
+                            placeholder="Enter model name (e.g., gpt-4o, claude-3-5-sonnet)"
+                            style="width:100%;padding:8px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);border-radius:6px;">
                         <p style="font-size:11px;color:var(--text-secondary);margin:4px 0 0 0;"
-                            x-show="modelsFetched && aiMode === 'api'">
+                            x-show="modelsFetched && aiMode === 'api' && aiProvider !== 'nanogpt' && aiProvider !== 'custom'">
                             ✓ Model list updated from provider
                         </p>
                         <p style="font-size:11px;color:var(--text-secondary);margin:4px 0 0 0;"
-                            x-show="!aiApiKey && aiMode === 'api' && aiProvider !== 'lmstudio'">
+                            x-show="!aiApiKey && aiMode === 'api' && aiProvider !== 'lmstudio' && aiProvider !== 'nanogpt' && aiProvider !== 'custom'">
                             ℹ️ Enter API key above to see available models
                         </p>
                         <p style="font-size:11px;color:var(--text-secondary);margin:4px 0 0 0;"
                             x-show="aiProvider === 'lmstudio' && !modelsFetched && providerModels.lmstudio.length === 0">
                             ℹ️ Click Refresh to fetch models from LM Studio
+                        </p>
+                        <p style="font-size:11px;color:var(--text-secondary);margin:4px 0 0 0;"
+                            x-show="aiProvider === 'nanogpt'">
+                            ℹ️ Type the model name exactly as shown in NanoGPT documentation
                         </p>
                     </div>
 
@@ -1608,6 +1624,30 @@
                         <input type="text" x-model="aiEndpoint"
                             placeholder="https://api.example.com/v1/chat/completions"
                             style="width:100%;padding:8px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);border-radius:6px;">
+                    </div>
+
+                    <!-- NanoGPT info box and endpoint -->
+                    <div x-show="aiProvider === 'nanogpt'" style="margin-bottom:16px;background:rgba(74,158,255,0.1);border:1px solid rgba(74,158,255,0.3);border-radius:8px;padding:12px;">
+                        <p style="margin:0;font-size:13px;color:var(--text-primary);">
+                            <strong>🌐 NanoGPT Setup</strong>
+                        </p>
+                        <p style="margin:8px 0 0 0;font-size:12px;color:var(--text-secondary);line-height:1.5;">
+                            NanoGPT provides access to multiple LLM models via an OpenAI-compatible API.<br>
+                            Enter your API key above and type the model name manually below.
+                        </p>
+                    </div>
+
+                    <div x-show="aiProvider === 'nanogpt'" style="margin-bottom:16px;">
+                        <label
+                            style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text-primary);">NanoGPT
+                            Base URL</label>
+                        <input type="text" x-model="aiEndpoint"
+                            placeholder="https://nano-gpt.com/api"
+                            x-init="if (aiProvider === 'nanogpt' && !aiEndpoint) aiEndpoint = 'https://nano-gpt.com/api'"
+                            style="width:100%;padding:8px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);border-radius:6px;">
+                        <p style="font-size:11px;color:var(--text-secondary);margin:4px 0 0 0;">
+                            Default: https://nano-gpt.com/api (change only if using a different endpoint)
+                        </p>
                     </div>
                 </div>
 
