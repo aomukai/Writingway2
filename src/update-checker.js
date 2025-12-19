@@ -1,15 +1,19 @@
 // Update Checker Module
 // Checks for new versions on GitHub based on latest commit date
+// Integrates with local updater service for one-click updates
 (function () {
     const UpdateChecker = {
         // Build timestamp - update this when you push a new version
         // This represents when this version was created
-        buildDate: new Date('2025-12-19T13:00:00Z').getTime(), // Update before each push
+        buildDate: new Date('2025-12-19T13:45:00Z').getTime(), // Update before each push
 
         // GitHub repository info
         repoOwner: 'aomukai',
         repoName: 'Writingway2',
         branch: 'main',
+
+        // Updater service endpoint
+        updaterUrl: 'http://127.0.0.1:8001',
 
         /**
          * Check for updates by comparing commit dates
@@ -17,7 +21,7 @@
          */
         async checkForUpdates() {
             try {
-                // Fetch latest commit from the main branchscm-history-item:e%3A%5CWritingway2?%7B%22repositoryId%22%3A%22scm0%22%2C%22historyItemId%22%3A%22f46a020f4d39216e401318130b0a4f7934d366f8%22%2C%22historyItemParentId%22%3A%22d18a5aa189144e323b651fe30611164f32132c9f%22%2C%22historyItemDisplayId%22%3A%22f46a020%22%7D
+                // Fetch latest commit from the main branch
                 const response = await fetch(`https://api.github.com/repos/${this.repoOwner}/${this.repoName}/commits/${this.branch}`);
                 if (!response.ok) {
                     console.log('Could not check for updates:', response.status);
@@ -51,15 +55,126 @@
         },
 
         /**
+         * Check if the updater service is running
+         * @returns {Promise<boolean>}
+         */
+        async isUpdaterAvailable() {
+            try {
+                const response = await fetch(`${this.updaterUrl}/health`, {
+                    method: 'GET',
+                    signal: AbortSignal.timeout(2000)
+                });
+                return response.ok;
+            } catch (error) {
+                return false;
+            }
+        },
+
+        /**
+         * Check if an update is already staged
+         * @returns {Promise<boolean>}
+         */
+        async isUpdateStaged() {
+            try {
+                const response = await fetch(`${this.updaterUrl}/update/status`, {
+                    method: 'GET',
+                    signal: AbortSignal.timeout(2000)
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    return data.ready === true;
+                }
+                return false;
+            } catch (error) {
+                return false;
+            }
+        },
+
+        /**
+         * Download update via the updater service
+         * @returns {Promise<{success: boolean, message: string}>}
+         */
+        async downloadUpdate() {
+            try {
+                const response = await fetch(`${this.updaterUrl}/update/download`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.ok) {
+                    return { success: true, message: data.message || 'Downloaded. Restart to apply.' };
+                } else {
+                    return { success: false, message: data.error || 'Download failed' };
+                }
+            } catch (error) {
+                if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                    return { success: false, message: 'Updater service not running. Please restart Writingway.' };
+                }
+                return { success: false, message: `Error: ${error.message}` };
+            }
+        },
+
+        /**
+         * Clear staged update
+         * @returns {Promise<boolean>}
+         */
+        async clearUpdate() {
+            try {
+                const response = await fetch(`${this.updaterUrl}/update/clear`, {
+                    method: 'POST'
+                });
+                return response.ok;
+            } catch (error) {
+                return false;
+            }
+        },
+
+        /**
          * Show update notification to user
          * @param {Object} app - Alpine app instance
          * @param {Object} updateInfo - Update information
          */
-        showUpdateDialog(app, updateInfo) {
+        async showUpdateDialog(app, updateInfo) {
             if (!updateInfo) return;
 
-            app.updateAvailable = updateInfo;
+            // Check if updater service is available
+            const updaterAvailable = await this.isUpdaterAvailable();
+            const updateStaged = updaterAvailable ? await this.isUpdateStaged() : false;
+
+            app.updateAvailable = {
+                ...updateInfo,
+                updaterAvailable,
+                updateStaged,
+                downloading: false,
+                downloadError: null,
+                downloadSuccess: false
+            };
             app.showUpdateDialog = true;
+        },
+
+        /**
+         * Handle download button click
+         * @param {Object} app - Alpine app instance
+         */
+        async handleDownload(app) {
+            if (!app.updateAvailable) return;
+
+            app.updateAvailable.downloading = true;
+            app.updateAvailable.downloadError = null;
+            app.updateAvailable.downloadSuccess = false;
+
+            const result = await this.downloadUpdate();
+
+            app.updateAvailable.downloading = false;
+
+            if (result.success) {
+                app.updateAvailable.downloadSuccess = true;
+                app.updateAvailable.updateStaged = true;
+            } else {
+                app.updateAvailable.downloadError = result.message;
+            }
         },
 
         /**
@@ -73,7 +188,7 @@
                 const updateInfo = await this.checkForUpdates();
 
                 if (updateInfo) {
-                    this.showUpdateDialog(app, updateInfo);
+                    await this.showUpdateDialog(app, updateInfo);
                 } else if (!silent) {
                     alert('✓ You are running the latest version of Writingway!');
                 }

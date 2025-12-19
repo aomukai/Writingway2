@@ -2518,25 +2518,83 @@
                             </div>
                         </div>
 
-                        <div
-                            style="background:rgba(255,193,7,0.1);border:1px solid rgba(255,193,7,0.3);border-radius:6px;padding:12px;margin-bottom:16px;">
-                            <div style="font-size:12px;color:var(--text-secondary);line-height:1.5;">
-                                <strong>⚠️ Note:</strong> Writingway is a local application. To update:
-                                <ol style="margin:8px 0 0 0;padding-left:20px;">
-                                    <li>Download the new version from GitHub</li>
-                                    <li>Extract to a new folder (don't overwrite current installation)</li>
-                                    <li>Your projects are stored in the browser database and will be available in the
-                                        new version</li>
-                                    <li>Optionally backup your database first (Export projects)</li>
-                                </ol>
+                        <!-- Update Already Staged -->
+                        <template x-if="updateAvailable.updateStaged && !updateAvailable.downloadSuccess">
+                            <div style="background:rgba(40,167,69,0.1);border:1px solid rgba(40,167,69,0.3);border-radius:6px;padding:12px;margin-bottom:16px;">
+                                <div style="font-size:13px;color:var(--text-secondary);line-height:1.5;">
+                                    <strong style="color:#28a745;">✓ Update ready to install!</strong><br>
+                                    Close Writingway and run <code style="background:var(--bg-tertiary);padding:2px 6px;border-radius:3px;">start.bat</code> to apply the update.
+                                </div>
                             </div>
-                        </div>
+                        </template>
+
+                        <!-- Download Success -->
+                        <template x-if="updateAvailable.downloadSuccess">
+                            <div style="background:rgba(40,167,69,0.1);border:1px solid rgba(40,167,69,0.3);border-radius:6px;padding:12px;margin-bottom:16px;">
+                                <div style="font-size:13px;color:var(--text-secondary);line-height:1.5;">
+                                    <strong style="color:#28a745;">✓ Downloaded successfully!</strong><br>
+                                    Close Writingway and run <code style="background:var(--bg-tertiary);padding:2px 6px;border-radius:3px;">start.bat</code> to apply the update.<br>
+                                    <span style="font-size:12px;opacity:0.8;">Your projects are stored in the browser and will be preserved.</span>
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- Download Error -->
+                        <template x-if="updateAvailable.downloadError">
+                            <div style="background:rgba(220,53,69,0.1);border:1px solid rgba(220,53,69,0.3);border-radius:6px;padding:12px;margin-bottom:16px;">
+                                <div style="font-size:13px;color:var(--text-secondary);line-height:1.5;">
+                                    <strong style="color:#dc3545;">Download failed</strong><br>
+                                    <span x-text="updateAvailable.downloadError"></span>
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- Updater Not Available -->
+                        <template x-if="!updateAvailable.updaterAvailable && !updateAvailable.updateStaged">
+                            <div style="background:rgba(255,193,7,0.1);border:1px solid rgba(255,193,7,0.3);border-radius:6px;padding:12px;margin-bottom:16px;">
+                                <div style="font-size:12px;color:var(--text-secondary);line-height:1.5;">
+                                    <strong>⚠️ Updater service not running</strong><br>
+                                    The one-click updater requires <code style="background:var(--bg-tertiary);padding:2px 6px;border-radius:3px;">start.bat</code> to be running.<br>
+                                    You can still update manually from GitHub.
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- Manual Update Instructions (shown when updater not available) -->
+                        <template x-if="!updateAvailable.updaterAvailable && !updateAvailable.updateStaged">
+                            <div style="background:var(--bg-tertiary);border-radius:6px;padding:12px;margin-bottom:16px;">
+                                <div style="font-size:12px;color:var(--text-secondary);line-height:1.5;">
+                                    <strong>Manual update:</strong>
+                                    <ol style="margin:8px 0 0 0;padding-left:20px;">
+                                        <li>Download the new version from GitHub</li>
+                                        <li>Extract to a new folder</li>
+                                        <li>Your projects are stored in the browser and will be available</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </template>
                     </div>
                     <div class="modal-footer">
                         <button class="btn btn-secondary" @click="showUpdateDialog = false">Maybe Later</button>
-                        <button class="btn btn-primary"
-                            @click="window.open(updateAvailable.url, '_blank'); showUpdateDialog = false;">
-                            👉 View Release on GitHub
+
+                        <!-- Download Button (when updater available and not yet staged/downloading) -->
+                        <template x-if="updateAvailable.updaterAvailable && !updateAvailable.updateStaged && !updateAvailable.downloading && !updateAvailable.downloadSuccess">
+                            <button class="btn btn-primary" @click="window.UpdateChecker.handleDownload($data)">
+                                ⬇ Download Update
+                            </button>
+                        </template>
+
+                        <!-- Downloading indicator -->
+                        <template x-if="updateAvailable.downloading">
+                            <button class="btn btn-primary" disabled style="opacity:0.7;">
+                                ⏳ Downloading...
+                            </button>
+                        </template>
+
+                        <!-- View on GitHub (always available) -->
+                        <button class="btn" :class="updateAvailable.updaterAvailable ? 'btn-secondary' : 'btn-primary'"
+                            @click="window.open(updateAvailable.url, '_blank');">
+                            View on GitHub
                         </button>
                     </div>
                 </div>

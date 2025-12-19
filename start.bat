@@ -9,7 +9,85 @@ echo   Starting Writingway 2.0...
 echo ================================
 echo.
 
-REM Check if llama.cpp server exists (in llama subfolder)
+REM ========================================
+REM  SECTION 1: Apply Staged Update
+REM ========================================
+if not exist ".update\ready.json" goto update_done
+
+echo [*] Staged update detected! Applying update...
+echo.
+
+REM Check if zip exists
+if not exist ".update\latest.zip" (
+    echo [!] Update zip not found. Cleaning up...
+    del /q ".update\ready.json" 2>nul
+    goto update_done
+)
+
+REM Create extract directory
+if exist ".update\extract" rmdir /s /q ".update\extract"
+mkdir ".update\extract"
+
+REM Unzip using PowerShell Expand-Archive
+echo [*] Extracting update...
+powershell -NoProfile -Command "Expand-Archive -Path '.update\latest.zip' -DestinationPath '.update\extract' -Force"
+if %errorlevel% neq 0 (
+    echo [!] Failed to extract update. Cleaning up...
+    del /q ".update\ready.json" 2>nul
+    del /q ".update\latest.zip" 2>nul
+    rmdir /s /q ".update\extract" 2>nul
+    goto update_done
+)
+
+REM Detect the root folder inside the extracted zip
+REM GitHub archives create a folder like "Writingway2-main"
+set "EXTRACTED_ROOT="
+for /d %%d in (".update\extract\*") do (
+    set "EXTRACTED_ROOT=%%d"
+    goto found_root
+)
+
+:found_root
+if "!EXTRACTED_ROOT!"=="" (
+    echo [!] Could not find extracted folder. Cleaning up...
+    del /q ".update\ready.json" 2>nul
+    del /q ".update\latest.zip" 2>nul
+    rmdir /s /q ".update\extract" 2>nul
+    goto update_done
+)
+
+echo [*] Found update root: !EXTRACTED_ROOT!
+echo [*] Copying files with exclusions...
+
+REM Copy files using robocopy with exclusions
+REM Exclude: .update, .git, projects, backups, models, llama, node_modules, .vscode, .idea, .continue, .claude
+REM Also exclude start.bat for safety (user can manually update if needed)
+robocopy "!EXTRACTED_ROOT!" "." /E /XD ".update" ".git" "projects" "backups" "models" "llama" "node_modules" ".vscode" ".idea" ".continue" ".claude" /XF "start.bat" /NFL /NDL /NJH /NJS /NC /NS /NP
+
+REM Robocopy returns various codes (0-7 are success, 8+ are errors)
+if %errorlevel% geq 8 (
+    echo [!] Warning: Some files may not have copied correctly.
+) else (
+    echo [OK] Update applied successfully!
+)
+
+REM Cleanup update files
+echo [*] Cleaning up update files...
+del /q ".update\ready.json" 2>nul
+del /q ".update\latest.zip" 2>nul
+rmdir /s /q ".update\extract" 2>nul
+
+echo.
+echo ================================
+echo   Update Complete!
+echo ================================
+echo.
+
+:update_done
+
+REM ========================================
+REM  SECTION 2: Check llama.cpp server
+REM ========================================
 if not exist "llama\llama-server.exe" (
     echo [!] llama-server.exe not found!
     echo.
@@ -25,7 +103,24 @@ if not exist "llama\llama-server.exe" (
     exit /b 1
 )
 
-REM Check if models folder exists (but don't require a specific model)
+REM ========================================
+REM  SECTION 3: Check Python
+REM ========================================
+python --version >nul 2>&1
+if %errorlevel% neq 0 (
+    echo [!] Python not found!
+    echo.
+    echo Please install Python from: https://www.python.org/downloads/
+    echo Make sure to check "Add Python to PATH" during install
+    echo.
+    pause
+    exit /b 1
+)
+echo [OK] Python found
+
+REM ========================================
+REM  SECTION 4: Check for model files
+REM ========================================
 if not exist "models" mkdir models
 
 REM Check for any .gguf model files - try to find first one
@@ -41,7 +136,7 @@ for /f "delims=" %%f in ('dir /b models\*.gguf 2^>nul') do (
 if "!MODEL_FOUND!"=="1" (
     echo [OK] Model file found: !MODEL_PATH!
     echo [OK] llama-server.exe found
-    goto check_python
+    goto start_ai_server
 )
 
 echo [*] No .gguf files found in models folder
@@ -60,32 +155,10 @@ choice /C YN /M "Start without local model"
 if errorlevel 2 exit /b 1
 echo.
 echo [*] Starting without local AI - you can use API mode
-goto skip_model_server
+goto start_web
 
-:check_python
+:start_ai_server
 echo.
-
-REM Check if Python is installed
-python --version >nul 2>&1
-if %errorlevel% neq 0 (
-    echo [!] Python not found!
-    echo.
-    echo Please install Python from: https://www.python.org/downloads/
-    echo Make sure to check "Add Python to PATH" during install
-    echo.
-    pause
-    exit /b 1
-)
-
-echo [OK] Python found
-echo.
-
-REM If we have a model, start the AI server
-if !MODEL_FOUND!==0 (
-    echo [*] No model found - skipping AI server
-    goto skip_model_server
-)
-
 echo ================================
 echo   Starting AI Model Server...
 echo ================================
@@ -123,9 +196,18 @@ echo [!] AI server took too long to start
 echo [*] Continuing anyway - you can reload the page once server is ready
 echo.
 
-:skip_model_server
 :start_web
 echo.
+echo ================================
+echo   Starting Updater Service...
+echo ================================
+echo.
+
+REM Start the updater server in background (minimized)
+start /min "Writingway Updater" cmd /c "python tools\updater-server.py"
+echo [OK] Updater service started on port 8001
+echo.
+
 echo ================================
 echo   Starting Web Server...
 echo ================================
@@ -147,6 +229,7 @@ echo  * Keep this window open while using Writingway
 echo.
 echo Web UI: http://localhost:8000/main.html
 echo AI API: http://localhost:8080
+echo Updater: http://localhost:8001
 echo.
 
 REM Wait 3 seconds before opening browser (gives servers time to stabilize)
@@ -154,7 +237,7 @@ timeout /t 3 /nobreak >nul
 
 echo [*] Opening browser now...
 echo.
-echo Close this window to stop both servers.
+echo Close this window to stop all servers.
 echo Press Ctrl+C to stop manually.
 echo ================================
 echo.
@@ -169,5 +252,6 @@ REM Cleanup when Python server stops
 echo.
 echo [*] Shutting down servers...
 taskkill /FI "WindowTitle eq Writingway AI Server*" /T /F >nul 2>&1
+taskkill /FI "WindowTitle eq Writingway Updater*" /T /F >nul 2>&1
 echo [*] All servers stopped.
 pause
