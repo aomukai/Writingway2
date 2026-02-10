@@ -9,6 +9,9 @@ echo "  Starting Writingway 2.0..."
 echo "================================"
 echo ""
 
+# Optional CLI argument: backup directory (default: local_backups)
+BACKUP_DIR="${1:-local_backups}"
+
 # Check if llama-server exists (in llama subfolder)
 if [ ! -f "./llama/llama-server" ]; then
     echo "[!] llama-server not found!"
@@ -152,6 +155,7 @@ echo "  * Keep this terminal open while using Writingway"
 echo ""
 echo "Web UI: http://localhost:8000/main.html"
 echo "AI API: http://localhost:8080"
+echo "Backups: ${BACKUP_DIR}"
 echo ""
 
 # Wait 3 seconds before opening browser
@@ -172,8 +176,8 @@ elif command -v xdg-open &> /dev/null; then
     xdg-open "http://localhost:8000/main.html" &
 fi
 
-# Start Python web server (this blocks)
-python3 -m http.server 8000
+# Start Writingway web server (static files + local backup API)
+python3 main.py --host 127.0.0.1 --port 8000 --backup-dir "$BACKUP_DIR"
 
 # Cleanup when Python server stops
 echo ""

@@ -211,6 +211,7 @@ function createAppState() {
         modelsFetched: false, // Whether we've already fetched models for current provider
 
         // ========== GitHub Backup State ==========
+        backupProvider: 'local', // 'local' or 'github'
         githubToken: '',
         githubUsername: '',
         backupEnabled: false,

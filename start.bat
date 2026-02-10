@@ -9,6 +9,10 @@ echo   Starting Writingway 2.0...
 echo ================================
 echo.
 
+REM Optional first argument: backup directory (default: local_backups)
+set "BACKUP_DIR=%~1"
+if "%BACKUP_DIR%"=="" set "BACKUP_DIR=local_backups"
+
 REM ========================================
 REM  SECTION 1: Apply Staged Update
 REM ========================================
@@ -230,6 +234,7 @@ echo.
 echo Web UI: http://localhost:8000/main.html
 echo AI API: http://localhost:8080
 echo Updater: http://localhost:8001
+echo Backups: %BACKUP_DIR%
 echo.
 
 REM Wait 3 seconds before opening browser (gives servers time to stabilize)
@@ -245,8 +250,8 @@ echo.
 REM Open browser
 start "" http://localhost:8000/main.html
 
-REM Start Python web server (blocks here)
-python -m http.server 8000
+REM Start Writingway web server (static files + local backup API)
+python main.py --host 127.0.0.1 --port 8000 --backup-dir "%BACKUP_DIR%"
 
 REM Cleanup when Python server stops
 echo.

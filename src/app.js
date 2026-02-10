@@ -2135,7 +2135,7 @@ document.addEventListener('alpine:init', () => {
                 await this.loadChapters();
             },
 
-            // ========== GitHub Backup Methods ==========
+            // ========== Backup Methods ==========
 
             async openBackupSettings() {
                 this.showBackupSettings = true;
@@ -2146,8 +2146,10 @@ document.addEventListener('alpine:init', () => {
             },
 
             async saveBackupSettings() {
-                // Validate token first
-                if (this.githubToken) {
+                const isGitHubMode = String(this.backupProvider || '').trim().toLowerCase() === 'github';
+
+                // Validate token only for GitHub mode.
+                if (isGitHubMode && this.githubToken) {
                     this.backupStatus = 'Validating token...';
                     const result = await window.GitHubBackup.validateToken(this.githubToken);
 
@@ -2160,11 +2162,23 @@ document.addEventListener('alpine:init', () => {
                     this.githubUsername = result.username;
                 }
 
+                // If GitHub mode + auto-backup, require token.
+                if (isGitHubMode && this.backupEnabled && !this.githubToken) {
+                    alert('Please configure a GitHub token before enabling GitHub auto-backup.');
+                    this.backupStatus = 'Token required';
+                    return;
+                }
+
+                // Local mode doesn't use GitHub identity.
+                if (!isGitHubMode) {
+                    this.githubUsername = '';
+                }
+
                 // Save settings
                 window.GitHubBackup.saveBackupSettings(this);
 
                 // Start or stop auto-backup based on enabled state
-                if (this.backupEnabled && this.githubToken) {
+                if (this.backupEnabled) {
                     window.GitHubBackup.startAutoBackup(this);
                     this.backupStatus = 'Auto-backup enabled';
                 } else {
@@ -2176,13 +2190,21 @@ document.addEventListener('alpine:init', () => {
             },
 
             async backupNow() {
-                if (!this.githubToken || !this.currentProject) {
-                    alert('Please configure GitHub token and select a project first.');
+                if (!this.currentProject) {
+                    alert('Please select a project first.');
+                    return;
+                }
+
+                const isGitHubMode = String(this.backupProvider || '').trim().toLowerCase() === 'github';
+                if (isGitHubMode && !this.githubToken) {
+                    alert('Please configure GitHub token first.');
                     return;
                 }
 
                 this.backupStatus = 'Backing up...';
-                const result = await window.GitHubBackup.backupToGist(this);
+                const result = isGitHubMode
+                    ? await window.GitHubBackup.backupToGist(this)
+                    : await window.GitHubBackup.backupToLocal(this);
 
                 if (result.success) {
                     this.lastBackupTime = new Date();
@@ -2199,16 +2221,29 @@ document.addEventListener('alpine:init', () => {
             },
 
             async openRestoreModal() {
-                if (!this.githubToken || !this.currentProjectGistId) {
-                    alert('No backup configured for this project.');
+                if (!this.currentProject) {
+                    alert('Please select a project first.');
+                    return;
+                }
+
+                const isGitHubMode = String(this.backupProvider || '').trim().toLowerCase() === 'github';
+                if (isGitHubMode && (!this.githubToken || !this.currentProjectGistId)) {
+                    alert('No GitHub backup configured for this project.');
                     return;
                 }
 
                 this.backupStatus = 'Loading backups...';
-                const result = await window.GitHubBackup.listBackups(this);
+                const result = isGitHubMode
+                    ? await window.GitHubBackup.listBackups(this)
+                    : await window.GitHubBackup.listLocalBackups(this);
 
                 if (result.success) {
-                    this.backupList = result.backups;
+                    this.backupList = result.backups || [];
+                    if (this.backupList.length === 0) {
+                        this.backupStatus = '';
+                        alert('No backups found for this project.');
+                        return;
+                    }
                     this.showRestoreModal = true;
                     this.backupStatus = '';
                 } else {
@@ -2222,13 +2257,16 @@ document.addEventListener('alpine:init', () => {
                 this.backupList = [];
             },
 
-            async restoreBackup(versionUrl) {
+            async restoreBackup(backupRef) {
                 if (!confirm('This will replace your current project with the backup. Continue?')) {
                     return;
                 }
 
                 this.backupStatus = 'Restoring...';
-                const result = await window.GitHubBackup.restoreFromBackup(this, versionUrl);
+                const isGitHubMode = String(this.backupProvider || '').trim().toLowerCase() === 'github';
+                const result = isGitHubMode
+                    ? await window.GitHubBackup.restoreFromBackup(this, backupRef)
+                    : await window.GitHubBackup.restoreFromLocalBackup(this, backupRef);
 
                 if (result.success) {
                     this.backupStatus = 'Restored';

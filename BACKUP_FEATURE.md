@@ -1,8 +1,10 @@
-# GitHub Gists Auto-Backup Feature
+# Backup Feature (GitHub + Local)
 
 ## 🎉 Implementation Complete!
 
-Writingway 2 now has automatic cloud backup using GitHub Gists.
+Writingway 2 supports automatic backups using:
+- GitHub Gists (cloud)
+- Local JSON files stored in `./local_backups/` by default
 
 ## ✨ Features
 
@@ -10,7 +12,7 @@ Writingway 2 now has automatic cloud backup using GitHub Gists.
 
 1. **Manual Backup**
    - Click "Backup Now" to save immediately
-   - Creates/updates a private GitHub Gist
+   - Saves to the selected backup target (GitHub Gist or local JSON file)
 
 2. **Auto-Backup**
    - Automatic backup every 5 minutes when enabled
@@ -18,8 +20,9 @@ Writingway 2 now has automatic cloud backup using GitHub Gists.
    - Shows status in sidebar when active
 
 3. **Version History**
-   - GitHub keeps unlimited versions of your backups
-   - View all backup timestamps
+   - View backup history and timestamps
+   - GitHub mode uses Gist revision history
+   - Local mode uses timestamped files in the configured backup directory
    - Restore from any previous version
 
 4. **Restore Functionality**
@@ -28,9 +31,9 @@ Writingway 2 now has automatic cloud backup using GitHub Gists.
    - Full project recovery (chapters, scenes, content, compendium, prompts)
 
 5. **Simple Setup**
-   - Clear step-by-step instructions in the UI
-   - Just paste your GitHub token
-   - Works immediately
+   - Clear setup instructions in the UI
+   - Choose cloud or local backup mode
+   - GitHub token is needed only for cloud mode
 
 6. **Security & Privacy**
    - All Gists are private by default
@@ -38,27 +41,38 @@ Writingway 2 now has automatic cloud backup using GitHub Gists.
    - No storage limits
    - You control your data
 
+7. **Local Backups**
+   - Save backups directly to your local `./local_backups/` folder by default
+   - Uses local server API endpoints
+   - Backup directory is configurable at server startup with `--backup-dir <path>`
+   - No external account or token required
+
 ## 🚀 How to Use
 
 ### Initial Setup
 
 1. Start Writingway 2 with `start.bat`
 2. Open the main menu (☰)
-3. Click "☁️ Cloud Backup"
-4. Follow the instructions to create a GitHub token
-5. Paste your token and click "Save Settings"
-6. Enable "Enable automatic backup"
-7. Done! Your project will backup every 5 minutes
+3. Click "💾 Backups"
+4. Choose backup location:
+   - **Cloud (GitHub Gists)**: paste a GitHub token
+   - **Local Folder (`./local_backups` by default)**: no token needed
+5. Click "Save Settings"
+6. Optionally enable automatic backup (every 5 minutes)
+7. Optional: change local backup directory when starting server, for example:
+   - `python main.py --backup-dir ./my_backups`
+   - `./start.sh ./my_backups` (Mac/Linux)
+   - `start.bat my_backups` (Windows)
 
 ### Backup Now
 
-1. Open main menu → "☁️ Cloud Backup"
+1. Open main menu → "💾 Backups"
 2. Click "Backup Now"
 3. Wait for confirmation
 
 ### Restore from Backup
 
-1. Open main menu → "☁️ Cloud Backup"
+1. Open main menu → "💾 Backups"
 2. Click "📥 Restore from Backup"
 3. Select a backup version
 4. Click "Restore"
@@ -69,11 +83,13 @@ Writingway 2 now has automatic cloud backup using GitHub Gists.
 
 ### New Files
 - `src/modules/github-backup.js` - Backup module
+- `main.py` - Local web server with backup API endpoints
 - `BACKUP_TESTING.md` - Testing guide
 
 ### Modified Files
 - `src/app.js` - Added backup state variables and methods
 - `main.html` - Added backup UI (settings panel, restore modal, menu button, status indicator)
+- `start.sh` / `start.bat` - Use `main.py` server instead of plain `http.server`
 
 ## 🔧 Technical Details
 
@@ -92,12 +108,18 @@ Each backup includes:
 - No storage limits
 - Unlimited version history
 - Accessible from https://gist.github.com/
+- Local mode stores versioned JSON backup files in `./local_backups/` by default
+- Set a custom location with `--backup-dir <path>` on server startup
 
 ### API Usage
 - Uses GitHub REST API v3
 - Only requires `gist` permission
 - Token stored in localStorage
 - Auto-backup timer: 5 minutes
+- Local mode uses:
+  - `POST /api/backups`
+  - `GET /api/backups?projectId=<id>`
+  - `GET /api/backups/<backup_id>`
 
 ### Key Functions
 
@@ -105,8 +127,11 @@ Each backup includes:
 - `validateToken()` - Validates GitHub token
 - `exportProjectData()` - Exports all project data
 - `backupToGist()` - Creates or updates Gist
+- `backupToLocal()` - Saves backup JSON to local server
 - `listBackups()` - Fetches version history
+- `listLocalBackups()` - Lists local backups
 - `restoreFromBackup()` - Restores from specific version
+- `restoreFromLocalBackup()` - Restores from local backup payload
 - `restoreProjectData()` - Writes backup data to database
 - `startAutoBackup()` - Starts 5-minute timer
 - `stopAutoBackup()` - Stops timer
@@ -137,7 +162,7 @@ Quick test:
 ## 🎯 User Experience
 
 ### UI Location
-- **Main Menu**: "☁️ Cloud Backup" button
+- **Main Menu**: "💾 Backups" button
 - **Sidebar**: Small status indicator when auto-backup is enabled
 - **Settings Panel**: Slide-in from right with full controls
 - **Restore Modal**: Centered overlay with version list

@@ -25,3 +25,5 @@ todo.md
 .update/
 # Node modules
 node_modules/
+# Runtime local backup files
+local_backups/

@@ -246,7 +246,7 @@
                                 <button @click.stop="showAISettings = true; mainMenuOpen=false">⚙️ AI Settings</button>
                                 <button @click.stop="showPromptsPanel = true; mainMenuOpen=false">📝 Manage
                                     Prompts</button>
-                                <button @click.stop="openBackupSettings(); mainMenuOpen=false">☁️ Cloud Backup</button>
+                                <button @click.stop="openBackupSettings(); mainMenuOpen=false">💾 Backups</button>
                                 <div style="border-top:1px solid var(--border);margin:6px 0"></div>
                                 <button @click.stop="checkForUpdates(); mainMenuOpen=false"
                                     :disabled="checkingForUpdates">
@@ -279,7 +279,7 @@
                             style="cursor:pointer;padding:8px 16px;border-radius:8px;transition:background 0.2s;font-size:12px;"
                             @click="openBackupSettings()" @mouseenter="$el.style.background='rgba(76,175,80,0.1)'"
                             @mouseleave="$el.style.background='transparent'" title="Click for backup settings">
-                            <span>☁️</span>
+                            <span x-text="backupProvider === 'local' ? '💾' : '☁️'"></span>
                             <span x-text="backupStatus || 'Auto-backup active'"></span>
                         </div>
                     </div>
@@ -423,7 +423,7 @@
                 <!-- Main Content Area (wrapper for banner + editor) -->
                 <div class="main-content-area">
                     <!-- Auto-Backup Warning Banner (non-dismissable) -->
-                    <div x-show="!backupEnabled || !githubToken" x-cloak class="backup-warning-banner">
+                    <div x-show="!backupEnabled || (backupProvider === 'github' && !githubToken)" x-cloak class="backup-warning-banner">
                         AUTO BACKUP NOT ENABLED! Data will be lost on deleting the browser cache or site data.
                     </div>
 
@@ -1809,14 +1809,23 @@
             </div>
         </div>
 
-        <!-- GitHub Backup Settings Panel -->
+        <!-- Backup Settings Panel -->
         <div class="slide-panel-right" :class="{ 'open': showBackupSettings }" x-cloak>
             <div class="slide-panel-header">
-                <h3 style="margin:0;">☁️ Cloud Backup</h3>
+                <h3 style="margin:0;">💾 Backups</h3>
                 <button class="btn btn-secondary" @click="closeBackupSettings()">Close</button>
             </div>
             <div class="slide-panel-body" style="padding:20px;">
-                <div
+                <div style="margin-bottom:20px;">
+                    <label style="display:block;font-weight:600;margin-bottom:8px;">Backup Location</label>
+                    <select x-model="backupProvider"
+                        style="width:100%;padding:10px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
+                        <option value="local">Local Folder (default: ./local_backups)</option>
+                        <option value="github">Cloud (GitHub Gists)</option>
+                    </select>
+                </div>
+
+                <div x-show="backupProvider === 'github'"
                     style="background:rgba(74,158,255,0.1);border:1px solid rgba(74,158,255,0.3);border-radius:8px;padding:16px;margin-bottom:24px;">
                     <h4 style="margin:0 0 12px 0;color:var(--text-primary);">Setup Instructions</h4>
                     <ol style="margin:0;padding-left:20px;line-height:1.8;font-size:14px;">
@@ -1833,13 +1842,21 @@
                     </ol>
                 </div>
 
-                <div style="margin-bottom:20px;">
+                <div x-show="backupProvider === 'github'" style="margin-bottom:20px;">
                     <label style="display:block;font-weight:600;margin-bottom:8px;">GitHub Token</label>
                     <input type="password" x-model="githubToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
                         style="width:100%;padding:10px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:monospace;font-size:13px;">
                     <p style="font-size:12px;color:var(--text-secondary);margin-top:8px;">
                         <span x-show="githubUsername" style="color:#4caf50;">✓ Connected as: <strong
                                 x-text="githubUsername"></strong></span>
+                    </p>
+                </div>
+
+                <div x-show="backupProvider === 'local'"
+                    style="margin-bottom:20px;padding:12px;background:rgba(76,175,80,0.1);border:1px solid rgba(76,175,80,0.3);border-radius:6px;">
+                    <p style="margin:0;font-size:13px;line-height:1.6;">
+                        Local backups are saved through the local web server (default folder: <code>./local_backups/</code>).
+                        You can override this with the server startup flag <code>--backup-dir &lt;path&gt;</code>.
                     </p>
                 </div>
 
@@ -1870,7 +1887,8 @@
 
                 <div style="border-top:1px solid var(--border);padding-top:20px;">
                     <button class="btn btn-secondary" @click="openRestoreModal()"
-                        :disabled="!githubToken || !currentProjectGistId" style="width:100%;">
+                        :disabled="backupProvider === 'github' ? (!githubToken || !currentProjectGistId) : !currentProject"
+                        style="width:100%;">
                         📥 Restore from Backup
                     </button>
                 </div>
@@ -1878,8 +1896,10 @@
                 <div
                     style="margin-top:20px;padding:16px;background:rgba(255,193,7,0.1);border:1px solid rgba(255,193,7,0.3);border-radius:8px;">
                     <p style="margin:0;font-size:13px;line-height:1.6;">
-                        <strong>Note:</strong> Each project is backed up to its own private GitHub Gist.
-                        Backups include all chapters, scenes, content, compendium entries, and prompts.
+                        <strong>Note:</strong>
+                        <span x-show="backupProvider === 'github'">Each project is backed up to its own private GitHub Gist.</span>
+                        <span x-show="backupProvider === 'local'">Each backup is saved as a JSON file (default: <code>./local_backups/</code>; configurable with <code>--backup-dir</code>).</span>
+                        Backups include chapters, scenes, content, compendium entries, and prompts.
                     </p>
                 </div>
             </div>

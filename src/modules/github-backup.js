@@ -1,13 +1,18 @@
-// GitHub Gists Auto-Backup Module
-// Handles automatic backup to GitHub Gists and restore functionality
+// Backup Module
+// Handles GitHub Gist backups and local file backups via the local web server.
 
 (function () {
     const BACKUP_INTERVAL = 5 * 60 * 1000; // 5 minutes
+    const LOCAL_BACKUP_API = '/api/backups';
     let backupIntervalId = null;
 
     const GitHubBackup = {
+        isGitHubMode(app) {
+            return String(app.backupProvider || '').trim().toLowerCase() === 'github';
+        },
+
         /**
-         * Validate GitHub token
+         * Validate GitHub token.
          */
         async validateToken(token) {
             try {
@@ -28,7 +33,7 @@
         },
 
         /**
-         * Export current project data as JSON
+         * Export current project data as JSON.
          */
         async exportProjectData(app) {
             if (!app.currentProject) return null;
@@ -36,18 +41,15 @@
             try {
                 const projectId = app.currentProject.id;
 
-                // Get all data for current project
                 const chapters = await db.chapters.where('projectId').equals(projectId).toArray();
                 const scenes = await db.scenes.where('projectId').equals(projectId).toArray();
 
-                // Get content for all scenes
                 const sceneContents = {};
                 for (const scene of scenes) {
                     const content = await db.content.get(scene.id);
                     sceneContents[scene.id] = content ? content.text : '';
                 }
 
-                // Get compendium entries (handle if table doesn't exist)
                 let compendium = [];
                 try {
                     if (db.compendium) {
@@ -57,7 +59,6 @@
                     console.warn('Could not load compendium:', e);
                 }
 
-                // Get prompts (handle if table doesn't exist)
                 let prompts = [];
                 try {
                     if (db.prompts) {
@@ -84,7 +85,7 @@
         },
 
         /**
-         * Create or update GitHub Gist with backup
+         * Create or update GitHub Gist with backup.
          */
         async backupToGist(app) {
             if (!app.githubToken || !app.currentProject) {
@@ -99,12 +100,9 @@
 
                 const filename = `${app.currentProject.name.replace(/[^a-z0-9]/gi, '_')}_backup.json`;
                 const description = `Writingway Auto-Backup: ${app.currentProject.name}`;
-
-                // Check if gist already exists
                 const gistId = app.currentProjectGistId;
 
                 if (gistId) {
-                    // Update existing gist
                     const response = await fetch(`https://api.github.com/gists/${gistId}`, {
                         method: 'PATCH',
                         headers: {
@@ -133,7 +131,6 @@
                     }
                 }
 
-                // Create new gist
                 const response = await fetch('https://api.github.com/gists', {
                     method: 'POST',
                     headers: {
@@ -169,7 +166,50 @@
         },
 
         /**
-         * List all backup versions from gist history
+         * Save backup to local folder via local server API.
+         * Default server folder is ./local_backups (can be changed with --backup-dir).
+         */
+        async backupToLocal(app) {
+            if (!app.currentProject) {
+                return { success: false, error: 'No project selected' };
+            }
+
+            try {
+                const projectData = await this.exportProjectData(app);
+                if (!projectData) {
+                    return { success: false, error: 'No project data' };
+                }
+
+                const response = await fetch(LOCAL_BACKUP_API, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(projectData)
+                });
+
+                const data = await response.json().catch(() => null);
+                if (!response.ok || !data || data.success === false) {
+                    return {
+                        success: false,
+                        error: (data && data.error) ? data.error : `HTTP ${response.status}`
+                    };
+                }
+
+                const backup = data.backup || {};
+                return {
+                    success: true,
+                    backupId: backup.id || '',
+                    backup: backup
+                };
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        },
+
+        /**
+         * List backup versions from gist history.
          */
         async listBackups(app) {
             if (!app.githubToken || !app.currentProjectGistId) {
@@ -177,7 +217,6 @@
             }
 
             try {
-                // Get gist with full history
                 const response = await fetch(`https://api.github.com/gists/${app.currentProjectGistId}`, {
                     headers: {
                         'Authorization': `token ${app.githubToken}`,
@@ -190,8 +229,6 @@
                 }
 
                 const gist = await response.json();
-
-                // Get all versions
                 const versions = gist.history || [];
 
                 return {
@@ -209,7 +246,46 @@
         },
 
         /**
-         * Restore from a specific backup version
+         * List local backups for the currently selected project.
+         */
+        async listLocalBackups(app) {
+            if (!app.currentProject) {
+                return { success: false, error: 'No selected project' };
+            }
+
+            try {
+                const projectId = encodeURIComponent(app.currentProject.id);
+                const response = await fetch(`${LOCAL_BACKUP_API}?projectId=${projectId}`, {
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+
+                const data = await response.json().catch(() => null);
+                if (!response.ok || !data || data.success === false) {
+                    return {
+                        success: false,
+                        error: (data && data.error) ? data.error : `HTTP ${response.status}`
+                    };
+                }
+
+                const rawBackups = Array.isArray(data.backups) ? data.backups : [];
+                return {
+                    success: true,
+                    backups: rawBackups.map(b => ({
+                        version: String(b.version || b.id || ''),
+                        timestamp: b.timestamp || new Date().toISOString(),
+                        url: b.url || `${LOCAL_BACKUP_API}/${encodeURIComponent(String(b.id || ''))}`,
+                        id: b.id || ''
+                    }))
+                };
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        },
+
+        /**
+         * Restore from a specific GitHub backup version.
          */
         async restoreFromBackup(app, versionUrl) {
             if (!app.githubToken) {
@@ -237,8 +313,6 @@
                 }
 
                 const backupData = JSON.parse(firstFile.content);
-
-                // Restore project data
                 await this.restoreProjectData(app, backupData);
 
                 return { success: true };
@@ -248,27 +322,57 @@
         },
 
         /**
-         * Restore project data from backup
+         * Restore from a local backup file via local server API.
+         */
+        async restoreFromLocalBackup(app, backupRef) {
+            if (!backupRef) {
+                return { success: false, error: 'No backup reference provided' };
+            }
+
+            try {
+                const url = backupRef.startsWith('/')
+                    ? backupRef
+                    : `${LOCAL_BACKUP_API}/${encodeURIComponent(backupRef)}`;
+
+                const response = await fetch(url, {
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+
+                const backupData = await response.json().catch(() => null);
+                if (!response.ok || !backupData || backupData.success === false) {
+                    return {
+                        success: false,
+                        error: (backupData && backupData.error) ? backupData.error : `HTTP ${response.status}`
+                    };
+                }
+
+                await this.restoreProjectData(app, backupData);
+                return { success: true };
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        },
+
+        /**
+         * Restore project data from backup payload.
          */
         async restoreProjectData(app, backupData) {
             const projectId = backupData.project.id;
 
-            // Update project info
             await db.projects.put(backupData.project);
 
-            // Clear and restore chapters
             await db.chapters.where('projectId').equals(projectId).delete();
             for (const chapter of backupData.chapters) {
                 await db.chapters.add(chapter);
             }
 
-            // Clear and restore scenes
             await db.scenes.where('projectId').equals(projectId).delete();
             for (const scene of backupData.scenes) {
                 await db.scenes.add(scene);
             }
 
-            // Restore scene contents
             for (const [sceneId, text] of Object.entries(backupData.sceneContents)) {
                 const wordCount = text ? text.trim().split(/\s+/).filter(w => w.length > 0).length : 0;
                 await db.content.put({
@@ -278,13 +382,11 @@
                 });
             }
 
-            // Clear and restore compendium
             await db.compendium.where('projectId').equals(projectId).delete();
             for (const entry of backupData.compendium || []) {
                 await db.compendium.add(entry);
             }
 
-            // Clear and restore prompts
             if (backupData.prompts) {
                 await db.prompts.where('projectId').equals(projectId).delete();
                 for (const prompt of backupData.prompts) {
@@ -292,12 +394,11 @@
                 }
             }
 
-            // Reload the project
             await app.selectProject(projectId);
         },
 
         /**
-         * Start auto-backup timer
+         * Start auto-backup timer for current provider.
          */
         startAutoBackup(app) {
             if (backupIntervalId) {
@@ -305,28 +406,32 @@
             }
 
             backupIntervalId = setInterval(async () => {
-                if (app.backupEnabled && app.githubToken && app.currentProject) {
-                    app.backupStatus = 'Backing up...';
-                    const result = await this.backupToGist(app);
+                if (!app.backupEnabled || !app.currentProject) return;
 
-                    if (result.success) {
-                        app.lastBackupTime = new Date();
-                        app.backupStatus = 'Backed up';
-                        if (result.gistId) {
-                            app.currentProjectGistId = result.gistId;
-                            this.saveBackupSettings(app);
-                        }
-                        console.log('✓ Auto-backup successful');
-                    } else {
-                        app.backupStatus = 'Backup failed';
-                        console.error('Auto-backup failed:', result.error);
+                if (this.isGitHubMode(app) && !app.githubToken) return;
+
+                app.backupStatus = 'Backing up...';
+                const result = this.isGitHubMode(app)
+                    ? await this.backupToGist(app)
+                    : await this.backupToLocal(app);
+
+                if (result.success) {
+                    app.lastBackupTime = new Date();
+                    app.backupStatus = 'Backed up';
+                    if (result.gistId) {
+                        app.currentProjectGistId = result.gistId;
                     }
+                    this.saveBackupSettings(app);
+                    console.log('✓ Auto-backup successful');
+                } else {
+                    app.backupStatus = 'Backup failed';
+                    console.error('Auto-backup failed:', result.error);
                 }
             }, BACKUP_INTERVAL);
         },
 
         /**
-         * Stop auto-backup timer
+         * Stop auto-backup timer.
          */
         stopAutoBackup() {
             if (backupIntervalId) {
@@ -336,11 +441,12 @@
         },
 
         /**
-         * Save backup settings to localStorage
+         * Save backup settings to localStorage.
          */
         saveBackupSettings(app) {
             try {
                 const settings = {
+                    provider: this.isGitHubMode(app) ? 'github' : 'local',
                     enabled: app.backupEnabled,
                     token: app.githubToken,
                     gistId: app.currentProjectGistId,
@@ -353,24 +459,39 @@
         },
 
         /**
-         * Load backup settings from localStorage
+         * Load backup settings from localStorage.
          */
         loadBackupSettings(app) {
             try {
                 const saved = localStorage.getItem('writingway:backupSettings');
-                if (saved) {
-                    const settings = JSON.parse(saved);
-                    app.backupEnabled = settings.enabled || false;
-                    app.githubToken = settings.token || '';
-                    app.currentProjectGistId = settings.gistId || '';
-                    app.githubUsername = settings.username || '';
+                if (!saved) return;
 
-                    // Delay auto-backup start to avoid blocking initialization
-                    if (app.backupEnabled && app.githubToken) {
-                        setTimeout(() => {
-                            this.startAutoBackup(app);
-                        }, 5000); // Start after 5 seconds
-                    }
+                const settings = JSON.parse(saved);
+
+                // Backward compatibility:
+                // older versions had no provider field and were GitHub-only.
+                const provider = String(settings.provider || '').trim().toLowerCase();
+                if (provider === 'local' || provider === 'github') {
+                    app.backupProvider = provider;
+                } else if (settings.token || settings.gistId || settings.username) {
+                    app.backupProvider = 'github';
+                } else {
+                    app.backupProvider = 'local';
+                }
+
+                app.backupEnabled = settings.enabled || false;
+                app.githubToken = settings.token || '';
+                app.currentProjectGistId = settings.gistId || '';
+                app.githubUsername = settings.username || '';
+
+                const shouldAutoStart = app.backupEnabled && (
+                    !this.isGitHubMode(app) || !!app.githubToken
+                );
+
+                if (shouldAutoStart) {
+                    setTimeout(() => {
+                        this.startAutoBackup(app);
+                    }, 5000);
                 }
             } catch (e) {
                 console.error('Failed to load backup settings:', e);
