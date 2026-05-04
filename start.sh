@@ -10,66 +10,142 @@ echo "================================"
 echo ""
 
 # Check if llama-server exists (in llama subfolder)
-if [ ! -f "./llama/llama-server" ]; then
-    echo "[!] llama-server not found!"
-    echo ""
-    echo "Please download llama.cpp for your system:"
-    echo "1. Go to: https://github.com/ggerganov/llama.cpp/releases"
-    echo "2. For Mac: Download llama-XXX-bin-macos-arm64.zip (Apple Silicon)"
-    echo "            or llama-XXX-bin-macos-x64.zip (Intel Mac)"
-    echo "   For Linux: Download llama-XXX-bin-ubuntu-x64.zip"
-    echo "3. Create a 'llama' folder and extract all files there"
-    echo ""
-    echo "Expected location: $(pwd)/llama/llama-server"
-    echo ""
-    read -p "Press Enter to exit..."
-    exit 1
-fi
+LLAMA_FOUND=0
+LLAMA_PATH=""
 
-# Make llama-server executable
-chmod +x ./llama/llama-server
+if [ -f "./llama/llama-server" ]; then
+    LLAMA_FOUND=1
+    LLAMA_PATH="./llama/llama-server"
+    # Make llama-server executable
+    chmod +x ./llama/llama-server
+fi
 
 # Check if models folder exists
 if [ ! -d "models" ]; then
     mkdir models
 fi
 
-# Check for any .gguf model files
+# Check for any .gguf model files (only if llama-server was found)
 MODEL_FOUND=0
 MODEL_PATH=""
 
-for file in models/*.gguf; do
-    if [ -f "$file" ]; then
-        MODEL_FOUND=1
-        MODEL_PATH="$file"
-        break
-    fi
-done
+if [ $LLAMA_FOUND -eq 1 ]; then
+    for file in models/*.gguf; do
+        if [ -f "$file" ]; then
+            MODEL_FOUND=1
+            MODEL_PATH="$file"
+            break
+        fi
+    done
+fi
 
-if [ $MODEL_FOUND -eq 0 ]; then
+# Present choices based on what's available
+if [ $LLAMA_FOUND -eq 1 ] && [ $MODEL_FOUND -eq 1 ]; then
+    echo "[OK] llama-server found: $LLAMA_PATH"
+    echo "[OK] Model file found: $MODEL_PATH"
+    echo ""
+    echo "How would you like to run Writingway?"
+    echo ""
+    echo "  1) Use local llama.cpp server (runs on this machine, free, private)"
+    echo "  2) Use remote AI server (LM Studio, Ollama, or API like Claude/OpenAI)"
+    echo "  3) Exit"
+    echo ""
+    read -p "Choose option [1-3]: " choice
+    case $choice in
+        1)
+            echo ""
+            echo "[*] Starting with local llama.cpp server..."
+            SKIP_MODEL=0
+            ;;
+        2)
+            echo ""
+            echo "[*] Starting without local AI - you can configure remote server in settings"
+            SKIP_MODEL=1
+            ;;
+        3)
+            echo ""
+            echo "Exiting."
+            exit 0
+            ;;
+        *)
+            echo ""
+            echo "[!] Invalid option. Exiting."
+            exit 1
+            ;;
+    esac
+elif [ $LLAMA_FOUND -eq 1 ]; then
+    echo "[OK] llama-server found: $LLAMA_PATH"
     echo "[!] No model files found in models/ folder"
     echo ""
-    echo "You can either:"
-    echo "1. Download a model and place it in the models/ folder"
-    echo "2. Start anyway and configure API mode (Claude, OpenRouter, etc.)"
+    echo "How would you like to run Writingway?"
     echo ""
-    echo "Recommended models:"
+    echo "  1) Download a model and use local llama.cpp server"
+    echo "  2) Use remote AI server (LM Studio, Ollama, or API like Claude/OpenAI)"
+    echo "  3) Exit"
+    echo ""
+    echo "Recommended models for local use:"
     echo "  - Qwen2.5-3B-Instruct (2.5GB, fast)"
     echo "  - Qwen2.5-7B-Instruct (5GB, better quality)"
     echo "  - Download from: https://huggingface.co/models?search=gguf"
     echo ""
-    read -p "Start without local model? [y/N]: " choice
-    if [[ ! $choice =~ ^[Yy]$ ]]; then
-        exit 1
-    fi
-    echo ""
-    echo "[*] Starting without local AI - you can use API mode"
-    SKIP_MODEL=1
+    read -p "Choose option [1-3]: " choice
+    case $choice in
+        1)
+            echo ""
+            echo "[!] No model found. Please download a .gguf model to the models/ folder."
+            echo "    Then run this script again."
+            exit 1
+            ;;
+        2)
+            echo ""
+            echo "[*] Starting without local AI - you can configure remote server in settings"
+            SKIP_MODEL=1
+            ;;
+        3)
+            echo ""
+            echo "Exiting."
+            exit 0
+            ;;
+        *)
+            echo ""
+            echo "[!] Invalid option. Exiting."
+            exit 1
+            ;;
+    esac
 else
-    echo "[OK] llama-server found"
-    echo "[OK] Model file found: $MODEL_PATH"
+    echo "[!] llama-server not found!"
     echo ""
-    SKIP_MODEL=0
+    echo "To use local AI, you would need to:"
+    echo "  1. Download llama.cpp from: https://github.com/ggerganov/llama.cpp/releases"
+    echo "  2. For Mac: Download llama-XXX-bin-macos-arm64.zip (Apple Silicon)"
+    echo "              or llama-XXX-bin-macos-x64.zip (Intel Mac)"
+    echo "     For Linux: Download llama-XXX-bin-ubuntu-x64.zip"
+    echo "  3. Create a 'llama' folder and extract llama-server there"
+    echo "  4. Download a .gguf model to the models/ folder"
+    echo ""
+    echo "How would you like to run Writingway?"
+    echo ""
+    echo "  1) Use remote AI server (LM Studio, Ollama, or API like Claude/OpenAI)"
+    echo "  2) Exit"
+    echo ""
+    read -p "Choose option [1-2]: " choice
+    case $choice in
+        1)
+            echo ""
+            echo "[*] Starting without local AI - you can configure remote server in settings"
+            SKIP_MODEL=1
+            ;;
+        2)
+            echo ""
+            echo "Exiting."
+            exit 0
+            ;;
+        *)
+            echo ""
+            echo "[!] Invalid option. Exiting."
+            exit 1
+            ;;
+    esac
 fi
 
 # Check if Python 3 is installed

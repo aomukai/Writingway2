@@ -86,26 +86,28 @@ echo.
 :update_done
 
 REM ========================================
-REM  SECTION 2: Check llama.cpp server
+REM  SECTION 2: Check llama.cpp server and present choices
 REM ========================================
-if not exist "llama\llama-server.exe" (
-    echo [!] llama-server.exe not found!
-    echo.
-    echo Please download llama.cpp for Windows:
-    echo 1. Go to: https://github.com/ggerganov/llama.cpp/releases
-    echo 2. Download: llama-XXX-bin-win-cuda-cu12.2.0-x64.zip
-    echo    ^(or the non-CUDA version if you don't have NVIDIA GPU^)
-    echo 3. Create a "llama" folder and extract all files there
-    echo.
-    echo Expected location: %CD%\llama\llama-server.exe
-    echo.
-    pause
-    exit /b 1
+
+set "LLAMA_FOUND=0"
+if exist "llama\llama-server.exe" (
+    set "LLAMA_FOUND=1"
 )
 
-REM ========================================
-REM  SECTION 3: Check Python
-REM ========================================
+REM Check for models folder and model files
+if not exist "models" mkdir models
+
+set "MODEL_FOUND=0"
+set "MODEL_PATH="
+for /f "delims=" %%f in ('dir /b models\*.gguf 2^>nul') do (
+    set "MODEL_FOUND=1"
+    set "MODEL_PATH=models\%%f"
+    goto model_check_done
+)
+
+:model_check_done
+
+REM Check Python availability
 python --version >nul 2>&1
 if %errorlevel% neq 0 (
     echo [!] Python not found!
@@ -116,46 +118,98 @@ if %errorlevel% neq 0 (
     pause
     exit /b 1
 )
-echo [OK] Python found
 
-REM ========================================
-REM  SECTION 4: Check for model files
-REM ========================================
-if not exist "models" mkdir models
-
-REM Check for any .gguf model files - try to find first one
-set "MODEL_FOUND=0"
-set "MODEL_PATH="
-for /f "delims=" %%f in ('dir /b models\*.gguf 2^>nul') do (
-    set "MODEL_FOUND=1"
-    set "MODEL_PATH=models\%%f"
-    goto model_check_done
-)
-
-:model_check_done
-if "!MODEL_FOUND!"=="1" (
+REM Present choices based on what's available
+if "%LLAMA_FOUND%"=="1" if "!MODEL_FOUND!"=="1" (
+    echo [OK] llama-server.exe found: llama\llama-server.exe
     echo [OK] Model file found: !MODEL_PATH!
-    echo [OK] llama-server.exe found
-    goto start_ai_server
+    echo.
+    echo How would you like to run Writingway?
+    echo.
+    echo   1^) Use local llama.cpp server ^(runs on this machine, free, private^)
+    echo   2^) Use remote AI server ^(LM Studio, Ollama, or API like Claude/OpenAI^)
+    echo   3^) Exit
+    echo.
+    choice /C 123 /M "Choose option"
+    if errorlevel 3 (
+        echo.
+        echo Exiting.
+        exit /b 0
+    )
+    if errorlevel 2 (
+        echo.
+        echo [*] Starting without local AI - you can configure remote server in settings
+        goto start_web
+    )
+    if errorlevel 1 (
+        echo.
+        echo [*] Starting with local llama.cpp server...
+        goto start_ai_server
+    )
 )
 
-echo [*] No .gguf files found in models folder
-echo [!] No model files found in models\ folder
-echo.
-echo You can either:
-echo 1. Download a model and place it in the models\ folder
-echo 2. Start anyway and configure API mode ^(Claude, OpenRouter, etc.^)
-echo.
-echo Recommended models:
-echo  - Qwen2.5-3B-Instruct (2.5GB, fast)
-echo  - Qwen2.5-7B-Instruct (5GB, better quality)
-echo  - Download from: https://huggingface.co/models?search=gguf
-echo.
-choice /C YN /M "Start without local model"
-if errorlevel 2 exit /b 1
-echo.
-echo [*] Starting without local AI - you can use API mode
-goto start_web
+if "%LLAMA_FOUND%"=="1" if "!MODEL_FOUND!"=="0" (
+    echo [OK] llama-server.exe found: llama\llama-server.exe
+    echo [!] No model files found in models\ folder
+    echo.
+    echo How would you like to run Writingway?
+    echo.
+    echo   1^) Download a model and use local llama.cpp server
+    echo   2^) Use remote AI server ^(LM Studio, Ollama, or API like Claude/OpenAI^)
+    echo   3^) Exit
+    echo.
+    echo Recommended models for local use:
+    echo   - Qwen2.5-3B-Instruct ^(2.5GB, fast^)
+    echo   - Qwen2.5-7B-Instruct ^(5GB, better quality^)
+    echo   - Download from: https://huggingface.co/models?search=gguf
+    echo.
+    choice /C 123 /M "Choose option"
+    if errorlevel 3 (
+        echo.
+        echo Exiting.
+        exit /b 0
+    )
+    if errorlevel 2 (
+        echo.
+        echo [*] Starting without local AI - you can configure remote server in settings
+        goto start_web
+    )
+    if errorlevel 1 (
+        echo.
+        echo [!] No model found. Please download a .gguf model to the models\ folder.
+        echo     Then run this script again.
+        exit /b 1
+    )
+)
+
+if "%LLAMA_FOUND%"=="0" (
+    echo [!] llama-server.exe not found!
+    echo.
+    echo To use local AI, you would need to:
+    echo   1. Download llama.cpp for Windows from:
+    echo      https://github.com/ggerganov/llama.cpp/releases
+    echo   2. Download: llama-XXX-bin-win-cuda-cu12.2.0-x64.zip
+    echo      ^(or the non-CUDA version if you don't have NVIDIA GPU^)
+    echo   3. Create a "llama" folder and extract all files there
+    echo   4. Download a .gguf model to the models\ folder
+    echo.
+    echo How would you like to run Writingway?
+    echo.
+    echo   1^) Use remote AI server ^(LM Studio, Ollama, or API like Claude/OpenAI^)
+    echo   2^) Exit
+    echo.
+    choice /C 12 /M "Choose option"
+    if errorlevel 2 (
+        echo.
+        echo Exiting.
+        exit /b 0
+    )
+    if errorlevel 1 (
+        echo.
+        echo [*] Starting without local AI - you can configure remote server in settings
+        goto start_web
+    )
+)
 
 :start_ai_server
 echo.
