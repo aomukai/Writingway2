@@ -1,352 +1,239 @@
-
 <p align="center">
-  <img src="logo.png" width="450" alt="Writingway Logo"/>
+  <img src="logo.png" width="420" alt="Writingway logo"/>
 </p>
 
-You can ask questions or just visit me on Discord at:
+# Writingway 2
+AI-assisted creative writing, scene planning, and worldbuilding in a local-first app.
+
+Writingway 2 is a browser-based writing tool built for drafting fiction, organizing scenes, keeping worldbuilding notes close at hand, and working with either cloud AI providers or a local GGUF model.
+
+Discord:
 https://discord.gg/HyRmNKe5QA
 
-# Writingway 2
-**AI-powered creative writing tool — simple, friendly, and built for storytellers**
-
----
-
-## 🌟 What is Writingway 2?
-
-**Writingway 2** is a simple, powerful, and beginner‑friendly creative writing application designed for **writers**, not programmers.
-
-It runs **entirely in your browser**, requires **no installation**, and stores all your work **locally** on your computer.  
-Just **download → unzip → double‑click `start.bat` → begin writing**.
-
-Writingway 2 is the successor to the original Writingway (Python/QML version).  
-Unlike its predecessor, this new version is built with **JavaScript + HTML**, making it lightweight, portable, and extremely accessible to users with minimal technical experience.
-
----
-
-## ✨ Key Features (Quick Overview)
-
-- 🚀 **AI‑assisted writing tools**
-  - continue drafts  
-  - rewrite passages  
-  - improve style or pacing  
-  - brainstorm ideas  
-
-- 📚 **Compendium for worldbuilding**
-  - characters, places, lore, items  
-  - searchable entries  
-  - AI‑assisted creation  
-
-- 🧩 **Scene‑based writing**
-  - organize by scenes & chapters  
-  - drag‑and‑drop reordering  
-  - autosave  
-
-- 🧠 **Workshop Chat**
-
-    Design prompts for and chat with AI about
-  - plot generators  
-  - character builders  
-  - setting ideas  
-  - prose improvement  
-
-- 🧰 **Smart Prompt Builder (Scene Beats)**
-  - builds structured prompts automatically  
-  - integrates compendium + scene metadata  
-  - ensures consistent AI responses  
-
-- 📥 **Writingway 1 Importer**
-  - converts old Writingway projects  
-  - imports compendium & scenes  
-
-- 🔌 **Flexible AI backend**
-  - works with local LLMs (LM Studio, Ollama, Jan)  
-  - supports OpenAI / OpenRouter  
-  - automatic retry handling  
-
----
-
-## 📦 Installation
-
-### Quick Start (Recommended)
-
-**Windows:**
-1. **Download** the latest ZIP release
-2. **Extract** the folder anywhere
-3. **Download llama.cpp** (for local AI):
-   - [CUDA (NVIDIA GPU)](https://github.com/ggerganov/llama.cpp/releases) - Download `llama-*-bin-win-cuda-cu12.2.0-x64.zip`
-   - [CPU only](https://github.com/ggerganov/llama.cpp/releases) - Download `llama-*-bin-win-avx2-x64.zip`
-   - Extract `llama-server.exe` to the Writingway folder
-4. **Download a model** (optional, for local AI):
-   - [Qwen3-4B-Instruct](https://huggingface.co/unsloth/Qwen3-4B-Thinking-2507-GGUF/resolve/main/Qwen3-4B-Thinking-2507-Q4_K_M.gguf?download=true)
-   - Put the `.gguf` file in the `models/` folder
-5. Double-click **`start.bat`**
-6. Writingway opens at **http://localhost:8000**
-
-**Mac:**
-1. **Download** the latest ZIP release
-2. **Extract** the folder anywhere
-3. **Download llama.cpp** (for local AI):
-   - [Apple Silicon (M1/M2/M3)](https://github.com/ggerganov/llama.cpp/releases) - Download `llama-*-bin-macos-arm64.zip`
-   - [Intel Mac](https://github.com/ggerganov/llama.cpp/releases) - Download `llama-*-bin-macos-x64.zip`
-   - Extract `llama-server` to the Writingway folder
-4. **Download a model** (optional, same as Windows step 4)
-5. Run in Terminal:
-   ```bash
-   chmod +x start.sh
-   ./start.sh
-   ```
-6. Writingway opens at **http://localhost:8000**
-
-**Linux:**
-1. **Download** the latest ZIP release
-2. **Extract** the folder anywhere
-3. **Download llama.cpp** (for local AI):
-   - [Ubuntu/Debian x64](https://github.com/ggerganov/llama.cpp/releases) - Download `llama-*-bin-ubuntu-x64.zip`
-   - Extract `llama-server` to the Writingway folder
-4. **Download a model** (optional, same as Windows step 4)
-5. Run in Terminal:
-   ```bash
-   chmod +x start.sh
-   ./start.sh
-   ```
-6. Writingway opens at **http://localhost:8000**
-
-### Alternative: Use Cloud AI (No Local Model Needed)
-
-If you don't want to download models:
-1. Skip steps 3-4 above
-2. Run `start.bat` (Windows) or `./start.sh` (Mac/Linux)
-3. When prompted, choose to start without a local model
-4. In Writingway, go to **⚙️ AI Settings** and configure:
-   - **OpenRouter** (has free models like Gemini 2.0 Flash)
-   - **Claude API** (Anthropic)
-   - **OpenAI API** (ChatGPT)
-   - **Google AI** (Gemini)
-
-### Advanced Users
-
-You can also use:
-- **LM Studio** - Run models with a GUI, connect via API mode
-- **Ollama** - Multiple models, simple CLI interface
-- **Jan** - Cross-platform local AI app
-
-Just configure the API endpoint in Writingway's AI Settings.
-
----
-
-## 📝 Getting Started
-
-### 1. Create a Project  
-Choose a project name. Writingway handles the rest.
-
-### 2. Add Scenes  
-Scenes can be long or short.  
-Reorder them visually via drag‑and‑drop.
-
-### 3. Use AI to Write or Improve  
-The AI panel allows you to:  
-- continue your writing  
-- polish prose  
-- add detail  
-- rewrite in a different tone  
-- generate new ideas  
-
-### 4. Expand Your Worldbuilding  
-The **Compendium** stores your characters, locations, lore, and more.  
-You can:
-- write entries manually  
-- or let AI help generate them  
-
-### 5. Explore Workshops  
-Creative tools designed to beat writer’s block:
-- character workshop  
-- plot generator  
-- setting creation  
-- prose enhancer  
-- dialogue helper  
-
-### 6. Everything Saves Automatically  
-Your work is stored locally using JSON.  
-No online accounts required.
-
----
-
-## 🧭 Detailed Feature Breakdown
-
-### 🗂 Project System
-- Multiple local projects  
-- Autosave  
-- Human‑readable JSON files  
-- Quick switching  
-- Clear internal structure (scenes, compendium, metadata)
-
----
-
-### 🎬 Scene Editor
-- Clean writing interface  
-- Scene titles & metadata  
-- Drag‑and‑drop ordering  
-- AI integration per scene  
-- Automatic prompt construction using:
-  - current scene  
-  - compendium  
-  - notes  
-  - style settings  
-
----
-
-### 📚 Compendium
-- Characters, places, species, lore, items  
-- Tags and categories  
-- Integrated into prompt builder   
-
----
-
-### 🧠 Workshop Chat
-Chat with your AI about:
-- plot ideas  
-- character outlines  
-- worldbuilding prompts  
-- style fixes  
-- dialogue improvements  
-- “retry / regenerate / variations” workflows  
-
----
-
-### 🧩 Prompt Builder / Codex
-Automatically generates high‑quality prompts by combining:
-- scene text  
-- compendium entries  
-- metadata  
-- tone/style guidelines  
-
-Ensures the AI responds consistently and in the desired format.
-
----
-
-### 🔁 AI Integration
-Supports:
-- **local LLMs** (LM Studio / Ollama / Jan) 
-    - Also has llama.cpp server integration, so you can just drop a model in the /models folder
-- **OpenAI / OpenRouter**  
-
-Features:
-- safe fallback prompts  
-- retry logic  
-- configurable token limits  
-- user‑friendly settings  
-
----
-
-### 📥 Writingway 1 Importer
-Imports legacy Writingway 1 JSON projects:
-- scenes  
-- compendium  
-- project metadata  
-- fixes ordering  
-
-Allows users to continue older stories seamlessly.
-
----
-
-### 🖥 User Interface
-Built with HTML + Alpine.js:
-- clean and accessible  
-- minimal visual clutter  
-- responsive design  
-- intuitive sidebars  
-- modals, tabs, and simple navigation  
-
----
-
-### 🔍 Update Checker
-- Notifies you if a new version is available  
-- Checks GitHub releases  
-- Optional and unobtrusive  
-
----
-
-## ⚙️ AI Setup (Optional)
-
-Writingway 2 works out of the box with **local models**, meaning 100% privacy.
-
-If using an online AI:
-1. Open **Settings → AI Configuration**  
-2. Paste your API key  
-3. Select a model  
-
-Writingway never sends your writing anywhere unless you configure it to do so.
-
----
-
-## ❓ Troubleshooting
-
-### Browser didn’t open automatically  
-Visit: **http://localhost:8000**
-
-### `start.bat` closes immediately  
-Open a command prompt and run:
-```
-start.bat
-```
-to see the error message.
-
-### AI not responding  
-- Make sure LM Studio / Ollama / Jan is running  
-- Or check API key / endpoint URL  
-
-### Scenes not saving  
-Ensure:
-- localStorage  
-- cookies  
-are enabled for `localhost`.
-
----
-
-## 🛠 Development (For Contributors)
-
-Requires **Node 18+**.
-
-Install:
-```
-npm install
+## What Writingway does
+
+Writingway is organized around projects, chapters, scenes, and compendium entries.
+It gives you:
+
+- A scene-first editor for drafting and revising
+- Chapter and scene organization with reordering
+- A compendium for characters, locations, lore, items, and other story notes
+- AI-assisted drafting, rewriting, brainstorming, and workshop chat
+- Writingway 1 project import
+- Local project save/export tools
+- Optional backup flows
+- Optional local GGUF inference through llama.cpp
+
+## Highlights
+
+- Local-first writing workflow
+  Your projects live in IndexedDB while you work, and can also be saved to disk as project files.
+
+- Flexible AI setup
+  Use OpenRouter, Anthropic, OpenAI, Google, NanoGPT, LM Studio, custom OpenAI-compatible endpoints, or a local GGUF model via llama.cpp.
+
+- Built-in local GGUF setup flow
+  If Writingway detects a `.gguf` file in `models/` but no llama.cpp server, it can offer an in-app setup wizard to install llama.cpp for you.
+
+- Backups
+  GitHub Gist backup is supported, and local versioned backups are supported through the app server. OneDrive and Google Drive are listed in the UI but are not implemented yet.
+
+- In-app update staging
+  Writingway can detect newer builds, download an update, stage it locally, and apply it the next time you restart from the launcher.
+
+## Requirements
+
+### All platforms
+
+- Python 3
+- A modern browser
+
+### Optional for local GGUF mode
+
+- A `.gguf` model placed in `models/`
+- llama.cpp server files in `llama/`
+  Or let the app install them through the setup wizard when supported.
+
+## Quick start
+
+### Windows
+
+1. Download and extract the project.
+2. Double-click `start.bat`.
+3. Open Writingway in the browser window it launches.
+
+### macOS / Linux
+
+1. Download and extract the project.
+2. Run:
+
+```bash
+chmod +x start.sh
+./start.sh
 ```
 
-Run development server:
+3. Open Writingway in the browser window it launches.
+
+## First-run local AI flow
+
+If you already placed a `.gguf` model in `models/`:
+
+- Writingway checks whether llama.cpp is installed
+- If it is missing, Writingway can show a setup wizard
+- The wizard can install a supported llama.cpp build
+- After installation, restart Writingway from `start.sh` or `start.bat`
+
+If you do not want local AI, just skip the wizard and use an API provider instead.
+
+## AI modes
+
+### API / Local API
+
+Use this for:
+
+- OpenRouter
+- Anthropic
+- OpenAI
+- Google AI
+- NanoGPT
+- LM Studio
+- Custom OpenAI-compatible endpoints
+- Ollama if exposed through a compatible API layer
+
+This is the best choice if you want the simplest setup.
+
+### Local GGUF Model
+
+Use this only when both are true:
+
+- You have at least one `.gguf` file in `models/`
+- llama.cpp server files are installed in `llama/`
+
+Writingway hides this option when the local backend is not actually available, so users are less likely to end up in a broken configuration.
+
+## Launchers and local services
+
+The launchers do a few important things for you:
+
+- Start the Writingway app server on `http://127.0.0.1:8000`
+- Start the updater service on `http://127.0.0.1:8001`
+- Start llama.cpp on `http://127.0.0.1:8080` when local GGUF mode is available
+- Apply staged updates on the next start
+
+Use the launcher scripts instead of opening `main.html` directly.
+
+## Saving and backups
+
+### Manual project save
+
+The disk save button writes the current project snapshot to the `projects/` folder through the local app server.
+
+### Local versioning backup
+
+Writingway can create timestamped JSON backups in:
+
+```text
+project-backups/
 ```
-npm run dev
+
+This gives you local restore points without needing a cloud account.
+
+### GitHub Gist backup
+
+Writingway can back up a project to a private GitHub Gist if you provide a GitHub token with `gist` scope.
+
+### Not implemented yet
+
+These appear in the backup provider selector, but are not functional yet:
+
+- OneDrive
+- Google Drive
+
+## Updates
+
+Writingway compares the latest GitHub commit date on `main` with the local build date in `src/update-checker.js`.
+
+If a newer build is available:
+
+- Writingway can download and stage the update
+- You restart Writingway manually
+- The launcher applies the staged update on startup
+
+On Windows and Linux/macOS, the staged update is applied by `start.bat` or `start.sh` on the next launch.
+
+## Writingway 1 import
+
+Writingway includes a Writingway 1 importer for older projects.
+It can bring over project structure and content so you can continue working in Writingway 2.
+
+## Project structure
+
+A few important folders:
+
+```text
+models/           Optional GGUF model files
+llama/            Optional llama.cpp server files
+projects/         Manual project saves written by the app server
+project-backups/  Local versioned backups
+tools/            Local Python services
+src/              App source
 ```
 
-Project structure:
-```
-src/
-  components/
-  scenes/
-  compendium/
-  ai.js
-  app.js
-  workshop.js
-  codex.js
-  update-checker.js
-  ...
+## Development notes
+
+This repo includes a small test setup in `package.json`.
+Available scripts:
+
+```bash
+npm run smoke
+npm run unit
+npm run ui
+npm test
 ```
 
-Tests located in `tests/`.
+## Current status
 
----
+What is working now:
 
-## 📄 License
+- Writing and scene management
+- Compendium/worldbuilding
+- AI provider configuration
+- LM Studio integration
+- Local GGUF mode through llama.cpp
+- In-app llama.cpp setup flow on supported platforms
+- Manual project save to disk
+- Local versioned backups
+- GitHub Gist backup
+- Update detection and staged update download
 
-Writingway 2 is free and open‑source software.  
-Released under the **MIT License**.
+What is intentionally incomplete:
 
----
+- OneDrive backup
+- Google Drive backup
+- Fully automatic restart/apply after update download
+- Broader local installer coverage for every llama.cpp release variant
 
-## ❤️ Thank You for Using Writingway 2
+## Troubleshooting
 
-Writingway was built to help **writers write** — not struggle with tools.  
-If this app helps you bring your stories to life, it has succeeded.
+### Writingway opens but local GGUF mode is unavailable
 
-**Happy writing! ✨**
+Check that:
 
-(And thanks for writing this readme, GPT-5.1)
+- A `.gguf` file exists in `models/`
+- llama.cpp is installed in `llama/`
+- You restarted the launcher after installation
+
+### The browser says it cannot connect on startup
+
+Use the launcher scripts, not `main.html` directly.
+The launchers wait for the local app server before opening the browser.
+
+### Update downloaded but nothing changed
+
+Restart Writingway using `start.sh` or `start.bat`.
+The staged update is applied by the launcher on startup.
+
+### Backups are enabled but cloud providers are missing
+
+Only GitHub Gist and Local Versioning are currently implemented.
+OneDrive and Google Drive are placeholders in the UI for future work.
