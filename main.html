@@ -78,6 +78,57 @@
     </div>
 
     <div x-data="app" x-init="init()">
+        <div x-show="showLlamaSetupWizard" x-cloak
+            style="position:fixed;inset:0;background:rgba(0,0,0,0.78);display:flex;align-items:center;justify-content:center;z-index:10050;padding:24px;">
+            <div
+                style="width:min(760px, 100%);background:linear-gradient(180deg, #232323, #1a1a1a);border:1px solid rgba(74,158,255,0.25);border-radius:18px;box-shadow:0 30px 80px rgba(0,0,0,0.55);padding:28px;">
+                <div x-show="!llamaInstallComplete">
+                    <div style="font-size:13px;letter-spacing:0.12em;text-transform:uppercase;color:#66bb6a;margin-bottom:10px;">Local AI Setup</div>
+                    <h2 style="margin:0 0 12px 0;font-size:28px;color:var(--text-primary);">A GGUF model was found in <code>models/</code></h2>
+                    <p style="margin:0 0 16px 0;color:var(--text-secondary);line-height:1.7;">
+                        Writingway detected <strong x-text="runtimeInfo.ggufModels && runtimeInfo.ggufModels.length ? runtimeInfo.ggufModels[0] : 'a local model'"></strong>,
+                        but llama.cpp is not installed yet. Install it now if you want to run that model through Writingway's built-in local backend.
+                    </p>
+                    <div
+                        style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.18);border-radius:12px;padding:16px;margin-bottom:18px;">
+                        <div style="font-weight:600;color:var(--text-primary);margin-bottom:8px;">Install target</div>
+                        <template x-for="choice in runtimeInfo.llamaInstallChoices" :key="choice.id">
+                            <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;cursor:pointer;border-top:1px solid rgba(255,255,255,0.04);">
+                                <input type="radio" x-model="llamaInstallChoice" :value="choice.id" style="margin-top:2px;width:16px;height:16px;">
+                                <span>
+                                    <span style="display:block;font-weight:600;color:var(--text-primary);" x-text="choice.label"></span>
+                                    <span style="display:block;font-size:12px;color:var(--text-secondary);line-height:1.5;" x-text="choice.description"></span>
+                                </span>
+                            </label>
+                        </template>
+                    </div>
+                    <p x-show="llamaInstallStatus" style="margin:0 0 12px 0;color:var(--text-secondary);" x-text="llamaInstallStatus"></p>
+                    <p x-show="llamaInstallError"
+                        style="margin:0 0 14px 0;color:#ff8a80;background:rgba(255,138,128,0.08);border:1px solid rgba(255,138,128,0.2);padding:12px;border-radius:10px;"
+                        x-text="llamaInstallError"></p>
+                    <div style="display:flex;justify-content:flex-end;gap:12px;">
+                        <button class="btn btn-secondary" @click="dismissLlamaSetupWizard()" :disabled="isInstallingLlama">Not now</button>
+                        <button class="btn btn-primary" @click="installLlamaCpp()" :disabled="isInstallingLlama">
+                            <span x-show="!isInstallingLlama">Install llama.cpp</span>
+                            <span x-show="isInstallingLlama">Installing...</span>
+                        </button>
+                    </div>
+                </div>
+                <div x-show="llamaInstallComplete">
+                    <div style="font-size:13px;letter-spacing:0.12em;text-transform:uppercase;color:#66bb6a;margin-bottom:10px;">Install Complete</div>
+                    <h2 style="margin:0 0 12px 0;font-size:28px;color:var(--text-primary);">llama.cpp is installed</h2>
+                    <p style="margin:0 0 16px 0;color:var(--text-secondary);line-height:1.7;">
+                        Restart Writingway now to launch the local llama.cpp server and make Local GGUF mode available.
+                    </p>
+                    <p x-show="llamaInstallStatus"
+                        style="margin:0 0 18px 0;color:#66bb6a;background:rgba(102,187,106,0.08);border:1px solid rgba(102,187,106,0.2);padding:12px;border-radius:10px;"
+                        x-text="llamaInstallStatus"></p>
+                    <div style="display:flex;justify-content:flex-end;">
+                        <button class="btn btn-primary" @click="shutdownForRestart()">Restart Writingway</button>
+                    </div>
+                </div>
+            </div>
+        </div>
         <!-- Projects Landing Page -->
         <template x-if="showProjectsView && !showModelLoading">
             <div
@@ -1197,17 +1248,27 @@
                     <div style="display:flex;gap:12px;">
                         <button class="btn" :class="aiMode === 'api' ? 'btn-primary' : 'btn-secondary'"
                             @click="aiMode = 'api'; if (aiProvider === 'openrouter' && !aiModel) aiModel = 'google/gemini-2.0-flash-exp:free';"
-                            style="flex:1;display:flex;flex-direction:column;align-items:center;padding:12px;">
+                            :style="hasLocalAIAvailable() ? 'flex:1;display:flex;flex-direction:column;align-items:center;padding:12px;' : 'width:100%;display:flex;flex-direction:column;align-items:center;padding:12px;'">
                             <div style="font-size:20px;margin-bottom:4px;">☁️</div>
                             <div style="font-weight:600;text-align:center;">API / Local API</div>
                             <div style="font-size:10px;opacity:0.7;text-align:center;">(LM Studio, Ollama, etc.)</div>
                         </button>
-                        <button class="btn" :class="aiMode === 'local' ? 'btn-primary' : 'btn-secondary'"
+                        <button x-show="hasLocalAIAvailable()" class="btn" :class="aiMode === 'local' ? 'btn-primary' : 'btn-secondary'"
                             @click="aiMode = 'local'; if (availableLocalModels.length > 0 && !aiModel) aiModel = availableLocalModels[0]; scanLocalModels();"
                             style="flex:1;display:flex;flex-direction:column;align-items:center;padding:12px;">
                             <div style="font-size:20px;margin-bottom:4px;">💻</div>
                             <div style="font-weight:600;text-align:center;">Local GGUF Model</div>
                             <div style="font-size:10px;opacity:0.7;text-align:center;">(llama.cpp backend)</div>
+                        </button>
+                    </div>
+
+                    <div x-show="needsLlamaInstall()" style="margin-top:12px;padding:12px;background:rgba(255,193,7,0.08);border:1px solid rgba(255,193,7,0.22);border-radius:8px;">
+                        <p style="font-size:12px;color:var(--text-secondary);margin:0;line-height:1.6;">
+                            A GGUF model was found in <code>models/</code>, but llama.cpp is not installed yet.
+                            Install it from the setup wizard to enable Local GGUF mode.
+                        </p>
+                        <button class="btn btn-secondary" @click="openLlamaSetupWizard()" style="margin-top:10px;">
+                            Open Setup Wizard
                         </button>
                     </div>
 
@@ -1220,7 +1281,7 @@
                     </div>
 
                     <!-- Helper text for Local GGUF mode -->
-                    <div x-show="aiMode === 'local'" style="margin-top:12px;padding:10px;background:rgba(76,175,80,0.1);border:1px solid rgba(76,175,80,0.2);border-radius:6px;">
+                    <div x-show="aiMode === 'local' && hasLocalAIAvailable()" style="margin-top:12px;padding:10px;background:rgba(76,175,80,0.1);border:1px solid rgba(76,175,80,0.2);border-radius:6px;">
                         <p style="font-size:11px;color:var(--text-secondary);margin:0;line-height:1.5;">
                             Use this ONLY for loading GGUF models placed in /models, running via built-in llama-server backend.<br>
                             Does NOT support LM Studio / API-based local inference.
@@ -2308,7 +2369,7 @@
                             <div style="background:rgba(40,167,69,0.1);border:1px solid rgba(40,167,69,0.3);border-radius:6px;padding:12px;margin-bottom:16px;">
                                 <div style="font-size:13px;color:var(--text-secondary);line-height:1.5;">
                                     <strong style="color:#28a745;">✓ Update ready to install!</strong><br>
-                                    Close Writingway and run <code style="background:var(--bg-tertiary);padding:2px 6px;border-radius:3px;">start.bat</code> to apply the update.
+                                    Restart Writingway manually to apply the update.
                                 </div>
                             </div>
                         </template>
@@ -2318,7 +2379,7 @@
                             <div style="background:rgba(40,167,69,0.1);border:1px solid rgba(40,167,69,0.3);border-radius:6px;padding:12px;margin-bottom:16px;">
                                 <div style="font-size:13px;color:var(--text-secondary);line-height:1.5;">
                                     <strong style="color:#28a745;">✓ Downloaded successfully!</strong><br>
-                                    Close Writingway and run <code style="background:var(--bg-tertiary);padding:2px 6px;border-radius:3px;">start.bat</code> to apply the update.<br>
+                                    Restart Writingway manually to apply the update.<br>
                                     <span style="font-size:12px;opacity:0.8;">Your projects are stored in the browser and will be preserved.</span>
                                 </div>
                             </div>
@@ -2339,7 +2400,7 @@
                             <div style="background:rgba(255,193,7,0.1);border:1px solid rgba(255,193,7,0.3);border-radius:6px;padding:12px;margin-bottom:16px;">
                                 <div style="font-size:12px;color:var(--text-secondary);line-height:1.5;">
                                     <strong>⚠️ Updater service not running</strong><br>
-                                    The one-click updater requires <code style="background:var(--bg-tertiary);padding:2px 6px;border-radius:3px;">start.bat</code> to be running.<br>
+                                    The in-app updater requires Writingway to be started from its launcher script.<br>
                                     You can still update manually from GitHub.
                                 </div>
                             </div>

@@ -1,6 +1,10 @@
 // AI Settings Module
 // Handles AI configuration: provider selection, model fetching, settings persistence, connection testing
 (function () {
+    function localAIAvailable(app) {
+        return !!(app && app.runtimeInfo && app.runtimeInfo.localAIAvailable);
+    }
+
     const AISettings = {
         /**
          * Fetch available models from the current provider
@@ -122,20 +126,18 @@
          */
         async scanLocalModels(app) {
             try {
-                // Note: Browser can't actually scan filesystem
-                // The model name here is just for display - the actual model is whatever
-                // llama-server.exe loaded from the models folder when you ran start.bat
+                if (app.runtimeInfo && Array.isArray(app.runtimeInfo.ggufModels) && app.runtimeInfo.ggufModels.length > 0) {
+                    const modelList = app.runtimeInfo.ggufModels.join('\n- ');
+                    alert('ℹ️ Local GGUF Model Info:\n\n' +
+                        'Detected model files:\n- ' + modelList + '\n\n' +
+                        'The llama.cpp backend loads the first GGUF file it finds when Writingway starts.\n\n' +
+                        'Connection URL: http://localhost:8080');
+                    return;
+                }
+
                 alert('ℹ️ Local GGUF Model Info:\n\n' +
-                    'The browser cannot scan your models folder directly.\n\n' +
-                    'The model shown here is just for display.\n\n' +
-                    '✓ Your ACTUAL model is whatever start.bat loaded into llama-server\n' +
-                    '✓ Connection URL: http://localhost:8080\n\n' +
-                    'To change models:\n' +
-                    '1. Close all Writingway windows\n' +
-                    '2. Put a different .gguf file in the models folder\n' +
-                    '3. Run start.bat again (it will use the first .gguf file it finds)\n\n' +
-                    'NOTE: If you want to use LM Studio or Ollama,\n' +
-                    'select "API / Local API" mode instead.');
+                    'No GGUF model files were detected in the models folder.\n\n' +
+                    'Put a .gguf file in models/ and restart Writingway to enable local llama.cpp mode.');
             } catch (e) {
                 console.error('Failed to scan models:', e);
                 alert('Could not scan models folder');
@@ -171,6 +173,10 @@
          */
         async saveAISettings(app) {
             try {
+                if (app.aiMode === 'local' && !localAIAvailable(app)) {
+                    throw new Error('Local GGUF mode is not available yet. Install llama.cpp and add a GGUF model first.');
+                }
+
                 // Save settings to localStorage
                 const settings = {
                     mode: app.aiMode,
@@ -331,7 +337,7 @@
                 const saved = localStorage.getItem('writingway:aiSettings');
                 if (saved) {
                     const settings = JSON.parse(saved);
-                    app.aiMode = settings.mode || 'local';
+                    app.aiMode = settings.mode || 'api';
                     app.aiProvider = settings.provider || 'anthropic';
                     app.aiApiKey = settings.apiKey || '';
                     const savedModel = settings.model || '';
@@ -348,6 +354,16 @@
 
                     // Set model AFTER fetching the list to ensure the dropdown has the option
                     app.aiModel = savedModel;
+                }
+
+                if (!localAIAvailable(app) && app.aiMode === 'local') {
+                    app.aiMode = 'api';
+                }
+
+                if (localAIAvailable(app) && Array.isArray(app.runtimeInfo.ggufModels)) {
+                    app.availableLocalModels = app.runtimeInfo.ggufModels.slice();
+                } else {
+                    app.availableLocalModels = [];
                 }
             } catch (e) {
                 console.error('Failed to load AI settings:', e);

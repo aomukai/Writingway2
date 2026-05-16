@@ -1,0 +1,56 @@
+{
+  "version": "2.1-filesystem",
+  "exportedAt": "2026-05-16T05:24:06.132Z",
+  "project": {
+    "id": "1778906481600",
+    "name": "Test",
+    "created": "2026-05-16T04:41:21.600Z",
+    "modified": "2026-05-16T04:41:21.600Z",
+    "updatedAt": 1778906481600
+  },
+  "chapters": [
+    {
+      "id": "1778906481632-c",
+      "projectId": "1778906481600",
+      "title": "Chapter 1",
+      "order": 0,
+      "created": "2026-05-16T04:41:21.632Z",
+      "modified": "2026-05-16T04:41:21.632Z"
+    }
+  ],
+  "scenes": [
+    {
+      "id": "1778906481637",
+      "projectId": "1778906481600",
+      "chapterId": "1778906481632-c",
+      "title": "Scene 1",
+      "order": 0,
+      "povCharacter": "",
+      "pov": "3rd person limited",
+      "tense": "past",
+      "created": "2026-05-16T04:41:21.637Z",
+      "modified": "2026-05-16T04:59:21.964Z",
+      "updatedAt": 1778907561963,
+      "wordCount": 4
+    }
+  ],
+  "sceneContents": {
+    "1778906481637": "test test test test"
+  },
+  "compendium": [],
+  "prompts": [],
+  "codex": [],
+  "promptHistory": [],
+  "workshopSessions": [
+    {
+      "id": "ws_1778906481635_7440",
+      "name": "Chat 1",
+      "messages": [],
+      "createdAt": "2026-05-16T04:41:21.635Z",
+      "projectId": "1778906481600",
+      "updatedAt": "2026-05-16T04:41:21.635Z"
+    }
+  ],
+  "localBackupSavedAt": "2026-05-16T05:24:06.134668+00:00",
+  "localBackupVersion": 1
+}

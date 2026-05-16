@@ -138,6 +138,9 @@ document.addEventListener('alpine:init', () => {
                     console.error('Failed to load projects:', e);
                 }
 
+                this.updateLoadingScreen(30, 'Checking local AI...', 'Looking for GGUF models and llama.cpp...');
+                await this.fetchRuntimeInfo();
+
                 this.updateLoadingScreen(40, 'Loading AI settings...', 'Configuring generation parameters...');
 
                 // Load AI settings from localStorage
@@ -170,6 +173,10 @@ document.addEventListener('alpine:init', () => {
                     this.aiStatus = 'error';
                     this.aiStatusText = 'AI module missing';
                     this.showModelLoading = false;
+                }
+
+                if (this.shouldOfferLlamaSetup()) {
+                    this.showLlamaSetupWizard = true;
                 }
 
                 // Global Escape key handler to close slide panels / settings
@@ -372,6 +379,130 @@ document.addEventListener('alpine:init', () => {
             },
 
             // AI Configuration Functions - delegated to AISettings
+            async fetchRuntimeInfo() {
+                try {
+                    const response = await fetch('/api/runtime-info', {
+                        signal: AbortSignal.timeout(5000)
+                    });
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+
+                    const info = await response.json();
+                    this.runtimeInfo = {
+                        ...this.runtimeInfo,
+                        ...info
+                    };
+
+                    this.availableLocalModels = Array.isArray(info.ggufModels) ? info.ggufModels.slice() : [];
+
+                    if (!this.runtimeInfo.localAIAvailable && this.aiMode === 'local') {
+                        this.aiMode = 'api';
+                    }
+
+                    if (!this.llamaInstallChoice) {
+                        this.llamaInstallChoice = (this.runtimeInfo.llamaInstallChoices[0] || {}).id || 'cpu';
+                    }
+                } catch (e) {
+                    console.warn('Failed to fetch runtime info:', e);
+                }
+            },
+
+            hasLocalAIAvailable() {
+                return !!this.runtimeInfo.localAIAvailable;
+            },
+
+            hasGGUFModels() {
+                return !!this.runtimeInfo.hasGGUFModels;
+            },
+
+            needsLlamaInstall() {
+                return this.hasGGUFModels() && !this.runtimeInfo.hasLlamaServer &&
+                    Array.isArray(this.runtimeInfo.llamaInstallChoices) && this.runtimeInfo.llamaInstallChoices.length > 0;
+            },
+
+            shouldOfferLlamaSetup() {
+                return !!this.runtimeInfo.llamaSetupRecommended && !this.llamaInstallComplete;
+            },
+
+            openLlamaSetupWizard() {
+                if (this.runtimeInfo.llamaInstallChoices.length > 0 && !this.llamaInstallChoice) {
+                    this.llamaInstallChoice = this.runtimeInfo.llamaInstallChoices[0].id;
+                }
+                this.llamaInstallError = '';
+                this.llamaInstallStatus = '';
+                this.showLlamaSetupWizard = true;
+            },
+
+            dismissLlamaSetupWizard() {
+                if (this.isInstallingLlama || this.llamaInstallComplete) return;
+                this.showLlamaSetupWizard = false;
+                this.llamaInstallError = '';
+                this.llamaInstallStatus = '';
+            },
+
+            async installLlamaCpp() {
+                if (this.isInstallingLlama) return;
+
+                this.llamaInstallError = '';
+                this.llamaInstallStatus = 'Downloading llama.cpp...';
+                this.isInstallingLlama = true;
+
+                try {
+                    const response = await fetch('/api/install-llama', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            variant: this.llamaInstallChoice || 'cpu'
+                        })
+                    });
+
+                    const result = await response.json().catch(() => ({}));
+                    if (!response.ok || !result.ok) {
+                        throw new Error(result.error || `HTTP ${response.status}`);
+                    }
+
+                    this.llamaInstallStatus = `Installed ${result.assetName}. Restart Writingway to enable local AI.`;
+                    this.llamaInstallComplete = true;
+                    this.runtimeInfo = {
+                        ...this.runtimeInfo,
+                        hasLlamaServer: true
+                    };
+                } catch (e) {
+                    console.error('llama.cpp install failed:', e);
+                    this.llamaInstallError = e.message || String(e);
+                    this.llamaInstallStatus = '';
+                } finally {
+                    this.isInstallingLlama = false;
+                }
+            },
+
+            async shutdownForRestart() {
+                try {
+                    await fetch('/api/shutdown', {
+                        method: 'POST'
+                    });
+                } catch (e) {
+                    console.warn('Shutdown request failed:', e);
+                } finally {
+                    document.body.innerHTML = `
+                        <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#181818;color:#f0f0f0;font-family:system-ui,-apple-system,sans-serif;padding:24px;">
+                            <div style="max-width:620px;background:#232323;border:1px solid rgba(102,187,106,0.35);border-radius:14px;padding:32px;">
+                                <h1 style="margin:0 0 12px 0;font-size:28px;color:#66bb6a;">llama.cpp installed</h1>
+                                <p style="margin:0 0 12px 0;line-height:1.7;color:rgba(255,255,255,0.84);">
+                                    Writingway has shut down so the local AI backend can be started cleanly.
+                                </p>
+                                <p style="margin:0;line-height:1.7;color:rgba(255,255,255,0.84);">
+                                    Close this tab, then run <code style="background:#101010;padding:2px 6px;border-radius:4px;">start.sh</code> or <code style="background:#101010;padding:2px 6px;border-radius:4px;">start.bat</code> again.
+                                </p>
+                            </div>
+                        </div>
+                    `;
+                }
+            },
+
             async fetchProviderModels() {
                 await window.AISettings.fetchProviderModels(this);
             },

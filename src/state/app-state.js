@@ -96,6 +96,22 @@ function createAppState() {
         // ========== App Initialization State ==========
         appReady: false,
         initProgress: 0,
+        runtimeInfo: {
+            platform: '',
+            arch: '',
+            hasGGUFModels: false,
+            ggufModels: [],
+            hasLlamaServer: false,
+            localAIAvailable: false,
+            llamaInstallChoices: [],
+            llamaSetupRecommended: false
+        },
+        showLlamaSetupWizard: false,
+        isInstallingLlama: false,
+        llamaInstallChoice: 'cpu',
+        llamaInstallStatus: '',
+        llamaInstallError: '',
+        llamaInstallComplete: false,
 
         // ========== Scene Editing State ==========
         currentScene: null,
@@ -201,7 +217,7 @@ function createAppState() {
         isInitializing: true, // Flag to prevent watchers from firing during init
 
         // ========== AI Configuration ==========
-        aiMode: 'local', // 'local' or 'api'
+        aiMode: 'api', // 'local' or 'api'
         aiProvider: 'anthropic', // 'anthropic', 'openrouter', 'openai', 'google'
         aiApiKey: '',
         aiModel: '', // For API: model name, For local: filename from models folder

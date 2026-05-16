@@ -34,6 +34,17 @@
 
             // If using local mode, try to connect to llama-server
             if (aiMode === 'local') {
+                if (!app.runtimeInfo || !app.runtimeInfo.localAIAvailable) {
+                    if (app.updateLoadingScreen) {
+                        app.updateLoadingScreen(60, 'Local AI unavailable', 'Add a GGUF model and install llama.cpp to enable it');
+                    }
+                    app.aiStatus = 'not-configured';
+                    app.aiStatusText = 'Configure AI';
+                    app.showModelLoading = false;
+                    console.log('ℹ️ Local GGUF mode is unavailable on this system right now.');
+                    return;
+                }
+
                 if (app.updateLoadingScreen) {
                     app.updateLoadingScreen(55, 'Connecting to AI...', 'Checking local server...');
                 }

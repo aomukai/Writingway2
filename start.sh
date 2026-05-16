@@ -9,6 +9,86 @@ echo "  Starting Writingway 2.0..."
 echo "================================"
 echo ""
 
+# Check if Python 3 is installed early (needed for updater and app server)
+if ! command -v python3 &> /dev/null; then
+    echo "[!] Python 3 not found!"
+    echo ""
+    echo "Please install Python 3:"
+    echo "  Mac: brew install python3"
+    echo "  Linux: sudo apt install python3"
+    echo ""
+    read -p "Press Enter to exit..."
+    exit 1
+fi
+
+echo "[OK] Python 3 found"
+echo ""
+
+if [ -f ".update/ready.json" ]; then
+    echo "[*] Staged update detected! Applying update..."
+    echo ""
+
+    if [ ! -f ".update/latest.zip" ]; then
+        echo "[!] Update zip not found. Cleaning up..."
+        rm -f ".update/ready.json"
+    else
+        if python3 - <<'PY'
+import json
+import os
+import shutil
+import sys
+import zipfile
+from pathlib import Path
+
+root = Path.cwd()
+update_dir = root / ".update"
+zip_path = update_dir / "latest.zip"
+extract_dir = update_dir / "extract"
+
+if extract_dir.exists():
+    shutil.rmtree(extract_dir)
+extract_dir.mkdir(parents=True, exist_ok=True)
+
+with zipfile.ZipFile(zip_path, "r") as archive:
+    archive.extractall(extract_dir)
+
+entries = [p for p in extract_dir.iterdir() if p.name != "__MACOSX"]
+if not entries:
+    raise RuntimeError("Update archive is empty")
+
+source_root = entries[0] if len(entries) == 1 and entries[0].is_dir() else extract_dir
+exclude_dirs = {".update", ".git", "projects", "backups", "models", "llama", "node_modules", ".vscode", ".idea", ".continue", ".claude"}
+
+for item in source_root.iterdir():
+    if item.name in exclude_dirs:
+        continue
+
+    destination = root / item.name
+    if item.is_dir():
+        if destination.exists():
+            shutil.rmtree(destination)
+        shutil.copytree(item, destination)
+    else:
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(item, destination)
+PY
+        then
+            echo "[OK] Update applied successfully!"
+        else
+            echo "[!] Failed to apply update. Cleaning staged files..."
+        fi
+
+        echo "[*] Cleaning up update files..."
+        rm -f ".update/ready.json" ".update/latest.zip"
+        rm -rf ".update/extract"
+        echo ""
+        echo "================================"
+        echo "   Update Complete!"
+        echo "================================"
+        echo ""
+    fi
+fi
+
 SKIP_MODEL=0
 
 # Check if llama-server exists (in llama subfolder)
@@ -17,6 +97,7 @@ if [ ! -f "./llama/llama-server" ]; then
     echo ""
     echo "Starting without local AI backend."
     echo "You can still use API mode (Claude, OpenRouter, LM Studio, etc.)."
+    echo "If you already have a GGUF model in models/, the in-app setup wizard can install llama.cpp."
     echo ""
     echo "To enable local AI later:"
     echo "1. Go to: https://github.com/ggerganov/llama.cpp/releases"
@@ -70,21 +151,6 @@ if [ $SKIP_MODEL -eq 0 ]; then
     fi
 fi
 
-# Check if Python 3 is installed
-if ! command -v python3 &> /dev/null; then
-    echo "[!] Python 3 not found!"
-    echo ""
-    echo "Please install Python 3:"
-    echo "  Mac: brew install python3"
-    echo "  Linux: sudo apt install python3"
-    echo ""
-    read -p "Press Enter to exit..."
-    exit 1
-fi
-
-echo "[OK] Python 3 found"
-echo ""
-
 # Start AI server if we have a model
 if [ $SKIP_MODEL -eq 0 ]; then
     echo "================================"
@@ -131,6 +197,16 @@ fi
 
 echo ""
 echo "================================"
+echo "   Starting Updater Service..."
+echo "================================"
+echo ""
+
+python3 tools/updater-server.py > updater-server.log 2>&1 &
+UPDATER_PID=$!
+echo "[OK] Updater service started on port 8001"
+echo ""
+
+echo "================================"
 echo "   Starting Web Server..."
 echo "================================"
 echo ""
@@ -150,6 +226,7 @@ echo "  * Keep this terminal open while using Writingway"
 echo ""
 echo "Web UI: http://localhost:8000/main.html"
 echo "AI API: http://localhost:8080"
+echo "Updater: http://localhost:8001"
 echo ""
 
 cleanup() {
@@ -157,6 +234,9 @@ cleanup() {
     echo "[*] Shutting down servers..."
     if [ -n "${WEB_PID:-}" ]; then
         kill "$WEB_PID" 2>/dev/null
+    fi
+    if [ -n "${UPDATER_PID:-}" ]; then
+        kill "$UPDATER_PID" 2>/dev/null
     fi
     if [ -n "${LLAMA_PID:-}" ]; then
         kill "$LLAMA_PID" 2>/dev/null

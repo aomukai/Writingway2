@@ -85,22 +85,21 @@ echo.
 
 :update_done
 
+set "SKIP_MODEL=0"
+
 REM ========================================
 REM  SECTION 2: Check llama.cpp server
 REM ========================================
 if not exist "llama\llama-server.exe" (
-    echo [!] llama-server.exe not found!
+    echo [!] llama-server.exe not found.
     echo.
-    echo Please download llama.cpp for Windows:
-    echo 1. Go to: https://github.com/ggerganov/llama.cpp/releases
-    echo 2. Download: llama-XXX-bin-win-cuda-cu12.2.0-x64.zip
-    echo    ^(or the non-CUDA version if you don't have NVIDIA GPU^)
-    echo 3. Create a "llama" folder and extract all files there
+    echo Starting without local AI backend.
+    echo The in-app setup wizard can install llama.cpp if you already have a GGUF model.
     echo.
     echo Expected location: %CD%\llama\llama-server.exe
     echo.
-    pause
-    exit /b 1
+    echo [*] Starting without local AI - llama.cpp is optional
+    set "SKIP_MODEL=1"
 )
 
 REM ========================================
@@ -123,17 +122,21 @@ REM  SECTION 4: Check for model files
 REM ========================================
 if not exist "models" mkdir models
 
-REM Check for any .gguf model files - try to find first one
-set "MODEL_FOUND=0"
-set "MODEL_PATH="
-for /f "delims=" %%f in ('dir /b models\*.gguf 2^>nul') do (
-    set "MODEL_FOUND=1"
-    set "MODEL_PATH=models\%%f"
-    goto model_check_done
+if "!SKIP_MODEL!"=="0" (
+    REM Check for any .gguf model files - try to find first one
+    set "MODEL_FOUND=0"
+    set "MODEL_PATH="
+    for /f "delims=" %%f in ('dir /b models\*.gguf 2^>nul') do (
+        set "MODEL_FOUND=1"
+        set "MODEL_PATH=models\%%f"
+        goto model_check_done
+    )
 )
 
 :model_check_done
-if "!MODEL_FOUND!"=="1" (
+if "!SKIP_MODEL!"=="1" goto start_web
+
+if "!SKIP_MODEL!"=="0" if "!MODEL_FOUND!"=="1" (
     echo [OK] Model file found: !MODEL_PATH!
     echo [OK] llama-server.exe found
     goto start_ai_server
