@@ -12,7 +12,8 @@
         repoName: 'Writingway2',
         branch: 'main',
 
-        // Updater service endpoint
+        // updaterUrl is set in config.js; updated here if config is available
+        // (the override happens below at the end of the IIFE)
         updaterUrl: 'http://127.0.0.1:8001',
 
         /**
@@ -201,6 +202,11 @@
             }
         }
     };
+
+    // Override updaterUrl if config is available
+    if (typeof window.WritingwayConfig !== 'undefined' && window.WritingwayConfig.updaterPort) {
+        UpdateChecker.updaterUrl = 'http://127.0.0.1:' + window.WritingwayConfig.updaterPort;
+    }
 
     // Export to window
     window.UpdateChecker = UpdateChecker;

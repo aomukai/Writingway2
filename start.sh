@@ -24,6 +24,18 @@ fi
 echo "[OK] Python 3 found"
 echo ""
 
+# Load environment defaults from .env file if present
+if [ -f ".env" ]; then
+    set -a; . ./.env; set +a
+    echo "[*] Loaded .env"
+    echo ""
+fi
+
+# Port configuration (defaults)
+APP_PORT="${WRITINGWAY_PORT:-8000}"
+UPDATER_PORT="${WRITINGWAY_UPDATER_PORT:-8001}"
+AI_PORT="${WRITINGWAY_AI_PORT:-8080}"
+
 if [ -f ".update/ready.json" ]; then
     echo "[*] Staged update detected! Applying update..."
     echo ""
@@ -164,10 +176,10 @@ if [ $SKIP_MODEL -eq 0 ]; then
     # For Mac: Use Metal GPU acceleration (-ngl 999)
     # For Linux: Use CUDA if available, otherwise CPU
     # Using -c 0 to automatically use the model's maximum context size
-    ./llama/llama-server -m "$MODEL_PATH" -c 0 -ngl 999 --port 8080 --host 127.0.0.1 > llama-server.log 2>&1 &
+    ./llama/llama-server -m "$MODEL_PATH" -c 0 -ngl 999 --port "$AI_PORT" --host 127.0.0.1 > llama-server.log 2>&1 &
     LLAMA_PID=$!
     
-    echo "[*] AI server starting on port 8080 (PID: $LLAMA_PID)..."
+    echo "[*] AI server starting on port $AI_PORT (PID: $LLAMA_PID)..."
     echo "[*] Waiting for AI server to initialize..."
     
     # Wait for llama-server to be ready (max 30 seconds)
@@ -177,7 +189,7 @@ if [ $SKIP_MODEL -eq 0 ]; then
         counter=$((counter + 1))
         
         # Try to connect to the server
-        if curl -s http://localhost:8080/health > /dev/null 2>&1; then
+        if curl -s "http://localhost:$AI_PORT/health" > /dev/null 2>&1; then
             echo "[OK] AI server is ready!"
             break
         fi
@@ -203,7 +215,7 @@ echo ""
 
 python3 tools/updater-server.py > updater-server.log 2>&1 &
 UPDATER_PID=$!
-echo "[OK] Updater service started on port 8001"
+echo "[OK] Updater service started on port $UPDATER_PORT"
 echo ""
 
 echo "================================"
@@ -211,7 +223,7 @@ echo "   Starting Web Server..."
 echo "================================"
 echo ""
 
-echo "[*] Starting app server on port 8000..."
+echo "[*] Starting app server on port $APP_PORT..."
 echo "[*] Opening Writingway once the app server is ready..."
 echo ""
 echo "================================"
@@ -224,9 +236,9 @@ echo "  * The page will show a loading screen while AI initializes"
 echo "  * First startup may take 2-3 minutes for AI to load"
 echo "  * Keep this terminal open while using Writingway"
 echo ""
-echo "Web UI: http://localhost:8000/main.html"
-echo "AI API: http://localhost:8080"
-echo "Updater: http://localhost:8001"
+echo "Web UI: http://localhost:$APP_PORT/main.html"
+echo "AI API: http://localhost:$AI_PORT"
+echo "Updater: http://localhost:$UPDATER_PORT"
 echo ""
 
 cleanup() {
@@ -256,7 +268,7 @@ while [ $counter -lt 30 ]; do
     sleep 1
     counter=$((counter + 1))
 
-    if curl -s http://127.0.0.1:8000/api/health > /dev/null 2>&1; then
+    if curl -s "http://127.0.0.1:$APP_PORT/api/health" > /dev/null 2>&1; then
         echo "[OK] App server is ready!"
         break
     fi
@@ -276,10 +288,10 @@ echo ""
 # Open browser (works on Mac and most Linux)
 if command -v open &> /dev/null; then
     # macOS
-    open "http://localhost:8000/main.html"
+    open "http://localhost:$APP_PORT/main.html"
 elif command -v xdg-open &> /dev/null; then
     # Linux
-    xdg-open "http://localhost:8000/main.html" &
+    xdg-open "http://localhost:$APP_PORT/main.html" &
 fi
 
 wait "$WEB_PID"

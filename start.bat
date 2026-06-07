@@ -3,6 +3,21 @@ setlocal enabledelayedexpansion
 title Writingway 2.0
 color 0A
 
+REM ========================================
+REM  Read port configuration from environment
+REM ========================================
+if exist ".env" (
+    PowerShell -NoProfile -Command "$lines = Get-Content '.env' -Encoding UTF8; foreach ($line in $lines) { if ($line -match '^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+?)\s*$') { [System.Environment]::SetEnvironmentVariable($matches[1], $matches[2], 'Process') } }" 2>nul
+    echo [*] Loaded .env
+    echo.
+)
+set "APP_PORT=%WRITINGWAY_PORT%"
+if "!APP_PORT!"=="" set "APP_PORT=8000"
+set "UPDATER_PORT=%WRITINGWAY_UPDATER_PORT%"
+if "!UPDATER_PORT!"=="" set "UPDATER_PORT=8001"
+set "AI_PORT=%WRITINGWAY_AI_PORT%"
+if "!AI_PORT!"=="" set "AI_PORT=8080"
+
 echo.
 echo ================================
 echo   Starting Writingway 2.0...
@@ -168,9 +183,9 @@ echo.
 
 REM Start llama.cpp server in background (keep window open with /k)
 REM Using -c 0 to automatically use the model's maximum context size
-start "Writingway AI Server" cmd /k "llama\llama-server.exe -m "!MODEL_PATH!" -c 0 -ngl 999 --port 8080 --host 127.0.0.1"
+start "Writingway AI Server" cmd /k "llama\llama-server.exe -m "!MODEL_PATH!" -c 0 -ngl 999 --port !AI_PORT! --host 127.0.0.1"
 
-echo [*] AI server starting on port 8080...
+echo [*] AI server starting on port !AI_PORT!...
 echo [*] Waiting for AI server to initialize...
 
 REM Wait for llama server to be ready (check every second, max 30 seconds)
@@ -180,7 +195,7 @@ timeout /t 1 /nobreak >nul
 set /a counter+=1
 
 REM Try to connect to the server
-curl -s http://localhost:8080/health >nul 2>&1
+curl -s http://localhost:!AI_PORT!/health >nul 2>&1
 if %errorlevel% equ 0 (
     echo [OK] AI server is ready!
     goto start_web
@@ -204,7 +219,7 @@ echo.
 
 REM Start the updater server in background (minimized)
 start /min "Writingway Updater" cmd /c "python tools\updater-server.py"
-echo [OK] Updater service started on port 8001
+echo [OK] Updater service started on port !UPDATER_PORT!
 echo.
 
 echo ================================
@@ -213,7 +228,7 @@ echo ================================
 echo.
 
 REM Start Python HTTP server and open browser
-echo [*] Starting app server on port 8000...
+echo [*] Starting app server on port !APP_PORT!...
 echo [*] Opening Writingway in 3 seconds...
 echo.
 echo ================================
@@ -226,9 +241,9 @@ echo  * The page will show a loading screen while AI initializes
 echo  * First startup may take 2-3 minutes for AI to load
 echo  * Keep this window open while using Writingway
 echo.
-echo Web UI: http://localhost:8000/main.html
-echo AI API: http://localhost:8080
-echo Updater: http://localhost:8001
+echo Web UI: http://localhost:!APP_PORT!/main.html
+echo AI API: http://localhost:!AI_PORT!
+echo Updater: http://localhost:!UPDATER_PORT!
 echo.
 
 REM Wait 3 seconds before opening browser (gives servers time to stabilize)
@@ -242,7 +257,7 @@ echo ================================
 echo.
 
 REM Open browser
-start "" http://localhost:8000/main.html
+start "" http://localhost:!APP_PORT!/main.html
 
 REM Start Writingway app server (blocks here)
 python tools\writingway-server.py

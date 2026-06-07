@@ -122,6 +122,37 @@ The launchers do a few important things for you:
 
 Use the launcher scripts instead of opening `main.html` directly.
 
+## Custom Port Configuration
+
+By default the app server, updater service, and AI server bind to `127.0.0.1` on ports 8000, 8001, and 8080 respectively. These ports are configurable through environment variables so that Writingway can run alongside other local services.
+
+Set the following environment variables before starting the launcher:
+
+| Variable | Default | Service |
+|---|---|---|
+| `WRITINGWAY_PORT` | `8000` | App server (web UI) |
+| `WRITINGWAY_UPDATER_PORT` | `8001` | Update checker service |
+| `WRITINGWAY_AI_PORT` | `8080` | llama.cpp AI server |
+
+### Using a .env file
+
+Create a `.env` file in the project root (or copy from `.env.example`):
+
+```bash
+cp .env.example .env
+```
+
+Edit the values, then run the launcher as usual. The launcher scripts source `.env` automatically.
+
+These variables are also available for direct export:
+
+```bash
+export WRITINGWAY_PORT=9000
+export WRITINGWAY_UPDATER_PORT=9001
+export WRITINGWAY_AI_PORT=9080
+./start.sh   # or start.bat on Windows
+```
+
 ## Saving and backups
 
 ### Manual project save

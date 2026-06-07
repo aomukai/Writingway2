@@ -127,11 +127,13 @@
         async scanLocalModels(app) {
             try {
                 if (app.runtimeInfo && Array.isArray(app.runtimeInfo.ggufModels) && app.runtimeInfo.ggufModels.length > 0) {
-                    const modelList = app.runtimeInfo.ggufModels.join('\n- ');
+                    const defaultAIPort = (typeof window.WritingwayConfig !== 'undefined' && window.WritingwayConfig.aiPort)
+                    ? window.WritingwayConfig.aiPort : 8080;
+                const modelList = app.runtimeInfo.ggufModels.join('\n- ');
                     alert('ℹ️ Local GGUF Model Info:\n\n' +
                         'Detected model files:\n- ' + modelList + '\n\n' +
                         'The llama.cpp backend loads the first GGUF file it finds when Writingway starts.\n\n' +
-                        'Connection URL: http://localhost:8080');
+                        'Connection URL: http://localhost:' + defaultAIPort);
                     return;
                 }
 
@@ -150,12 +152,14 @@
          */
         saveGenerationParams(app) {
             try {
+                const defaultAIPort = (typeof window.WritingwayConfig !== 'undefined' && window.WritingwayConfig.aiPort)
+                    ? window.WritingwayConfig.aiPort : 8080;
                 const settings = {
                     mode: app.aiMode,
                     provider: app.aiProvider,
                     apiKey: app.aiApiKey,
                     model: app.aiModel,
-                    endpoint: app.aiEndpoint || (app.aiMode === 'local' ? 'http://localhost:8080' : ''),
+                    endpoint: app.aiEndpoint || (app.aiMode === 'local' ? 'http://localhost:' + defaultAIPort : ''),
                     temperature: app.temperature,
                     maxTokens: app.maxTokens,
                     useProviderDefaults: app.useProviderDefaults || false,
@@ -178,12 +182,14 @@
                 }
 
                 // Save settings to localStorage
+                const defaultAIPort = (typeof window.WritingwayConfig !== 'undefined' && window.WritingwayConfig.aiPort)
+                    ? window.WritingwayConfig.aiPort : 8080;
                 const settings = {
                     mode: app.aiMode,
                     provider: app.aiProvider,
                     apiKey: app.aiApiKey,
                     model: app.aiModel,
-                    endpoint: app.aiEndpoint || (app.aiMode === 'local' ? 'http://localhost:8080' : ''),
+                    endpoint: app.aiEndpoint || (app.aiMode === 'local' ? 'http://localhost:' + defaultAIPort : ''),
                     temperature: app.temperature,
                     maxTokens: app.maxTokens,
                     useProviderDefaults: app.useProviderDefaults || false,
@@ -198,7 +204,9 @@
 
                 if (app.aiMode === 'local') {
                     // Test local server with retry logic for model loading
-                    const endpoint = app.aiEndpoint || 'http://localhost:8080';
+                    const defaultAIPort2 = (typeof window.WritingwayConfig !== 'undefined' && window.WritingwayConfig.aiPort)
+                        ? window.WritingwayConfig.aiPort : 8080;
+                    const endpoint = app.aiEndpoint || 'http://localhost:' + defaultAIPort2;
                     const maxRetries = 60; // Try for up to ~3 minutes (60 * 3s) - large models can take time
                     const retryDelay = 3000; // 3 seconds between retries
                     let attempt = 0;

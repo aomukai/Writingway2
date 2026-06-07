@@ -27,7 +27,7 @@ from urllib.parse import parse_qs, urlparse
 
 
 HOST = "127.0.0.1"
-PORT = 8000
+PORT = int(os.environ.get("WRITINGWAY_PORT", "8000"))
 ROOT = Path(__file__).resolve().parent.parent
 PROJECTS_DIR = ROOT / "projects"
 BACKUPS_DIR = ROOT / "project-backups"
@@ -341,6 +341,13 @@ class WritingwayHandler(SimpleHTTPRequestHandler):
             return
         if parsed.path == "/api/get-backup":
             self.handle_get_backup(parsed.query)
+            return
+        if parsed.path == "/writingway.json":
+            self.respond_json(HTTPStatus.OK, {
+                "port": PORT,
+                "updaterPort": int(os.environ.get("WRITINGWAY_UPDATER_PORT", "8001")),
+                "aiPort": int(os.environ.get("WRITINGWAY_AI_PORT", "8080")),
+            })
             return
         super().do_GET()
 

@@ -19,7 +19,7 @@ from pathlib import Path
 
 # Configuration
 HOST = '127.0.0.1'
-PORT = 8001
+PORT = int(os.environ.get('WRITINGWAY_UPDATER_PORT', '8001'))
 REPO_OWNER = 'aomukai'
 REPO_NAME = 'Writingway2'
 BRANCH = 'main'

@@ -83,6 +83,10 @@ document.addEventListener('alpine:init', () => {
             async init() {
                 this.updateLoadingScreen(10, 'Initializing...', 'Checking startup method...');
 
+                // Read the configured app port for use in the loading screen
+                var _wwPort = (typeof window.WritingwayConfig !== 'undefined' && window.WritingwayConfig.port)
+                    ? window.WritingwayConfig.port : 8000;
+
                 // Detect if opened via file:// protocol and warn user
                 if (window.location.protocol === 'file:') {
                     const useFileDirect = confirm(
@@ -111,7 +115,7 @@ document.addEventListener('alpine:init', () => {
                                     <p style="margin:0;font-size:14px;"><strong>Why?</strong></p>
                                     <p style="margin:8px 0 0 0;font-size:13px;line-height:1.6;">
                                         start.bat ensures:<br>
-                                        • Unified project database (http://localhost:8000)<br>
+                                        • Unified project database (http://localhost:${_wwPort})<br>
                                         • Local AI server running with GPU support<br>
                                         • Fast model loading (2-3 seconds vs minutes)<br>
                                         • Proper CORS and security settings

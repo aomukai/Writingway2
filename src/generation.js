@@ -111,7 +111,9 @@
         const aiProvider = app?.aiProvider || 'anthropic';
         const aiApiKey = app?.aiApiKey || '';
         const aiModel = app?.aiModel || '';
-        const aiEndpoint = app?.aiEndpoint || 'http://localhost:8080';
+        const defaultAIPort = (typeof window.WritingwayConfig !== 'undefined' && window.WritingwayConfig.aiPort)
+            ? window.WritingwayConfig.aiPort : 8080;
+        const aiEndpoint = app?.aiEndpoint || 'http://localhost:' + defaultAIPort;
         const useProviderDefaults = app?.useProviderDefaults || false;
         const temperature = app?.temperature || 0.8;
         const maxTokens = app?.maxTokens || 300;

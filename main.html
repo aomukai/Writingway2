@@ -34,6 +34,7 @@
     <script defer src="src/template-loader.js"></script>
     <script defer src="src/workshop.js"></script>
     <script defer src="src/modules/workshop.js"></script>
+    <script defer src="src/config.js"></script>
     <script defer src="src/update-checker.js"></script>
     <script defer src="src/tts.js"></script>
     <script defer src="src/w1-importer.js"></script>
@@ -1498,11 +1499,13 @@
                         <label
                             style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text-primary);">Server
                             URL</label>
-                        <input type="text" x-model="aiEndpoint" value="http://localhost:8080"
+                        <input type="text" x-model="aiEndpoint" value=""
+                            x-init="if (!aiEndpoint) aiEndpoint = 'http://localhost:' + (typeof window.WritingwayConfig !== 'undefined' && window.WritingwayConfig.aiPort ? window.WritingwayConfig.aiPort : 8080)"
                             placeholder="http://localhost:8080"
                             style="width:100%;padding:8px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);border-radius:6px;">
-                        <p style="font-size:11px;color:var(--text-secondary);margin:4px 0 0 0;">The llama-server
-                            endpoint (usually localhost:8080)</p>
+                        <p class="text-xs text-zinc-500 mt-1" style="font-size:11px;color:var(--text-secondary);margin:4px 0 0 0;"
+                           x-text="'The llama-server endpoint (usually localhost:' + (typeof window.WritingwayConfig !== 'undefined' && window.WritingwayConfig.aiPort ? window.WritingwayConfig.aiPort : 8080) + ')'"
+                        >The llama-server endpoint (usually localhost:8080)</p>
                     </div>
                 </div>
 

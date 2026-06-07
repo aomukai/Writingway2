@@ -29,3 +29,5 @@ node_modules/
 projects/
 project-backups/
 REFACTORING.md
+# Local user config (ports, secrets, etc.)
+.env

@@ -52,7 +52,9 @@
                 app.loadingMessage = 'Connecting to local AI server...';
                 app.loadingProgress = 30;
 
-                const endpoint = app.aiEndpoint || 'http://localhost:8080';
+                const defaultAIPort = (typeof window.WritingwayConfig !== 'undefined' && window.WritingwayConfig.aiPort)
+                    ? window.WritingwayConfig.aiPort : 8080;
+                const endpoint = app.aiEndpoint || 'http://localhost:' + defaultAIPort;
                 const response = await fetch(endpoint + '/health', {
                     method: 'GET',
                     signal: AbortSignal.timeout(3000) // 3 second timeout
